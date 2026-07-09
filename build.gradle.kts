@@ -13,6 +13,8 @@ dependencies {
     compileOnlyApi(deps.annotations)
     testImplementation(deps.assertj.core)
 
+    modImplementation(deps.gtceu)
+
     // Mixin annotation processor for compile-time @Shadow/@Inject support
     if (useMixin) {
         annotationProcessor(variantOf(libs.mixin) { classifier("processor") })
