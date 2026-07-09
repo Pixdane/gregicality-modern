@@ -1,4 +1,4 @@
-package com.myname.mymodid;
+package com.pixdane.gregicality;
 
 public interface Foo {
 

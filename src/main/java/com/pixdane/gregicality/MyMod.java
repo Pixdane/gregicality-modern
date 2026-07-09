@@ -1,4 +1,4 @@
-package com.myname.mymodid;
+package com.pixdane.gregicality;
 
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
