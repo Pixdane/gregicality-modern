@@ -4,6 +4,10 @@ jspecify = "1.0.0"
 assertj = "3.27.7"
 
 jei = "15.20.0.133"
+scala = "2.13.12"
+scala3 = "3.3.1"
+cats = "2.10.0-kotori"
+scalablecatsforce = "3.3.1-build-0"
 gtceu = "7.5.3"
 
 [libraries]
@@ -14,6 +18,11 @@ assertj-core = { module = "org.assertj:assertj-core", version.ref = "assertj" }
 jei-common-api = { module = "mezz.jei:jei-1.20.1-common-api", version.ref = "jei" }
 jei-forge-api = { module = "mezz.jei:jei-1.20.1-forge-api", version.ref = "jei" }
 jei-forge-impl = { module = "mezz.jei:jei-1.20.1-forge", version.ref = "jei" }
+
+cats = { module = "org.typelevel:cats-core_3", version.ref = "cats" }
+scala = { module = "org.scala-lang:scala-library", version.ref = "scala" }
+scala3 = { module = "org.scala-lang:scala3-library_3", version.ref = "scala3" }
+scalablecatsforce = { module = "com.kotori316:scalablecatsforce", version.ref = "scalablecatsforce" }
 
 gtceu = { module = "com.gregtechceu.gtceu:gtceu-1.20.1", version.ref = "gtceu" }
 

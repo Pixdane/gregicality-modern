@@ -1,4 +1,5 @@
 plugins {
+    scala
     alias(conventions.plugins.repositories)
     alias(conventions.plugins.minecraft)
     alias(conventions.plugins.publish)
@@ -9,12 +10,6 @@ plugins {
 }
 
 dependencies {
-    compileOnlyApi(deps.jspecify)
-    compileOnlyApi(deps.annotations)
-    testImplementation(deps.assertj.core)
-
-    modImplementation(deps.gtceu)
-
     // Mixin annotation processor for compile-time @Shadow/@Inject support
     if (useMixin) {
         annotationProcessor(variantOf(libs.mixin) { classifier("processor") })
@@ -22,17 +17,23 @@ dependencies {
 
     // JEI for dev testing
     modRuntimeOnly(deps.bundles.jei)
+
+    compileOnly(deps.scala3)
+    compileOnly(deps.cats)
+    modRuntimeOnly(variantOf(deps.scalablecatsforce) {
+        classifier("with-library")
+    }) {
+        isTransitive = false
+    }
+
+    modImplementation(deps.gtceu)
+}
+
+tasks.compileScala {
+    dependsOn(tasks.processResources)
 }
 
 configurations {
     compileOnly {
-        // exclude GNU trove, FastUtil is superior and still updated
-        exclude(group = "net.sf.trove4j", module = "trove4j")
-        // exclude javax.annotation from findbugs, JetBrains annotations are superior
-        exclude(group = "com.google.code.findbugs", module = "jsr305")
-        // exclude scala as we don't use it for anything and causes import confusion
-        exclude(group = "org.scala-lang")
-        exclude(group = "org.scala-lang.modules")
-        exclude(group = "org.scala-lang.plugins")
     }
 }

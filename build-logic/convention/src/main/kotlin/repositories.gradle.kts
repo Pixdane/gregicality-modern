@@ -221,4 +221,19 @@ repositories {
         name = "LexForge Maven"
         url = uri("https://maven.minecraftforge.net")
     }
+
+    exclusiveContent { // ScalaLanguageProvider
+        forRepository {
+            maven {
+                name = "Azure-SLP"
+                url = uri("https://pkgs.dev.azure.com/Kotori316/minecraft/_packaging/mods/maven/v1")
+            }
+        }
+        filter {
+            includeModule("com.kotori316", "scalablecatsforce")
+            includeModule("org.typelevel", "cats-core_3")
+            includeModule("org.typelevel", "cats-kernel_3")
+            includeModule("org.typelevel", "cats-free_3")
+        }
+    }
 }

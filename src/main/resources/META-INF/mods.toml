@@ -1,12 +1,13 @@
-modLoader = "javafml"
-loaderVersion = "[47,)"
+modLoader="kotori_scala"
+loaderVersion = "[3.3.0,)"
 license = "GPL-3.0-only"
 
 [[mods]]
 modId = "@mod_id@"
 version = "@mod_version@"
 displayName = "@mod_name@"
-description = "MyMod for Minecraft 1.20.1"
+authors="Pixdane"
+description = "Gregicality in a modern fashion."
 logoFile = ""
 
 [[dependencies.@mod_id@]]
