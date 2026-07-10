@@ -38,3 +38,7 @@ configurations {
     compileOnly {
     }
 }
+
+sourceSets.main {
+    resources.srcDir("src/generated/resources")
+}
