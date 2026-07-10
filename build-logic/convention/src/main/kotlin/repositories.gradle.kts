@@ -127,18 +127,6 @@ repositories {
         }
     }
 
-    exclusiveContent { // tterrag - registrate
-        forRepository {
-            maven {
-                name = "Tterrag Maven"
-                url = uri("https://maven.tterrag.com/")
-            }
-        }
-        filter {
-            includeGroup("com.tterrag.registrate")
-        }
-    }
-
     exclusiveContent { // Curios
         forRepository {
             maven {

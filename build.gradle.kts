@@ -27,6 +27,7 @@ dependencies {
     }
 
     modImplementation(deps.gtceu)
+    modCompileOnly(deps.registrate)
 }
 
 tasks.compileScala {

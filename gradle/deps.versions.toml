@@ -9,6 +9,7 @@ scala3 = "3.3.1"
 cats = "2.10.0-kotori"
 scalablecatsforce = "3.3.1-build-0"
 gtceu = "7.5.3"
+registrate = "MC1.20-1.3.11"
 
 [libraries]
 annotations = { module = "org.jetbrains:annotations", version.ref = "annotations" }
@@ -25,6 +26,7 @@ scala3 = { module = "org.scala-lang:scala3-library_3", version.ref = "scala3" }
 scalablecatsforce = { module = "com.kotori316:scalablecatsforce", version.ref = "scalablecatsforce" }
 
 gtceu = { module = "com.gregtechceu.gtceu:gtceu-1.20.1", version.ref = "gtceu" }
+registrate = { module = "com.tterrag.registrate:Registrate", version.ref = "registrate" }
 
 [bundles]
 jei = ["jei-common-api", "jei-forge-api", "jei-forge-impl"]
