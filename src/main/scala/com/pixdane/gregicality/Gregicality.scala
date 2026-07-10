@@ -2,12 +2,12 @@ package com.pixdane.gregicality
 
 import com.gregtechceu.gtceu.api.GTCEuAPI
 import com.gregtechceu.gtceu.api.GTCEuAPI.RegisterEvent
-import com.gregtechceu.gtceu.api.data.chemical.material.event.{MaterialEvent, MaterialRegistryEvent, PostMaterialEvent}
 import com.gregtechceu.gtceu.api.machine.MachineDefinition
 import com.gregtechceu.gtceu.api.recipe.GTRecipeType
 import com.gregtechceu.gtceu.api.registry.registrate.GTRegistrate
 import com.gregtechceu.gtceu.api.sound.SoundEntry
 import com.pixdane.gregicality.client.Client
+import com.pixdane.gregicality.common.data.GCYMaterials
 import net.minecraft.resources.ResourceLocation
 import net.minecraftforge.api.distmarker.Dist
 import net.minecraftforge.eventbus.api.SubscribeEvent
@@ -32,6 +32,8 @@ object Gregicality:
 
     modEventBus.register(this)
 
+    GCYMaterials.init(LOGGER, modEventBus)
+
     modEventBus.addGenericListener(classOf[GTRecipeType], registerRecipeTypes)
     modEventBus.addGenericListener(classOf[MachineDefinition], registerMachines)
     modEventBus.addGenericListener(classOf[SoundEntry], registerSounds)
@@ -48,16 +50,6 @@ object Gregicality:
       LOGGER.info("HELLO from common setup")
     )
   }
-
-  @SubscribeEvent
-  def addMaterialRegistries(event: MaterialRegistryEvent): Unit =
-    GTCEuAPI.materialManager.createRegistry(MOD_ID)
-
-  @SubscribeEvent
-  def addMaterials(event: MaterialEvent): Unit = ()
-
-  @SubscribeEvent
-  def modifyMaterials(event: PostMaterialEvent): Unit = ()
 
   private def registerRecipeTypes(event: RegisterEvent[ResourceLocation, GTRecipeType]): Unit = ()
 
