@@ -1,0 +1,116 @@
+{
+  "scope": "Non-nuclear duplicate Gregicality materials whose original registry id differs from the GTCEu Modern 7.5.3 material id, plus chosen voltage-tier canonical id remaps.",
+  "policy": "For overlapping materials, GTCEu Modern ids are canonical. Old GCY ids are migration input keys only; do not re-register old ids.",
+  "source": {
+    "original": "/Users/pixdane/Documents/gregicality-TJFork/src/main/java/gregicadditions/GAMaterials.java",
+    "dedupe": "docs/gcy-material-dedupe.csv",
+    "differences": "docs/gcy-duplicate-material-differences.md"
+  },
+  "old_to_modern": {
+    "thalium": {
+      "original_field": "Thallium",
+      "modern_field": "Thallium",
+      "modern_id": "thallium",
+      "package": "elements/direct",
+      "note": "Original id typo."
+    },
+    "high_octane": {
+      "original_field": "HighOctaneGasoline",
+      "modern_field": "HighOctaneGasoline",
+      "modern_id": "high_octane_gasoline",
+      "package": "chemistry/petrochem_fuels",
+      "note": "Same field match, different registry id."
+    },
+    "ethyl_tert_butyl_ether": {
+      "original_field": "EthylTertButylEther",
+      "modern_field": "EthylTertButylEther",
+      "modern_id": "ethyl_tertbutyl_ether",
+      "package": "chemistry/organic",
+      "note": "GTCEu Modern drops the second underscore."
+    },
+    "phthalicacid": {
+      "original_field": "PhthalicAcid",
+      "modern_field": "PhthalicAcid",
+      "modern_id": "phthalic_acid",
+      "package": "chemistry/organic",
+      "note": "Original compact id."
+    },
+    "naphtalene": {
+      "original_field": "Naphthalene",
+      "modern_field": "Naphthalene",
+      "modern_id": "naphthalene",
+      "package": "chemistry/petrochem_fuels",
+      "note": "Original misspelling."
+    },
+    "sand": {
+      "original_field": "QuartzSand",
+      "modern_field": "QuartzSand",
+      "modern_id": "quartz_sand",
+      "package": "metallurgy/ore_processing",
+      "note": "Original id is generic."
+    },
+    "incoloy_ma": {
+      "original_field": "IncoloyMA956",
+      "modern_field": "IncoloyMA956",
+      "modern_id": "incoloy_ma_956",
+      "package": "metallurgy/alloys",
+      "note": "GCYM/GTCEu Modern material id is more specific."
+    },
+    "zeron": {
+      "original_field": "Zeron100",
+      "modern_field": "Zeron100",
+      "modern_id": "zeron_100",
+      "package": "metallurgy/alloys",
+      "note": "GCYM/GTCEu Modern material id is more specific."
+    },
+    "samarium_magnetic": {
+      "original_field": "SamariumMagnetic",
+      "modern_field": "SamariumMagnetic",
+      "modern_id": "magnetic_samarium",
+      "package": "metallurgy/alloys",
+      "note": "GTCEu Modern uses magnetic-prefix naming."
+    },
+    "umv_superconductor": {
+      "original_field": "UMVSuperconductor",
+      "modern_field": "UXVSuperconductor",
+      "modern_id": "uxv_superconductor",
+      "package": "voltage/superconductors",
+      "note": "Voltage-tier rename: GCY UMV has the same voltage value as GTM UXV."
+    },
+    "umv_superconductor_base": {
+      "original_field": "UMVSuperconductorBase",
+      "modern_field": "UXVSuperconductorBase",
+      "modern_id": "uxv_superconductor_base",
+      "package": "voltage/superconductors",
+      "note": "Voltage-tier rename: GCY UMV has the same voltage value as GTM UXV."
+    },
+    "uxv_superconductor": {
+      "original_field": "UXVSuperconductor",
+      "modern_field": "OpVSuperconductor",
+      "modern_id": "opv_superconductor",
+      "package": "voltage/superconductors",
+      "note": "Voltage-tier rename: GCY UXV has the same voltage value as GTM OpV."
+    },
+    "uxv_superconductor_base": {
+      "original_field": "UXVSuperconductorBase",
+      "modern_field": "OpVSuperconductorBase",
+      "modern_id": "opv_superconductor_base",
+      "package": "voltage/superconductors",
+      "note": "Voltage-tier rename: GCY UXV has the same voltage value as GTM OpV."
+    },
+    "UMV": {
+      "original_field": "UMV",
+      "modern_field": "UXV",
+      "modern_id": "uxv",
+      "package": "voltage/tier_markers",
+      "note": "Voltage-tier marker rename: GCY UMV maps to GTM UXV."
+    },
+    "UXV": {
+      "original_field": "UXV",
+      "modern_field": "OpV",
+      "modern_id": "opv",
+      "package": "voltage/tier_markers",
+      "note": "Voltage-tier marker rename: GCY UXV maps to GTM OpV."
+    }
+  }
+}
