@@ -36,8 +36,6 @@ legacyForge {
         }
     }
 
-    interfaceInjectionData.from(files("injected_interfaces/interfaces.json"))
-
     addModdingDependenciesTo(sourceSets.test.get())
 
     mods {
