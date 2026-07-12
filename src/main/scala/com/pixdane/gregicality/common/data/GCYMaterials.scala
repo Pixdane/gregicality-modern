@@ -2,7 +2,11 @@ package com.pixdane.gregicality.common.data
 
 import com.gregtechceu.gtceu.api.{GTCEuAPI, GTValues}
 import com.gregtechceu.gtceu.api.data.chemical.material.Material
-import com.gregtechceu.gtceu.api.data.chemical.material.event.{MaterialEvent, MaterialRegistryEvent, PostMaterialEvent}
+import com.gregtechceu.gtceu.api.data.chemical.material.event.{
+  MaterialEvent,
+  MaterialRegistryEvent,
+  PostMaterialEvent
+}
 import com.gregtechceu.gtceu.api.data.chemical.material.info.MaterialFlags.*
 import com.gregtechceu.gtceu.api.data.chemical.material.info.MaterialIconSet.*
 import com.gregtechceu.gtceu.api.data.chemical.material.properties.BlastProperty.GasTier
@@ -39,8 +43,9 @@ object GCYMaterials:
       .iconSet(METALLIC)
       .appendFlags(STD_METAL, GENERATE_PLATE, GENERATE_ROD)
       .components(Tantalum, 1, Hafnium, 1, Carbon, 1)
-      .blast(b => b
-        .temp(3900, GasTier.HIGH)
-        .blastStats(GTValues.VA(GTValues.EV), 1000)
+      .blast(b =>
+        b
+          .temp(3900, GasTier.HIGH)
+          .blastStats(GTValues.VA(GTValues.EV), 1000)
       )
       .buildAndRegister()

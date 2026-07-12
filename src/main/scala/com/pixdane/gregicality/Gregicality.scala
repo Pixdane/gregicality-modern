@@ -40,19 +40,26 @@ object Gregicality:
 
     REGISTRATE.registerRegistrate()
 
-    DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () => () => GregicalityClient.init(LOGGER, modEventBus))
+    DistExecutor.unsafeRunWhenOn(
+      Dist.CLIENT,
+      () => () => GregicalityClient.init(LOGGER, modEventBus)
+    )
 
   def id(path: String) = ResourceLocation(MOD_ID, path)
 
   @SubscribeEvent
   def onCommonSetup(event: FMLCommonSetupEvent): Unit = {
-    event.enqueueWork[Unit](() =>
-      LOGGER.info("HELLO from common setup")
-    )
+    event.enqueueWork[Unit](() => LOGGER.info("HELLO from common setup"))
   }
 
-  private def registerRecipeTypes(event: RegisterEvent[ResourceLocation, GTRecipeType]): Unit = ()
+  private def registerRecipeTypes(
+      event: RegisterEvent[ResourceLocation, GTRecipeType]
+  ): Unit = ()
 
-  private def registerMachines(event: RegisterEvent[ResourceLocation, MachineDefinition]): Unit = ()
+  private def registerMachines(
+      event: RegisterEvent[ResourceLocation, MachineDefinition]
+  ): Unit = ()
 
-  private def registerSounds(event: RegisterEvent[ResourceLocation, SoundEntry]): Unit = ()
+  private def registerSounds(
+      event: RegisterEvent[ResourceLocation, SoundEntry]
+  ): Unit = ()
