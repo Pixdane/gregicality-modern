@@ -28,7 +28,8 @@ class GtceuSourceScannersTest:
       GtceuSourceScanners.scanStaticMembers(
         StaticMemberSource(
           sourcePath = "MaterialIconSet.java",
-          ownerFqcn = "com.gregtechceu.gtceu.api.data.chemical.material.info.MaterialIconSet",
+          ownerFqcn =
+            "com.gregtechceu.gtceu.api.data.chemical.material.info.MaterialIconSet",
           memberTypeSimpleName = "MaterialIconSet"
         )
       )(archive)
@@ -36,18 +37,20 @@ class GtceuSourceScannersTest:
     assertEquals(Vector("DULL", "METALLIC"), refs.map(_.name))
     assertEquals(None, refs.head.id)
     assertEquals(
-      ScalaPath(Vector(
-        "com",
-        "gregtechceu",
-        "gtceu",
-        "api",
-        "data",
-        "chemical",
-        "material",
-        "info",
-        "MaterialIconSet",
-        "DULL"
-      )),
+      ScalaPath(
+        Vector(
+          "com",
+          "gregtechceu",
+          "gtceu",
+          "api",
+          "data",
+          "chemical",
+          "material",
+          "info",
+          "MaterialIconSet",
+          "DULL"
+        )
+      ),
       refs.head.path
     )
 
@@ -97,7 +100,8 @@ class GtceuSourceScannersTest:
     val refs =
       GtceuSourceScanners.scanGtMaterials(
         GtMaterialsSource(
-          declarationPath = "com/gregtechceu/gtceu/common/data/GTMaterials.java",
+          declarationPath =
+            "com/gregtechceu/gtceu/common/data/GTMaterials.java",
           assignmentDir = "com/gregtechceu/gtceu/common/data/materials/",
           ownerFqcn = "com.gregtechceu.gtceu.common.data.GTMaterials",
           namespace = "gtceu"
@@ -107,14 +111,16 @@ class GtceuSourceScannersTest:
     assertEquals(Vector("Carbon", "PolyvinylChloride"), refs.map(_.name))
     assertEquals(Some(ResourceId("gtceu", "carbon")), refs.head.id)
     assertEquals(
-      ScalaPath(Vector(
-        "com",
-        "gregtechceu",
-        "gtceu",
-        "common",
-        "data",
-        "GTMaterials",
-        "Carbon"
-      )),
+      ScalaPath(
+        Vector(
+          "com",
+          "gregtechceu",
+          "gtceu",
+          "common",
+          "data",
+          "GTMaterials",
+          "Carbon"
+        )
+      ),
       refs.head.path
     )

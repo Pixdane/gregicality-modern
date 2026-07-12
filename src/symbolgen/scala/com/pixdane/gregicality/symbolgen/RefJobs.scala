@@ -9,7 +9,8 @@ object RefJobs:
       id = "gt-materials",
       source = GtceuSourceScanners.scanGtMaterials(
         GtMaterialsSource(
-          declarationPath = "com/gregtechceu/gtceu/common/data/GTMaterials.java",
+          declarationPath =
+            "com/gregtechceu/gtceu/common/data/GTMaterials.java",
           assignmentDir = "com/gregtechceu/gtceu/common/data/materials/",
           ownerFqcn = "com.gregtechceu.gtceu.common.data.GTMaterials",
           namespace = "gtceu"
@@ -52,8 +53,7 @@ object RefJobs:
       valueType = "FluidAttributeRef",
       sourcePath =
         "com/gregtechceu/gtceu/api/fluids/attribute/FluidAttributes.java",
-      ownerFqcn =
-        "com.gregtechceu.gtceu.api.fluids.attribute.FluidAttributes",
+      ownerFqcn = "com.gregtechceu.gtceu.api.fluids.attribute.FluidAttributes",
       memberTypeSimpleName = "FluidAttribute"
     )
 

@@ -26,7 +26,9 @@ final case class GtMaterialsSource(
 )
 
 object GtceuSourceScanners:
-  def scanStaticMembers(input: StaticMemberSource)(archive: SourceArchive): Vector[ScannedRef] =
+  def scanStaticMembers(input: StaticMemberSource)(
+      archive: SourceArchive
+  ): Vector[ScannedRef] =
     val unit = archive.parse(input.sourcePath)
 
     unit
@@ -50,7 +52,9 @@ object GtceuSourceScanners:
         )
       }
 
-  def scanGtMaterials(input: GtMaterialsSource)(archive: SourceArchive): Vector[ScannedRef] =
+  def scanGtMaterials(input: GtMaterialsSource)(
+      archive: SourceArchive
+  ): Vector[ScannedRef] =
     val declarationUnit = archive.parse(input.declarationPath)
     val declaredMaterialNames = scanDeclaredMaterialNames(declarationUnit)
 
@@ -97,9 +101,9 @@ object GtceuSourceScanners:
 
   private def assignedName(assignment: AssignExpr): Option[String] =
     assignment.getTarget match
-      case name: NameExpr => Some(name.getNameAsString)
+      case name: NameExpr         => Some(name.getNameAsString)
       case field: FieldAccessExpr => Some(field.getNameAsString)
-      case _ => None
+      case _                      => None
 
   private def extractGtceuMaterialId(expression: Expression): Option[String] =
     val createsMaterialBuilder =
@@ -108,20 +112,22 @@ object GtceuSourceScanners:
         .asScala
         .exists(_.getType.asString == "Material.Builder")
 
-    Option.when(createsMaterialBuilder) {
-      expression
-        .findAll(classOf[MethodCallExpr])
-        .asScala
-        .toVector
-        .collectFirst {
-          case call
-              if call.getNameAsString == "id" &&
-                call.getScope.isPresent &&
-                call.getScope.get.toString == "GTCEu" &&
-                !call.getArguments.isEmpty =>
-            call.getArgument(0)
-        }
-        .collect { case literal: StringLiteralExpr =>
-          literal.asString
-        }
-    }.flatten
+    Option
+      .when(createsMaterialBuilder) {
+        expression
+          .findAll(classOf[MethodCallExpr])
+          .asScala
+          .toVector
+          .collectFirst {
+            case call
+                if call.getNameAsString == "id" &&
+                  call.getScope.isPresent &&
+                  call.getScope.get.toString == "GTCEu" &&
+                  !call.getArguments.isEmpty =>
+              call.getArgument(0)
+          }
+          .collect { case literal: StringLiteralExpr =>
+            literal.asString
+          }
+      }
+      .flatten

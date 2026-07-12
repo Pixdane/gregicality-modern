@@ -11,8 +11,12 @@ object SourceArchiveReader:
   def readJar(path: Path): SourceArchive =
     Using.resource(ZipFile(path.toFile)) { zip =>
       val files =
-        zip.entries().asScala
-          .filter(entry => !entry.isDirectory && entry.getName.endsWith(".java"))
+        zip
+          .entries()
+          .asScala
+          .filter(entry =>
+            !entry.isDirectory && entry.getName.endsWith(".java")
+          )
           .map { entry =>
             val text =
               Using.resource(zip.getInputStream(entry)) { input =>

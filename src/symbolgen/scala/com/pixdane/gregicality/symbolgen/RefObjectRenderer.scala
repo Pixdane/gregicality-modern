@@ -9,9 +9,8 @@ object RefObjectRenderer:
     val code = refObjectLayout(job.target, refs).apply(entries)
 
     GeneratedScalaFile(
-      relativePath =
-        job.target.outputPackage.replace('.', '/') + "/" +
-          job.target.outputObject + ".scala",
+      relativePath = job.target.outputPackage.replace('.', '/') + "/" +
+        job.target.outputObject + ".scala",
       content = code.render
     )
 
@@ -55,7 +54,10 @@ object RefObjectRenderer:
       suffix = ScalaCode.line("") ++ renderAllVector(target, refs)
     )
 
-  private def renderAllVector(target: RefObjectTarget, refs: Vector[ScannedRef]): ScalaCode =
+  private def renderAllVector(
+      target: RefObjectTarget,
+      refs: Vector[ScannedRef]
+  ): ScalaCode =
     if refs.isEmpty then
       ScalaCode.lines(
         s"  def all: Vector[${target.valueType}] =",
@@ -72,7 +74,9 @@ object RefObjectRenderer:
         else
           Vector(
             s"  def all: Vector[${target.valueType}] =",
-            chunks.indices.map(index => s"all$index").mkString("    ", " ++ ", "")
+            chunks.indices
+              .map(index => s"all$index")
+              .mkString("    ", " ++ ", "")
           )
 
       val chunkLines =
@@ -92,7 +96,7 @@ object RefObjectRenderer:
   private def quote(value: String): String =
     "\"" + value.flatMap {
       case '\\' => "\\\\"
-      case '"' => "\\\""
+      case '"'  => "\\\""
       case '\n' => "\\n"
       case '\r' => "\\r"
       case '\t' => "\\t"
@@ -105,29 +109,35 @@ object RefSupportRenderer:
   def generateFile(): GeneratedScalaFile =
     GeneratedScalaFile(
       relativePath = PackageName.replace('.', '/') + "/Refs.scala",
-      content = ScalaCode.lines(
-        s"package $PackageName",
-        "",
-        "final case class ScalaPath(parts: Vector[String])",
-        "",
-        "final case class ResourceId(namespace: String, path: String)",
-        "",
-        "final case class MaterialRef(id: ResourceId, path: ScalaPath)",
-        "",
-        "final case class ElementRef(path: ScalaPath)",
-        "",
-        "final case class MaterialIconRef(path: ScalaPath)",
-        "",
-        "final case class MaterialFlagRef(path: ScalaPath)",
-        "",
-        "final case class FluidAttributeRef(path: ScalaPath)",
-        "",
-        "final case class TagPrefixRef(path: ScalaPath)"
-      ).render
+      content = ScalaCode
+        .lines(
+          s"package $PackageName",
+          "",
+          "final case class ScalaPath(parts: Vector[String])",
+          "",
+          "final case class ResourceId(namespace: String, path: String)",
+          "",
+          "final case class MaterialRef(id: ResourceId, path: ScalaPath)",
+          "",
+          "final case class ElementRef(path: ScalaPath)",
+          "",
+          "final case class MaterialIconRef(path: ScalaPath)",
+          "",
+          "final case class MaterialFlagRef(path: ScalaPath)",
+          "",
+          "final case class FluidAttributeRef(path: ScalaPath)",
+          "",
+          "final case class TagPrefixRef(path: ScalaPath)"
+        )
+        .render
     )
 
 object RefAggregateRenderer:
-  def generateFile(outputPackage: String, outputObject: String, exports: Vector[String]): GeneratedScalaFile =
+  def generateFile(
+      outputPackage: String,
+      outputObject: String,
+      exports: Vector[String]
+  ): GeneratedScalaFile =
     val exportLines =
       exports.sorted.map { name =>
         s"  export $name.{all as ${allAlias(name)}, *}"
@@ -140,7 +150,8 @@ object RefAggregateRenderer:
       ) ++ exportLines
 
     GeneratedScalaFile(
-      relativePath = outputPackage.replace('.', '/') + "/" + outputObject + ".scala",
+      relativePath =
+        outputPackage.replace('.', '/') + "/" + outputObject + ".scala",
       content = ScalaCode
         .lines(lines*)
         .render
