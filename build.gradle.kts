@@ -30,15 +30,26 @@ dependencies {
     modCompileOnly(deps.registrate)
 }
 
-tasks.compileScala {
-    dependsOn(tasks.processResources)
-}
-
-configurations {
-    compileOnly {
-    }
-}
-
 sourceSets.main {
     resources.srcDir("src/generated/resources")
+}
+
+val codegen = sourceSets.create("codegen") {
+    scala.srcDir("src/codegen/scala")
+    resources.srcDir("src/codegen/resources")
+
+    compileClasspath += sourceSets.main.get().compileClasspath
+    runtimeClasspath += output + compileClasspath
+}
+
+val runCodegen = tasks.register<JavaExec>("runCodegen") {
+    description = "Run codegen"
+    dependsOn(tasks.named(codegen.classesTaskName))
+    classpath = codegen.runtimeClasspath
+    mainClass.set("com.pixdane.gregicality.codegen.main")
+}
+
+tasks.compileScala {
+    dependsOn(tasks.processResources)
+    dependsOn(runCodegen)
 }
