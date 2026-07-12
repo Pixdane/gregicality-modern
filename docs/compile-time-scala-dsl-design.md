@@ -466,7 +466,7 @@ For icon sets, flags, fluid attributes, elements, and tag prefixes, the first
 implementation can be path-only:
 
 ```scala
-MaterialIconSetRef.METALLIC
+MaterialIconSetsRef.METALLIC
 // MaterialIconRef(path = ScalaPath(..., "MaterialIconSet", "METALLIC"))
 ```
 
@@ -475,11 +475,16 @@ same typed refs:
 
 ```scala
 import com.pixdane.gregicality.codegen.dsl.refs.GTMaterialsRef.*
-import com.pixdane.gregicality.codegen.dsl.refs.MaterialIconSetRef.*
+import com.pixdane.gregicality.codegen.dsl.refs.MaterialIconSetsRef.*
 
 components := components(Carbon -> 22, Hydrogen -> 10)
 iconSet := METALLIC
 ```
+
+For convenience, generated Scala 3 `export` statements may also expose all GTCEu
+refs through `GTRefs.*`. Domain-specific imports remain useful when name
+collisions appear. The aggregate object must rename each exported `all` value,
+because `Vector[...]` erasure otherwise creates duplicate `all` definitions.
 
 The generated `Carbon` above is a `MaterialRef`, not a runtime GTCEu
 `Material`. This gives normal Scala completion without importing
@@ -654,10 +659,10 @@ diagnostics or sanity checks.
 The important rule is:
 
 ```text
-read GTCEu sources/class artifacts
-  -> discover public static fields and ids
-  -> generate typed Scala ref objects for DSL completion
-  -> optionally write a diagnostic symbol table for validation/debugging
+read GTCEu sources jar
+  -> discover public static fields and material ids
+  -> normalize them as ScannedRef values
+  -> render typed Scala ref objects for DSL completion
 ```
 
 Do not use `Class.forName`, `GTMaterials.*`, `MaterialIconSet.ICON_SETS`, or
@@ -666,105 +671,231 @@ other runtime/static-object access in the generator. Even when an ordinary
 execution phases depend on GTCEu runtime objects. The generated ref objects
 should provide the same completion surface while returning pure refs.
 
-Initial scanner input:
+Use one Gradle task and one `symbolgen` entrypoint:
+
+- source set: `symbolgen`
+- source path: `src/symbolgen/scala`
+- package: `com.pixdane.gregicality.symbolgen`
+- entrypoint: `com.pixdane.gregicality.symbolgen.GenerateRef`
+- Gradle task: `generateGtRefs`
+- generated source directory: `build/generated/sources/gcyDslRefs/scala/main`
+- generated refs package: `com.pixdane.gregicality.codegen.dsl.refs`
+- ref value package: `com.pixdane.gregicality.codegen.dsl.ref`
+
+The generated refs package contains completion surfaces such as:
 
 ```scala
-final case class RefScanSpec(
-  ownerClass: JavaFqcn,
-  memberType: JavaFqcn,
-  outputPackage: ScalaPackage,
-  outputObject: ScalaIdent,
-  refType: ScalaTypeName,
-  scanKind: RefScanKind
-)
+object GTMaterialsRef
+object GTElementsRef
+object MaterialIconSetsRef
+object FluidAttributesRef
+object MaterialFlagsRef
 
-enum RefScanKind:
-  case MaterialWithId(namespace: String)
-  case StaticPathOnly
+object GTRefs:
+  export GTMaterialsRef.{all as allGTMaterials, *}
+  export GTElementsRef.{all as allGTElements, *}
+  export MaterialIconSetsRef.{all as allMaterialIconSets, *}
+  export FluidAttributesRef.{all as allFluidAttributes, *}
+  export MaterialFlagsRef.{all as allMaterialFlags, *}
 ```
 
-Given:
-
-```text
-ownerClass = com.gregtechceu.gtceu.api.data.chemical.material.info.MaterialIconSet
-memberType = com.gregtechceu.gtceu.api.data.chemical.material.info.MaterialIconSet
-outputObject = MaterialIconSetRef
-```
-
-the scanner extracts all static fields of that type under the owner class and
-generates:
+The singular names remain value types in `codegen.dsl.ref`:
 
 ```scala
-package com.pixdane.gregicality.codegen.dsl.refs
+final case class ScalaPath(parts: Vector[String])
+final case class ResourceId(namespace: String, path: String)
 
-object MaterialIconSetRef:
-  val DULL: MaterialIconRef =
-    MaterialIconRef(ScalaPath(..., "MaterialIconSet", "DULL"))
-
-  val METALLIC: MaterialIconRef =
-    MaterialIconRef(ScalaPath(..., "MaterialIconSet", "METALLIC"))
-
-  val SHINY: MaterialIconRef =
-    MaterialIconRef(ScalaPath(..., "MaterialIconSet", "SHINY"))
-
-  val all: Vector[MaterialIconRef] =
-    Vector(DULL, METALLIC, SHINY)
+final case class MaterialRef(id: ResourceId, path: ScalaPath)
+final case class ElementRef(path: ScalaPath)
+final case class MaterialIconRef(path: ScalaPath)
+final case class MaterialFlagRef(path: ScalaPath)
+final case class FluidAttributeRef(path: ScalaPath)
+final case class TagPrefixRef(path: ScalaPath)
 ```
 
-For static path-only refs, no canonical id is required. The generated Scala ref
-object is the source consumed by DSL and codegen. The generator may optionally
-write a diagnostic table:
+The generator normalizes every discovered symbol to one simple shape:
 
 ```scala
-final case class StaticRefSymbol(
-  exportedName: ScalaIdent,
-  targetPath: ScalaPath
+final case class ScannedRef(
+  name: String,
+  id: Option[ResourceId],
+  path: ScalaPath
 )
 ```
 
-For the same example, `targetPath = MaterialIconSet.METALLIC`.
+`ScannedRef` is an internal `symbolgen` model. Generated Scala code uses the
+`codegen.dsl.ref` value types shown above. Material refs set `id = Some(...)`;
+path-only refs set `id = None`.
 
-For materials, the scanner should prefer `gtceu-*-sources.jar` so it can read
-the true registry id from builder calls such as:
+For materials:
+
+```scala
+ScannedRef(
+  name = "Carbon",
+  id = Some(ResourceId("gtceu", "carbon")),
+  path = ScalaPath(Vector(
+    "com", "gregtechceu", "gtceu", "common", "data", "GTMaterials", "Carbon"
+  ))
+)
+```
+
+For static path-only refs:
+
+```scala
+ScannedRef(
+  name = "METALLIC",
+  id = None,
+  path = ScalaPath(Vector(
+    "com", "gregtechceu", "gtceu", "api", "data", "chemical", "material",
+    "info", "MaterialIconSet", "METALLIC"
+  ))
+)
+```
+
+Keep the first implementation intentionally narrow. The source reader loads the
+GTCEu sources jar into memory as `Map[String, String]`. Scanners parse only the
+needed Java files with JavaParser and then walk the AST for field declarations
+and material builder assignments. If GTCEu source shapes drift, update the
+scanner for that source shape without changing the `ScannedRef` and renderer
+boundary.
+
+Each generation job is a source plus a target:
+
+```scala
+final case class SourceArchive(files: Map[String, String])
+
+enum RefRenderKind:
+  case WithId
+  case PathOnly
+
+final case class RefObjectTarget(
+  outputPackage: String,
+  outputObject: String,
+  valueType: String,
+  renderKind: RefRenderKind
+)
+
+final case class RefJob(
+  id: String,
+  source: SourceArchive => Vector[ScannedRef],
+  target: RefObjectTarget
+)
+```
+
+The first jobs are:
+
+| Job id | Output object | Value type | Render kind | Source shape |
+| --- | --- | --- | --- | --- |
+| `gt-materials` | `GTMaterialsRef` | `MaterialRef` | `WithId` | `GTMaterials.java` declarations plus `common/data/materials/*.java` assignments |
+| `gt-elements` | `GTElementsRef` | `ElementRef` | `PathOnly` | static `Element` fields in `GTElements.java` |
+| `material-icon-sets` | `MaterialIconSetsRef` | `MaterialIconRef` | `PathOnly` | static `MaterialIconSet` fields in `MaterialIconSet.java` |
+| `fluid-attributes` | `FluidAttributesRef` | `FluidAttributeRef` | `PathOnly` | static `FluidAttribute` fields in `FluidAttributes.java` |
+| `material-flags` | `MaterialFlagsRef` | `MaterialFlagRef` | `PathOnly` | static `MaterialFlag` fields in `MaterialFlags.java` |
+
+For static jobs, scan public static fields of the configured type under the
+configured owner source. For material refs, scan `GTMaterials.java` for declared
+material fields and scan `common/data/materials/*.java` for assignments such as:
 
 ```java
 Carbon = new Material.Builder(GTCEu.id("carbon"))
 ```
 
-This avoids relying on a lossy field-name conversion like `Carbon -> carbon` or
-`PolyvinylChloride -> polyvinyl_chloride`. If sources are unavailable, an ASM
-classfile scanner may be added later as a fallback by matching bytecode constants
-and `putstatic` targets. Running GTCEu just to discover ids should be the last
-resort.
+Then join by field name. This preserves the true registry id and avoids relying
+on lossy field-name conversion such as `PolyvinylChloride ->
+polyvinyl_chloride`. If sources are unavailable, an ASM fallback may be added
+later. Running GTCEu just to discover ids should remain the last resort.
 
-First useful scan specs:
+Rendering is also a small composition:
 
-| Output object | Owner class | Member type | Scan kind |
-| --- | --- | --- | --- |
-| `GTMaterialsRef` | `GTMaterials` | `Material` | `MaterialWithId("gtceu")` |
-| `GTElementsRef` | `GTElements` | `Element` | `StaticPathOnly` |
-| `MaterialIconSetRef` | `MaterialIconSet` | `MaterialIconSet` | `StaticPathOnly` |
-| `FluidAttributeRef` | `FluidAttributes` | fluid attribute type | `StaticPathOnly` |
-| `MaterialFlagRef` | `MaterialFlags` | `MaterialFlag` | `StaticPathOnly` |
+```text
+SourceArchive
+  -> job.source
+  -> Vector[ScannedRef]
+  -> sort by name
+  -> map(renderRef(target))
+  -> CodeLayout(prefix, separator, suffix)
+  -> GeneratedScalaFile
+```
+
+`renderRef(target)` is a curried function:
+
+```scala
+def renderRef(target: RefObjectTarget)(ref: ScannedRef): ScalaCode
+```
+
+`RefRenderKind.WithId` renders:
+
+```scala
+def Carbon: MaterialRef =
+  MaterialRef(ResourceId("gtceu", "carbon"), ScalaPath(Vector(...)))
+```
+
+`RefRenderKind.PathOnly` renders:
+
+```scala
+def METALLIC: MaterialIconRef =
+  MaterialIconRef(ScalaPath(Vector(...)))
+```
+
+Use a tiny `ScalaCode` monoid plus layout combinators instead of a writer monad:
+
+```scala
+final case class ScalaCode(lines: Vector[String]):
+  def ++(other: ScalaCode): ScalaCode =
+    ScalaCode(lines ++ other.lines)
+
+final case class CodeLayout(
+  prefix: ScalaCode,
+  separator: ScalaCode,
+  suffix: ScalaCode
+):
+  def apply(items: Vector[ScalaCode]): ScalaCode =
+    prefix ++ ScalaCode.joinWith(separator)(items) ++ suffix
+```
+
+The object layout adds package/import/object headers, blank-line separators
+between refs, and the final `all` vector. Individual ref renderers do not know
+whether they are first, middle, or last.
+
+Generated refs use parameterless `def`s instead of eager `val`s. Large objects
+such as `GTMaterialsRef` would otherwise place hundreds of allocations in the
+Scala object static initializer and can exceed the JVM method-size limit. The
+`all` accessor is also rendered as a `def` and split into private chunk methods
+when needed:
+
+```scala
+def all: Vector[MaterialRef] =
+  all0 ++ all1
+
+private def all0: Vector[MaterialRef] =
+  Vector(AceticAcid, Acetone, ...)
+```
+
+```scala
+def generateFile(job: RefJob, archive: SourceArchive): GeneratedScalaFile =
+  val refs = job.source(archive).sortBy(_.name)
+  val entries = refs.map(renderRef(job.target))
+  val code = refObjectLayout(job.target, refs).apply(entries)
+
+  GeneratedScalaFile(
+    relativePath =
+      job.target.outputPackage.replace('.', '/') + "/" +
+        job.target.outputObject + ".scala",
+    content = code.render
+  )
+```
 
 Flag presets such as `STD_METAL`, `EXT_METAL`, and `EXT2_METAL` live on
 `GTMaterials` and are collections of flags, not single `MaterialFlag` values.
-They should use a separate preset ref type or a separate scan spec.
+They are out of scope for the first generated-ref slice. Add them later as a
+separate target and render kind if the DSL needs preset completion.
 
-Keep scanner stages pure:
+Only two places perform I/O:
 
-```scala
-type Result[A] = ValidatedNec[ScanError, A]
+- `SourceArchiveReader.read(sourcesJar)` reads the jar into `SourceArchive`.
+- `GeneratedSourceWriter.sync(outDir, files)` owns the generated refs directory.
 
-def parseSources(archive: SourceArchive): Result[Vector[JavaSourceFile]]
-def scanMembers(spec: RefScanSpec, sources: Vector[JavaSourceFile]): Result[Vector[StaticMemberSymbol]]
-def planRefs(spec: RefScanSpec, members: Vector[StaticMemberSymbol]): Result[RefGenerationPlan]
-def renderRefObject(plan: RefGenerationPlan): String
-```
-
-Only the Gradle task reads archives and writes generated files. The task should
-declare the GTCEu sources jar/class jar, scan specs, scanner code, and output
-directory as inputs/outputs so Gradle can cache unchanged results.
+Everything between those two boundaries should be ordinary data transformation.
 
 Recommended source-set graph:
 
@@ -780,8 +911,9 @@ symbolgen
 ```
 
 `symbolgen` contains only the artifact scanner and ref renderer. It must not
-depend on generated refs. `codegen` and `gcyDsl` may depend on the generated ref
-source directory.
+depend on generated refs or on the `codegen` source set. It renders source text
+that imports the `codegen.dsl.ref` value types. `codegen` and `gcyDsl` may depend
+on the generated ref source directory.
 
 Generated refs should be available to both:
 
@@ -820,11 +952,19 @@ val generateGtRefs = tasks.register<JavaExec>("generateGtRefs") {
 
     dependsOn(tasks.named(symbolgen.classesTaskName))
 
-    mainClass.set("com.pixdane.gregicality.symbolgen.GenerateGtRefs")
+    mainClass.set("com.pixdane.gregicality.symbolgen.GenerateRef")
     classpath = symbolgen.runtimeClasspath
 
-    // Implementation should narrow this to the resolved GTCEu sources/class jar.
-    inputs.files(configurations.named("modImplementation"))
+    argumentProviders.add(
+        objects.newInstance(GenerateGtRefsArguments::class.java).apply {
+            sourcesJar.set(gtceuSourcesJar)
+            outputDir.set(generatedGtRefsDir)
+        }
+    )
+
+    inputs.file(gtceuSourcesJar)
+        .withPropertyName("gtceuSourcesJar")
+        .withPathSensitivity(PathSensitivity.NONE)
     outputs.dir(generatedGtRefsDir)
 }
 
@@ -893,12 +1033,12 @@ generated files.
 
 Generator requirements:
 
-- stable output path per DSL package;
+- stable output path per generated ref object;
 - deterministic sort order;
-- write-if-changed;
-- stale output deletion;
+- the generated refs directory is owned by `generateGtRefs`;
+- stale output deletion when a ref object disappears;
 - no timestamp- or host-path-dependent output;
-- no one-file-for-everything material mega-source.
+- no runtime GTCEu access.
 
 ## Macro Usage
 
@@ -963,9 +1103,10 @@ use small fixtures in `src/test/resources`.
 2. Add `generateGtRefs` for the first GTCEu generated-ref slice:
    - `GTMaterialsRef`;
    - `GTElementsRef`;
-   - `MaterialIconSetRef`;
-   - `FluidAttributeRef`;
-   - `MaterialFlagRef`.
+   - `MaterialIconSetsRef`;
+   - `FluidAttributesRef`;
+   - `MaterialFlagsRef`;
+   - `GTRefs`.
 3. Add `codegen` source set with material DSL API, ADTs, validation, planning,
    and rendering.
 4. Add `gcyDsl` source set with one material package containing the current test
