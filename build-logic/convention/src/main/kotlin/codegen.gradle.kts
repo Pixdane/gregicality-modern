@@ -105,7 +105,6 @@ val codegen = sourceSets.create("codegen") {
     resources.srcDir("src/codegen/resources")
 
     compileClasspath += core.output
-    compileClasspath += symbolgen.output
     compileClasspath += sourceSets.main.get().compileClasspath
     runtimeClasspath += output + compileClasspath
 }
