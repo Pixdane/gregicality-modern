@@ -3,6 +3,7 @@ package com.pixdane.gregicality.symbolgen.io
 import java.nio.charset.StandardCharsets
 import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.Files
+import java.nio.file.LinkOption.NOFOLLOW_LINKS
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption.ATOMIC_MOVE
 import java.util.UUID
@@ -22,6 +23,8 @@ object GeneratedSourceWriter:
     }
     validateFiles(files)
     Files.createDirectories(parent)
+
+    if outputMatches(normalizedOutputDir, files) then return
 
     val stagingDir = Files.createTempDirectory(
       parent,
@@ -72,6 +75,55 @@ object GeneratedSourceWriter:
       throw new IllegalArgumentException(
         s"duplicate generated source paths: ${duplicatePaths.mkString(", ")}"
       )
+
+  private def outputMatches(
+      outputDir: Path,
+      files: Vector[GeneratedScalaFile]
+  ): Boolean =
+    if !Files.isDirectory(outputDir, NOFOLLOW_LINKS) then false
+    else
+      val expectedFiles = files
+        .map(file => Path.of(file.relativePath).normalize -> file.content)
+        .toMap
+      val expectedDirectories =
+        expectedFiles.keySet.flatMap(parentPaths)
+
+      Using.resource(Files.walk(outputDir)) { stream =>
+        val entries = stream
+          .iterator()
+          .asScala
+          .filterNot(_ == outputDir)
+          .map(path => outputDir.relativize(path) -> path)
+          .toVector
+        val containsUnsupportedEntry = entries.exists { case (_, path) =>
+          !Files.isRegularFile(path, NOFOLLOW_LINKS) &&
+          !Files.isDirectory(path, NOFOLLOW_LINKS)
+        }
+        val actualFiles = entries.collect {
+          case (relativePath, path)
+              if Files.isRegularFile(path, NOFOLLOW_LINKS) =>
+            relativePath
+        }.toSet
+        val actualDirectories = entries.collect {
+          case (relativePath, path)
+              if Files.isDirectory(path, NOFOLLOW_LINKS) =>
+            relativePath
+        }.toSet
+
+        !containsUnsupportedEntry &&
+        actualFiles == expectedFiles.keySet &&
+        actualDirectories == expectedDirectories &&
+        expectedFiles.forall { case (relativePath, expectedContent) =>
+          Files
+            .readAllBytes(outputDir.resolve(relativePath))
+            .sameElements(expectedContent.getBytes(StandardCharsets.UTF_8))
+        }
+      }
+
+  private def parentPaths(path: Path): Set[Path] =
+    Option(path.getParent) match
+      case Some(parent) => parentPaths(parent) + parent
+      case None         => Set.empty
 
   private def writeFiles(
       outputDir: Path,

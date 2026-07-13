@@ -3,6 +3,7 @@ package com.pixdane.gregicality.symbolgen
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.attribute.FileTime
 
 import com.pixdane.gregicality.symbolgen.io.GeneratedSourceWriter
 import com.pixdane.gregicality.symbolgen.model.GeneratedScalaFile
@@ -36,6 +37,41 @@ class GeneratedSourceWriterTest:
         outputDir.resolve("pkg/Fresh.scala"),
         StandardCharsets.UTF_8
       )
+    )
+
+  @Test
+  def syncDoesNotRewriteUnchangedOutput(): Unit =
+    val outputDir = tempDir.resolve("generated")
+    val generatedFile = outputDir.resolve("pkg/Fresh.scala")
+    val files = Vector(GeneratedScalaFile("pkg/Fresh.scala", "fresh\n"))
+
+    GeneratedSourceWriter.sync(outputDir, files)
+
+    Files.setLastModifiedTime(generatedFile, FileTime.fromMillis(1_000_000))
+    Files.setLastModifiedTime(outputDir, FileTime.fromMillis(2_000_000))
+    val generatedFileTime = Files.getLastModifiedTime(generatedFile)
+    val outputDirTime = Files.getLastModifiedTime(outputDir)
+
+    GeneratedSourceWriter.sync(outputDir, files)
+
+    assertEquals(generatedFileTime, Files.getLastModifiedTime(generatedFile))
+    assertEquals(outputDirTime, Files.getLastModifiedTime(outputDir))
+
+  @Test
+  def syncRewritesChangedContent(): Unit =
+    val outputDir = tempDir.resolve("generated")
+    val generatedFile = outputDir.resolve("pkg/Fresh.scala")
+    Files.createDirectories(generatedFile.getParent)
+    Files.writeString(generatedFile, "old\n", StandardCharsets.UTF_8)
+
+    GeneratedSourceWriter.sync(
+      outputDir,
+      Vector(GeneratedScalaFile("pkg/Fresh.scala", "fresh\n"))
+    )
+
+    assertEquals(
+      "fresh\n",
+      Files.readString(generatedFile, StandardCharsets.UTF_8)
     )
 
   @Test
