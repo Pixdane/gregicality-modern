@@ -1,6 +1,6 @@
 package com.pixdane.gregicality.symbolgen.scan
 
-import com.pixdane.gregicality.codegen.dsl.model.{ResourceId, ScalaSymbolPath}
+import com.pixdane.gregicality.core.refs.{ResourceId, ScalaSymbolPath}
 
 sealed trait ScannedRef:
   def name: String

@@ -6,7 +6,7 @@ import com.pixdane.gregicality.symbolgen.scan.{
   ScannedPathRef,
   ScannedRegisteredMaterialRef
 }
-import com.pixdane.gregicality.codegen.dsl.model.{ResourceId, ScalaSymbolPath}
+import com.pixdane.gregicality.core.refs.{ResourceId, ScalaSymbolPath}
 import com.pixdane.gregicality.symbolgen.render.RefObjectRenderer
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -16,7 +16,7 @@ class RefObjectRendererTest:
   @Test
   def renderWithIdRefObject(): Unit =
     val target = RefObjectTarget(
-      outputPackage = "com.pixdane.gregicality.codegen.dsl.refs.gtceu",
+      outputPackage = "com.pixdane.gregicality.core.refs.gtceu",
       outputObject = "GTMaterialsRef",
       valueType = "MaterialRef"
     )
@@ -46,13 +46,13 @@ class RefObjectRendererTest:
     val file = RefObjectRenderer.generateMaterialFile(target, refs)
 
     assertEquals(
-      "com/pixdane/gregicality/codegen/dsl/refs/gtceu/GTMaterialsRef.scala",
+      "com/pixdane/gregicality/core/refs/gtceu/GTMaterialsRef.scala",
       file.relativePath
     )
     assertEquals(
-      """|package com.pixdane.gregicality.codegen.dsl.refs.gtceu
+      """|package com.pixdane.gregicality.core.refs.gtceu
          |
-         |import com.pixdane.gregicality.codegen.dsl.model.*
+         |import com.pixdane.gregicality.core.refs.*
          |
          |object GTMaterialsRef:
          |  def Carbon: MaterialRef =
@@ -93,7 +93,7 @@ class RefObjectRendererTest:
       )
     }
     val target = RefObjectTarget(
-      outputPackage = "com.pixdane.gregicality.codegen.dsl.refs.gtceu",
+      outputPackage = "com.pixdane.gregicality.core.refs.gtceu",
       outputObject = "GTMaterialsRef",
       valueType = "MaterialRef"
     )
@@ -122,7 +122,7 @@ class RefObjectRendererTest:
   @Test
   def renderPathOnlyRefObject(): Unit =
     val target = RefObjectTarget(
-      outputPackage = "com.pixdane.gregicality.codegen.dsl.refs.gtceu",
+      outputPackage = "com.pixdane.gregicality.core.refs.gtceu",
       outputObject = "MaterialIconSetsRef",
       valueType = "MaterialIconRef"
     )

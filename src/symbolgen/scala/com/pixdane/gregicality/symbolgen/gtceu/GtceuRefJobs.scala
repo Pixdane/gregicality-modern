@@ -4,7 +4,7 @@ import com.pixdane.gregicality.symbolgen.render.RefObjectTarget
 
 object GtceuRefJobs:
   private val OutputPackage =
-    "com.pixdane.gregicality.codegen.dsl.refs.gtceu"
+    "com.pixdane.gregicality.core.refs.gtceu"
 
   private val gtMaterials: GtceuRefJob =
     GtceuRefJob.Materials(

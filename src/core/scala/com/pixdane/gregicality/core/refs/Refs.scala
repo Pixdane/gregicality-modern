@@ -1,4 +1,4 @@
-package com.pixdane.gregicality.codegen.dsl.model
+package com.pixdane.gregicality.core.refs
 
 final case class ScalaSymbolPath(parts: Vector[String]):
   def append(part: String): ScalaSymbolPath =
@@ -22,5 +22,3 @@ final case class MaterialIconRef(path: ScalaSymbolPath)
 final case class MaterialFlagRef(path: ScalaSymbolPath)
 
 final case class FluidAttributeRef(path: ScalaSymbolPath)
-
-final case class TagPrefixRef(path: ScalaSymbolPath)

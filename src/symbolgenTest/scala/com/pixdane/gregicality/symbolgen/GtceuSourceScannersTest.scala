@@ -4,7 +4,7 @@ import com.pixdane.gregicality.symbolgen.archive.SourceArchive
 import com.pixdane.gregicality.symbolgen.gtceu.*
 import com.pixdane.gregicality.symbolgen.scan.ScannedMaterialRef
 import com.pixdane.gregicality.symbolgen.scan.ScannedPathRef
-import com.pixdane.gregicality.codegen.dsl.model.{ResourceId, ScalaSymbolPath}
+import com.pixdane.gregicality.core.refs.{ResourceId, ScalaSymbolPath}
 
 import cats.data.Ior
 import org.junit.jupiter.api.Assertions.{assertEquals, assertTrue, fail}

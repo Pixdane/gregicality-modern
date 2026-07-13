@@ -29,10 +29,18 @@ sourceSets.main {
     resources.srcDir("src/generated/resources")
 }
 
+val core = sourceSets.create("core") {
+    scala.srcDir("src/core/scala")
+    resources.srcDir("src/core/resources")
+
+    runtimeClasspath += output + compileClasspath
+}
+
 val symbolgen = sourceSets.create("symbolgen") {
     scala.srcDir("src/symbolgen/scala")
     resources.srcDir("src/symbolgen/resources")
 
+    compileClasspath += core.output
     runtimeClasspath += output + compileClasspath
 }
 
@@ -57,6 +65,8 @@ val gtceuSources = configurations.create("gtceuSources") {
 }
 
 dependencies {
+    add(core.implementationConfigurationName, deps.scala3)
+
     add(symbolgen.implementationConfigurationName, deps.scala3)
     add(symbolgen.implementationConfigurationName, deps.javaparser.core)
     add(symbolgen.implementationConfigurationName, deps.cats)
@@ -94,6 +104,7 @@ val codegen = sourceSets.create("codegen") {
     scala.srcDir(generatedGtRefsDir)
     resources.srcDir("src/codegen/resources")
 
+    compileClasspath += core.output
     compileClasspath += symbolgen.output
     compileClasspath += sourceSets.main.get().compileClasspath
     runtimeClasspath += output + compileClasspath

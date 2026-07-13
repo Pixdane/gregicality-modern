@@ -2,7 +2,7 @@ package com.pixdane.gregicality.symbolgen.gtceu.scan.materials
 
 import com.github.javaparser.ast.CompilationUnit
 import com.github.javaparser.ast.expr.AssignExpr
-import com.pixdane.gregicality.codegen.dsl.model.{ResourceId, ScalaSymbolPath}
+import com.pixdane.gregicality.core.refs.{ResourceId, ScalaSymbolPath}
 import com.pixdane.gregicality.symbolgen.gtceu.GtMaterialsScanSpec
 import com.pixdane.gregicality.symbolgen.gtceu.scan.SourceSite
 import com.pixdane.gregicality.symbolgen.scan.ScannedRegisteredMaterialRef

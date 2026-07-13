@@ -1,6 +1,6 @@
 package com.pixdane.gregicality.symbolgen.gtceu.scan.materials
 
-import com.pixdane.gregicality.codegen.dsl.model.ScalaSymbolPath
+import com.pixdane.gregicality.core.refs.ScalaSymbolPath
 import com.pixdane.gregicality.symbolgen.gtceu.scan.{
   GtceuScanDiagnostic,
   SourceSite

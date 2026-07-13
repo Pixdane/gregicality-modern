@@ -1,6 +1,6 @@
 package com.pixdane.gregicality.symbolgen.render
 
-import com.pixdane.gregicality.codegen.dsl.model.{ResourceId, ScalaSymbolPath}
+import com.pixdane.gregicality.core.refs.{ResourceId, ScalaSymbolPath}
 import com.pixdane.gregicality.symbolgen.scan.{
   ScannedMaterialRef,
   ScannedPathRef,
@@ -72,7 +72,7 @@ object RefObjectRenderer:
       prefix = ScalaCode.lines(
         s"package ${target.outputPackage}",
         "",
-        "import com.pixdane.gregicality.codegen.dsl.model.*",
+        "import com.pixdane.gregicality.core.refs.*",
         "",
         s"object ${target.outputObject}:"
       ),
