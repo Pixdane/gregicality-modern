@@ -806,17 +806,22 @@ def resolve(id: ResourceId): Option[MaterialRef] =
   byIdIndex.get(id)
 
 private lazy val byIdIndex: Map[ResourceId, MaterialRef] =
-  byId0 ++ byId1
+  byIdEntries.iterator.map(ref => ref.id -> ref).toMap
 
-private def byId0: Map[ResourceId, MaterialRef] =
-  Map(Carbon.id -> Carbon, ...)
+private def byIdEntries: Vector[MaterialRef] =
+  byIdEntries0 ++ byIdEntries1
+
+private def byIdEntries0: Vector[MaterialRef] =
+  Vector(Carbon, ...)
 ```
 
 The `lazy val` delays construction until code actually performs an id lookup.
 Ordinary DSL completion and path-based codegen do not pay for the index. The
-private map is split into chunks to avoid oversized JVM methods. There is no
-public `all`: it adds eager bulk allocation and an API surface that neither ref
-completion nor path rendering requires.
+entries list names each registered ref exactly once and is split into chunks to
+avoid oversized JVM methods; `byIdIndex` derives the `ResourceId` keys from each
+ref at first lookup, so the generated text does not repeat every name twice.
+There is no public `all`: it adds eager bulk allocation and an API surface that
+neither ref completion nor path rendering requires.
 
 Flag presets such as `STD_METAL`, `EXT_METAL`, and `EXT2_METAL` live on
 `GTMaterials` and are collections of flags, not single `MaterialFlag` values.

@@ -53,8 +53,14 @@ class RefObjectRendererTest:
       )
     )
     assertTrue(file.content.contains("private lazy val byIdIndex:"))
-    assertTrue(file.content.contains("Map(Carbon.id -> Carbon)"))
+    assertTrue(
+      file.content.contains(
+        "byIdEntries.iterator.map(ref => ref.id -> ref).toMap"
+      )
+    )
+    assertTrue(file.content.contains("Vector(Carbon)"))
     assertTrue(!file.content.contains("Charcoal.id -> Charcoal"))
+    assertTrue(!file.content.contains("Vector(Carbon, Charcoal)"))
     assertTrue(!file.content.contains("def all:"))
     assertTrue(
       file.content.contains(

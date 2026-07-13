@@ -3,7 +3,7 @@ package com.pixdane.gregicality.symbolgen.render
 import com.pixdane.gregicality.symbolgen.model.*
 
 object RefObjectRenderer:
-  private val IndexChunkSize = 100
+  private val IndexChunkSize = 200
 
   def generateFile(job: RefJob, archive: SourceArchive): GeneratedScalaFile =
     job match
@@ -79,16 +79,16 @@ object RefObjectRenderer:
         .collect { case ref: ScannedRegisteredMaterialRef => ref }
         .grouped(IndexChunkSize)
         .toVector
-    val indexExpression =
-      if chunks.isEmpty then "Map.empty"
-      else chunks.indices.map(index => s"byId$index").mkString(" ++ ")
+    val entriesExpression =
+      if chunks.isEmpty then "Vector.empty"
+      else chunks.indices.map(index => s"byIdEntries$index").mkString(" ++ ")
     val chunkLines = chunks.zipWithIndex.flatMap { case (chunk, index) =>
       Vector(
         "",
-        s"  private def byId$index: Map[ResourceId, ${target.valueType}] =",
+        s"  private def byIdEntries$index: Vector[${target.valueType}] =",
         chunk
-          .map(ref => s"${ref.name}.id -> ${ref.name}")
-          .mkString("    Map(", ", ", ")")
+          .map(ref => ref.name)
+          .mkString("    Vector(", ", ", ")")
       )
     }
 
@@ -99,7 +99,10 @@ object RefObjectRenderer:
         "    byIdIndex.get(id)",
         "",
         s"  private lazy val byIdIndex: Map[ResourceId, ${target.valueType}] =",
-        s"    $indexExpression"
+        "    byIdEntries.iterator.map(ref => ref.id -> ref).toMap",
+        "",
+        s"  private def byIdEntries: Vector[${target.valueType}] =",
+        s"    $entriesExpression"
       ) ++ chunkLines)*
     )
 
