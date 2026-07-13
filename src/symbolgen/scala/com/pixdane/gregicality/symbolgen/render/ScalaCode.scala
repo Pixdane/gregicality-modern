@@ -25,11 +25,3 @@ object ScalaCode:
       nonEmptyItems.tail.foldLeft(nonEmptyItems.head) { (acc, item) =>
         acc ++ separator ++ item
       }
-
-final case class CodeLayout(
-    prefix: ScalaCode,
-    separator: ScalaCode,
-    suffix: ScalaCode
-):
-  def apply(items: Vector[ScalaCode]): ScalaCode =
-    prefix ++ ScalaCode.joinWith(separator)(items) ++ suffix

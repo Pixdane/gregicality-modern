@@ -1,33 +1,36 @@
 package com.pixdane.gregicality.symbolgen.render
 
-import com.pixdane.gregicality.symbolgen.archive.SourceArchive
-import com.pixdane.gregicality.symbolgen.job.RefJob
+import com.pixdane.gregicality.codegen.dsl.model.{ResourceId, ScalaSymbolPath}
 import com.pixdane.gregicality.symbolgen.scan.{
   ScannedMaterialRef,
   ScannedPathRef,
   ScannedRegisteredMaterialRef
 }
-import com.pixdane.gregicality.codegen.dsl.model.{ResourceId, ScalaSymbolPath}
 
 object RefObjectRenderer:
   private val IndexChunkSize = 200
 
-  def generateFile(job: RefJob, archive: SourceArchive): GeneratedScalaFile =
-    job match
-      case RefJob.Materials(_, scan, target) =>
-        val refs = scan(archive).sortBy(_.name)
-        generateRefFile(
-          target = target,
-          entries = refs.map(renderMaterialRef(target)),
-          suffix = renderLookupIndex(target, refs)
-        )
-      case RefJob.Paths(_, scan, target) =>
-        val refs = scan(archive).sortBy(_.name)
-        generateRefFile(
-          target = target,
-          entries = refs.map(renderPathRef(target)),
-          suffix = ScalaCode.empty
-        )
+  def generateMaterialFile(
+      target: RefObjectTarget,
+      refs: Vector[ScannedMaterialRef]
+  ): GeneratedScalaFile =
+    val sorted = refs.sortBy(_.name)
+    generateRefFile(
+      target = target,
+      entries = sorted.map(renderMaterialRef(target)),
+      suffix = renderLookupIndex(target, sorted)
+    )
+
+  def generatePathFile(
+      target: RefObjectTarget,
+      refs: Vector[ScannedPathRef]
+  ): GeneratedScalaFile =
+    val sorted = refs.sortBy(_.name)
+    generateRefFile(
+      target = target,
+      entries = sorted.map(renderPathRef(target)),
+      suffix = ScalaCode.empty
+    )
 
   private def generateRefFile(
       target: RefObjectTarget,
@@ -125,25 +128,3 @@ object RefObjectRenderer:
       case '\t' => "\\t"
       case char => char.toString
     } + "\""
-
-object RefAggregateRenderer:
-  def generateFile(
-      outputPackage: String,
-      outputObject: String,
-      exports: Vector[String]
-  ): GeneratedScalaFile =
-    val exportLines = exports.sorted.map(name => s"  export $name.*")
-    val lines =
-      Vector(
-        s"package $outputPackage",
-        "",
-        s"object $outputObject:"
-      ) ++ exportLines
-
-    GeneratedScalaFile(
-      relativePath =
-        outputPackage.replace('.', '/') + "/" + outputObject + ".scala",
-      content = ScalaCode
-        .lines(lines*)
-        .render
-    )

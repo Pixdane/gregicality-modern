@@ -1,7 +1,5 @@
 package com.pixdane.gregicality.symbolgen
 
-import com.pixdane.gregicality.symbolgen.archive.SourceArchive
-import com.pixdane.gregicality.symbolgen.job.RefJob
 import com.pixdane.gregicality.symbolgen.render.RefObjectTarget
 import com.pixdane.gregicality.symbolgen.scan.{
   ScannedMaterialAliasRef,
@@ -17,39 +15,35 @@ import org.junit.jupiter.api.Test
 class RefObjectRendererTest:
   @Test
   def renderWithIdRefObject(): Unit =
-    val job = RefJob.Materials(
-      id = "gt-materials",
-      scan = _ =>
-        Vector(
-          ScannedRegisteredMaterialRef(
-            name = "Carbon",
-            id = ResourceId("gtceu", "carbon"),
-            path = ScalaSymbolPath(
-              Vector(
-                "com",
-                "gregtechceu",
-                "gtceu",
-                "common",
-                "data",
-                "GTMaterials",
-                "Carbon"
-              )
-            )
-          ),
-          ScannedMaterialAliasRef(
-            name = "Charcoal",
-            id = ResourceId("gtceu", "carbon"),
-            path = ScalaSymbolPath(Vector("GTMaterials", "Charcoal"))
+    val target = RefObjectTarget(
+      outputPackage = "com.pixdane.gregicality.codegen.dsl.refs.gtceu",
+      outputObject = "GTMaterialsRef",
+      valueType = "MaterialRef"
+    )
+    val refs = Vector(
+      ScannedRegisteredMaterialRef(
+        name = "Carbon",
+        id = ResourceId("gtceu", "carbon"),
+        path = ScalaSymbolPath(
+          Vector(
+            "com",
+            "gregtechceu",
+            "gtceu",
+            "common",
+            "data",
+            "GTMaterials",
+            "Carbon"
           )
-        ),
-      objectTarget = RefObjectTarget(
-        outputPackage = "com.pixdane.gregicality.codegen.dsl.refs.gtceu",
-        outputObject = "GTMaterialsRef",
-        valueType = "MaterialRef"
+        )
+      ),
+      ScannedMaterialAliasRef(
+        name = "Charcoal",
+        id = ResourceId("gtceu", "carbon"),
+        path = ScalaSymbolPath(Vector("GTMaterials", "Charcoal"))
       )
     )
 
-    val file = RefObjectRenderer.generateFile(job, SourceArchive(Map.empty))
+    val file = RefObjectRenderer.generateMaterialFile(target, refs)
 
     assertEquals(
       "com/pixdane/gregicality/codegen/dsl/refs/gtceu/GTMaterialsRef.scala",
@@ -98,18 +92,14 @@ class RefObjectRendererTest:
         path = ScalaSymbolPath(Vector("GTMaterials", name))
       )
     }
-    val job = RefJob.Materials(
-      id = "gt-materials",
-      scan = _ => refs,
-      objectTarget = RefObjectTarget(
-        outputPackage = "com.pixdane.gregicality.codegen.dsl.refs.gtceu",
-        outputObject = "GTMaterialsRef",
-        valueType = "MaterialRef"
-      )
+    val target = RefObjectTarget(
+      outputPackage = "com.pixdane.gregicality.codegen.dsl.refs.gtceu",
+      outputObject = "GTMaterialsRef",
+      valueType = "MaterialRef"
     )
 
     val content =
-      RefObjectRenderer.generateFile(job, SourceArchive(Map.empty)).content
+      RefObjectRenderer.generateMaterialFile(target, refs).content
     val firstChunk =
       Vector
         .tabulate(200)(index => f"Material$index%03d")
@@ -131,36 +121,32 @@ class RefObjectRendererTest:
 
   @Test
   def renderPathOnlyRefObject(): Unit =
-    val job = RefJob.Paths(
-      id = "material-icon-sets",
-      scan = _ =>
-        Vector(
-          ScannedPathRef(
-            name = "METALLIC",
-            path = ScalaSymbolPath(
-              Vector(
-                "com",
-                "gregtechceu",
-                "gtceu",
-                "api",
-                "data",
-                "chemical",
-                "material",
-                "info",
-                "MaterialIconSet",
-                "METALLIC"
-              )
-            )
+    val target = RefObjectTarget(
+      outputPackage = "com.pixdane.gregicality.codegen.dsl.refs.gtceu",
+      outputObject = "MaterialIconSetsRef",
+      valueType = "MaterialIconRef"
+    )
+    val refs = Vector(
+      ScannedPathRef(
+        name = "METALLIC",
+        path = ScalaSymbolPath(
+          Vector(
+            "com",
+            "gregtechceu",
+            "gtceu",
+            "api",
+            "data",
+            "chemical",
+            "material",
+            "info",
+            "MaterialIconSet",
+            "METALLIC"
           )
-        ),
-      objectTarget = RefObjectTarget(
-        outputPackage = "com.pixdane.gregicality.codegen.dsl.refs.gtceu",
-        outputObject = "MaterialIconSetsRef",
-        valueType = "MaterialIconRef"
+        )
       )
     )
 
-    val file = RefObjectRenderer.generateFile(job, SourceArchive(Map.empty))
+    val file = RefObjectRenderer.generatePathFile(target, refs)
 
     assertTrue(file.content.contains("object MaterialIconSetsRef:"))
     assertTrue(file.content.contains("def METALLIC: MaterialIconRef ="))
