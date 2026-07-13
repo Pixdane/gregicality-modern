@@ -49,6 +49,17 @@ object GtceuSourceScanners:
       site: SourceSite
   )
 
+  private final case class RejectedMaterialAssignment(
+      name: String,
+      reason: String,
+      site: SourceSite
+  )
+
+  private enum MaterialAssignmentTarget:
+    case Accepted(name: String)
+    case ForeignOwner(name: String)
+    case Unrelated
+
   def scanStaticMembers(input: StaticFieldScanSpec)(
       archive: SourceArchive
   ): Vector[ScannedPathRef] =
@@ -94,6 +105,15 @@ object GtceuSourceScanners:
         scanMaterialAliases(sourcePath, unit, input)
       }
       .filter(alias => declaredMaterialNames.contains(alias.name))
+    val rejectedAssignments = assignmentUnits.flatMap {
+      case (sourcePath, unit) =>
+        scanRejectedMaterialAssignments(
+          sourcePath,
+          unit,
+          input,
+          declaredMaterialNames
+        )
+    }
 
     val refsByName: scala.collection.mutable.Map[String, ScannedMaterialRef] =
       scala.collection.mutable.Map.from(
@@ -128,10 +148,13 @@ object GtceuSourceScanners:
 
     val declaredAssignments = declaredMaterialNames.toVector.flatMap(resolve(_))
     val assignedNames = declaredAssignments.iterator.map(_.name).toSet
-    val missingNames = (declaredMaterialNames -- assignedNames).toVector.sorted
+    val rejectedNames = rejectedAssignments.iterator.map(_.name).toSet
+    val missingNames =
+      (declaredMaterialNames -- assignedNames -- rejectedNames).toVector.sorted
     val diagnostics = Vector(
       duplicateAssignmentDiagnostic(builderAssignments, aliases),
       duplicateMaterialIdDiagnostic(builderAssignments),
+      rejectedAssignmentDiagnostic(rejectedAssignments),
       missingAssignmentDiagnostic(missingNames, declarations)
     ).flatten
 
@@ -198,6 +221,20 @@ object GtceuSourceScanners:
       s"duplicate GTCEu material registry ids: $details"
     }
 
+  private def rejectedAssignmentDiagnostic(
+      assignments: Vector[RejectedMaterialAssignment]
+  ): Option[String] =
+    Option.when(assignments.nonEmpty) {
+      val details = assignments
+        .sortBy(assignment => assignment.name -> assignment.site.sortKey)
+        .map(assignment =>
+          s"${assignment.name} at ${assignment.site.render} (${assignment.reason})"
+        )
+        .mkString("; ")
+
+      s"unsupported GTCEu material assignments: $details"
+    }
+
   private def missingAssignmentDiagnostic(
       missingNames: Vector[String],
       declarations: Map[String, SourceSite]
@@ -231,6 +268,48 @@ object GtceuSourceScanners:
           targetName = targetName,
           site = sourceSite(sourcePath, assignment)
         )
+      }
+
+  private def scanRejectedMaterialAssignments(
+      sourcePath: String,
+      unit: CompilationUnit,
+      input: GtMaterialsScanSpec,
+      declaredMaterialNames: Set[String]
+  ): Vector[RejectedMaterialAssignment] =
+    unit
+      .findAll(classOf[AssignExpr])
+      .asScala
+      .toVector
+      .flatMap { assignment =>
+        val target =
+          materialAssignmentTarget(assignment.getTarget, input.ownerFqcn)
+        val value = assignment.getValue
+
+        target match
+          case MaterialAssignmentTarget.Accepted(name)
+              if declaredMaterialNames.contains(name) &&
+                extractGtceuMaterialId(value).isEmpty &&
+                materialReferenceName(value, input.ownerFqcn).isEmpty =>
+            Some(
+              RejectedMaterialAssignment(
+                name = name,
+                reason = rejectedValueReason(value, input.ownerFqcn),
+                site = sourceSite(sourcePath, assignment)
+              )
+            )
+          case MaterialAssignmentTarget.ForeignOwner(name)
+              if declaredMaterialNames.contains(name) &&
+                looksLikeMaterialBuilder(value) =>
+            Some(
+              RejectedMaterialAssignment(
+                name = name,
+                reason =
+                  s"assignment target is not owned by ${input.ownerFqcn}",
+                site = sourceSite(sourcePath, assignment)
+              )
+            )
+          case _ =>
+            None
       }
 
   private def scanDeclaredMaterials(
@@ -293,7 +372,24 @@ object GtceuSourceScanners:
       assignment: AssignExpr,
       ownerFqcn: String
   ): Option[String] =
-    materialReferenceName(assignment.getTarget, ownerFqcn)
+    materialAssignmentTarget(assignment.getTarget, ownerFqcn) match
+      case MaterialAssignmentTarget.Accepted(name) => Some(name)
+      case _                                       => None
+
+  private def materialAssignmentTarget(
+      expression: Expression,
+      ownerFqcn: String
+  ): MaterialAssignmentTarget =
+    expression match
+      case name: NameExpr =>
+        MaterialAssignmentTarget.Accepted(name.getNameAsString)
+      case field: FieldAccessExpr
+          if isMaterialOwner(field.getScope, ownerFqcn) =>
+        MaterialAssignmentTarget.Accepted(field.getNameAsString)
+      case field: FieldAccessExpr =>
+        MaterialAssignmentTarget.ForeignOwner(field.getNameAsString)
+      case _ =>
+        MaterialAssignmentTarget.Unrelated
 
   private def materialReferenceName(
       expression: Expression,
@@ -305,6 +401,26 @@ object GtceuSourceScanners:
           if isMaterialOwner(field.getScope, ownerFqcn) =>
         Some(field.getNameAsString)
       case _ => None
+
+  private def rejectedValueReason(
+      expression: Expression,
+      ownerFqcn: String
+  ): String =
+    if looksLikeMaterialBuilder(expression) then
+      """builder constructor must be new Material.Builder(GTCEu.id("literal"))"""
+    else
+      expression match
+        case _: NameExpr | _: FieldAccessExpr =>
+          s"alias target is not a member of $ownerFqcn"
+        case _ =>
+          "unsupported assignment value"
+
+  private def looksLikeMaterialBuilder(expression: Expression): Boolean =
+    fluentRoot(expression) match
+      case creation: ObjectCreationExpr =>
+        creation.getType.asString == "Material.Builder"
+      case _ =>
+        false
 
   private def isMaterialOwner(
       expression: Expression,

@@ -128,7 +128,11 @@ class GtceuSourceScannersTest:
           |""".stripMargin
     )
 
-    assertMissingMaterial(archive, "Carbon")
+    assertUnsupportedMaterialAssignment(
+      archive,
+      "Carbon",
+      "builder constructor"
+    )
 
   @Test
   def scanGtMaterialsRejectsAssignmentThroughAnotherOwner(): Unit =
@@ -140,7 +144,26 @@ class GtceuSourceScannersTest:
           |""".stripMargin
     )
 
-    assertMissingMaterial(archive, "Carbon")
+    assertUnsupportedMaterialAssignment(
+      archive,
+      "Carbon",
+      "assignment target is not owned"
+    )
+
+  @Test
+  def scanGtMaterialsIgnoresUnrelatedForeignAssignments(): Unit =
+    val archive = materialArchive(
+      declarations = "Carbon",
+      assignments = """
+          |Carbon = new Material.Builder(GTCEu.id("carbon"))
+          |  .buildAndRegister();
+          |other.Carbon = localValue;
+          |""".stripMargin
+    )
+
+    val refs = GtceuSourceScanners.scanGtMaterials(materialSource)(archive)
+
+    assertEquals(Vector("Carbon"), refs.map(_.name))
 
   @Test
   def scanGtMaterialsRejectsAliasThroughAnotherOwner(): Unit =
@@ -153,7 +176,11 @@ class GtceuSourceScannersTest:
           |""".stripMargin
     )
 
-    assertMissingMaterial(archive, "Hydrogen")
+    assertUnsupportedMaterialAssignment(
+      archive,
+      "Hydrogen",
+      "alias target is not a member"
+    )
 
   @Test
   def scanGtMaterialsRejectsNonStringGtceuId(): Unit =
@@ -165,7 +192,11 @@ class GtceuSourceScannersTest:
           |""".stripMargin
     )
 
-    assertMissingMaterial(archive, "Carbon")
+    assertUnsupportedMaterialAssignment(
+      archive,
+      "Carbon",
+      "builder constructor"
+    )
 
   @Test
   def scanGtMaterialsRejectsWrappedBuilderConstructorArgument(): Unit =
@@ -177,7 +208,11 @@ class GtceuSourceScannersTest:
           |""".stripMargin
     )
 
-    assertMissingMaterial(archive, "Carbon")
+    assertUnsupportedMaterialAssignment(
+      archive,
+      "Carbon",
+      "builder constructor"
+    )
 
   @Test
   def scanGtMaterialsRecognizesFullyQualifiedOwners(): Unit =
@@ -300,9 +335,10 @@ class GtceuSourceScannersTest:
     assertEquals(refs.head.id, refs.last.id)
     assertEquals("YellowLimonite", refs.last.path.parts.last)
 
-  private def assertMissingMaterial(
+  private def assertUnsupportedMaterialAssignment(
       archive: SourceArchive,
-      materialName: String
+      materialName: String,
+      reason: String
   ): Unit =
     val error = assertThrows(
       classOf[IllegalArgumentException],
@@ -310,11 +346,15 @@ class GtceuSourceScannersTest:
     )
 
     assertTrue(
-      error.getMessage.contains(
-        "without a recognized builder or alias assignment"
-      )
+      error.getMessage.contains("unsupported GTCEu material assignments")
     )
     assertTrue(error.getMessage.contains(materialName))
+    assertTrue(error.getMessage.contains(reason))
+    assertTrue(
+      error.getMessage.contains(
+        s"${materialSource.assignmentDir}TestMaterials.java:"
+      )
+    )
 
   private val materialSource = GtMaterialsScanSpec(
     declarationPath = "com/gregtechceu/gtceu/common/data/GTMaterials.java",
