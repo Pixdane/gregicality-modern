@@ -10,5 +10,6 @@ final case class GtMaterialsScanSpec(
     declarationPath: String,
     assignmentDir: String,
     ownerFqcn: String,
-    namespace: String
+    namespace: String,
+    idFactoryFqcn: String
 )

@@ -13,7 +13,6 @@ import com.github.javaparser.ast.expr.{
 import scala.annotation.tailrec
 
 object MaterialExpressionParsers:
-  val GtceuOwnerFqcn = "com.gregtechceu.gtceu.GTCEu"
 
   def assignedName(
       assignment: AssignExpr,
@@ -70,7 +69,10 @@ object MaterialExpressionParsers:
       case _ =>
         false
 
-  def extractGtceuMaterialId(expression: Expression): Option[String] =
+  def extractGtceuMaterialId(
+      expression: Expression,
+      idFactoryFqcn: String
+  ): Option[String] =
     fluentRoot(expression) match
       case builder: ObjectCreationExpr
           if builder.getType.asString == "Material.Builder" &&
@@ -79,7 +81,7 @@ object MaterialExpressionParsers:
           case call: MethodCallExpr
               if call.getNameAsString == "id" &&
                 call.getScope.isPresent &&
-                isOwnerReference(call.getScope.get, GtceuOwnerFqcn) &&
+                isOwnerReference(call.getScope.get, idFactoryFqcn) &&
                 call.getArguments.size == 1 =>
             call.getArgument(0) match
               case literal: StringLiteralExpr => Some(literal.asString)

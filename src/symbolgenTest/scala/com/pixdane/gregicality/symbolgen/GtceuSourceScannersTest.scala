@@ -446,7 +446,8 @@ class GtceuSourceScannersTest:
             "com/gregtechceu/gtceu/common/data/GTMaterials.java",
           assignmentDir = "com/gregtechceu/gtceu/common/data/materials/",
           ownerFqcn = "com.gregtechceu.gtceu.common.data.GTMaterials",
-          namespace = "gtceu"
+          namespace = "gtceu",
+          idFactoryFqcn = "com.gregtechceu.gtceu.GTCEu"
         )
       )(archive)
 
@@ -465,6 +466,101 @@ class GtceuSourceScannersTest:
         )
       ),
       refs.head.path
+    )
+
+  @Test
+  def scanGtMaterialsAcceptsCustomIdFactoryOwner(): Unit =
+    val customSource = GtMaterialsScanSpec(
+      declarationPath = "com/gregtechceu/gtceu/common/data/GTMaterials.java",
+      assignmentDir = "com/gregtechceu/gtceu/common/data/materials/",
+      ownerFqcn = "com.gregtechceu.gtceu.common.data.GTMaterials",
+      namespace = "gtceu",
+      idFactoryFqcn = "example.CustomIds"
+    )
+    val archive = SourceArchive(
+      Map(
+        customSource.declarationPath ->
+          """
+            |package com.gregtechceu.gtceu.common.data;
+            |
+            |import com.gregtechceu.gtceu.api.data.chemical.material.Material;
+            |
+            |public class GTMaterials {
+            |  public static Material Carbon;
+            |}
+            |""".stripMargin,
+        s"${customSource.assignmentDir}TestMaterials.java" ->
+          s"""
+             |package com.gregtechceu.gtceu.common.data.materials;
+             |
+             |import com.gregtechceu.gtceu.api.data.chemical.material.Material;
+             |import example.CustomIds;
+             |
+             |import static com.gregtechceu.gtceu.common.data.GTMaterials.*;
+             |
+             |public class TestMaterials {
+             |  public static void register() {
+             |    Carbon = new Material.Builder(CustomIds.id("carbon"))
+             |      .buildAndRegister();
+             |  }
+             |}
+             |""".stripMargin
+      )
+    )
+
+    val refs = materialRefs(customSource)(archive)
+
+    assertEquals(Vector("Carbon"), refs.map(_.name))
+    assertEquals(ResourceId("gtceu", "carbon"), refs.head.id)
+
+  @Test
+  def scanGtMaterialsRejectsGTCEuIdUnderCustomIdFactoryOwner(): Unit =
+    val customSource = GtMaterialsScanSpec(
+      declarationPath = "com/gregtechceu/gtceu/common/data/GTMaterials.java",
+      assignmentDir = "com/gregtechceu/gtceu/common/data/materials/",
+      ownerFqcn = "com.gregtechceu.gtceu.common.data.GTMaterials",
+      namespace = "gtceu",
+      idFactoryFqcn = "example.CustomIds"
+    )
+    val archive = SourceArchive(
+      Map(
+        customSource.declarationPath ->
+          """
+            |package com.gregtechceu.gtceu.common.data;
+            |
+            |import com.gregtechceu.gtceu.api.data.chemical.material.Material;
+            |
+            |public class GTMaterials {
+            |  public static Material Carbon;
+            |}
+            |""".stripMargin,
+        s"${customSource.assignmentDir}TestMaterials.java" ->
+          s"""
+             |package com.gregtechceu.gtceu.common.data.materials;
+             |
+             |import com.gregtechceu.gtceu.GTCEu;
+             |import com.gregtechceu.gtceu.api.data.chemical.material.Material;
+             |
+             |import static com.gregtechceu.gtceu.common.data.GTMaterials.*;
+             |
+             |public class TestMaterials {
+             |  public static void register() {
+             |    Carbon = new Material.Builder(GTCEu.id("carbon"))
+             |      .buildAndRegister();
+             |  }
+             |}
+             |""".stripMargin
+      )
+    )
+
+    val rendered = materialDiagnostics(customSource)(archive)
+
+    assertTrue(rendered.contains("unsupported GTCEu material assignments"))
+    assertTrue(rendered.contains("Carbon"))
+    assertTrue(
+      rendered.contains(
+        s"${customSource.assignmentDir}TestMaterials.java:"
+      )
     )
 
   private def materialRefs(
@@ -521,7 +617,8 @@ class GtceuSourceScannersTest:
     declarationPath = "com/gregtechceu/gtceu/common/data/GTMaterials.java",
     assignmentDir = "com/gregtechceu/gtceu/common/data/materials/",
     ownerFqcn = "com.gregtechceu.gtceu.common.data.GTMaterials",
-    namespace = "gtceu"
+    namespace = "gtceu",
+    idFactoryFqcn = "com.gregtechceu.gtceu.GTCEu"
   )
 
   private def materialArchive(

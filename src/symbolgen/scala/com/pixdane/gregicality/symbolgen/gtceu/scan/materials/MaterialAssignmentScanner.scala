@@ -26,7 +26,8 @@ object MaterialAssignmentScanner:
             input.ownerFqcn
           )
           idPath <- MaterialExpressionParsers.extractGtceuMaterialId(
-            assignment.getValue
+            assignment.getValue,
+            input.idFactoryFqcn
           )
         yield LocatedMaterialAssignment(
           ref = ScannedRegisteredMaterialRef(
@@ -60,7 +61,7 @@ object MaterialAssignmentScanner:
           case MaterialAssignmentTarget.Accepted(name)
               if declaredMaterialNames.contains(name) &&
                 MaterialExpressionParsers
-                  .extractGtceuMaterialId(value)
+                  .extractGtceuMaterialId(value, input.idFactoryFqcn)
                   .isEmpty &&
                 MaterialExpressionParsers
                   .materialReferenceName(value, input.ownerFqcn)

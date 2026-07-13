@@ -13,7 +13,8 @@ object GtceuRefJobs:
         declarationPath = "com/gregtechceu/gtceu/common/data/GTMaterials.java",
         assignmentDir = "com/gregtechceu/gtceu/common/data/materials/",
         ownerFqcn = "com.gregtechceu.gtceu.common.data.GTMaterials",
-        namespace = "gtceu"
+        namespace = "gtceu",
+        idFactoryFqcn = "com.gregtechceu.gtceu.GTCEu"
       ),
       objectTarget = RefObjectTarget(
         outputPackage = OutputPackage,
