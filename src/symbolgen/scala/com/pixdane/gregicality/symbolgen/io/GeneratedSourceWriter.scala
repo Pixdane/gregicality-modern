@@ -15,6 +15,12 @@ import com.pixdane.gregicality.symbolgen.model.GeneratedScalaFile
 
 object GeneratedSourceWriter:
   def sync(outputDir: Path, files: Vector[GeneratedScalaFile]): Unit =
+    syncWithMover(outputDir, files)(moveDirectory)
+
+  private[symbolgen] def syncWithMover(
+      outputDir: Path,
+      files: Vector[GeneratedScalaFile]
+  )(move: (Path, Path) => Unit): Unit =
     val normalizedOutputDir = outputDir.toAbsolutePath.normalize
     val parent = Option(normalizedOutputDir.getParent).getOrElse {
       throw new IllegalArgumentException(
@@ -39,14 +45,14 @@ object GeneratedSourceWriter:
       writeFiles(stagingDir, files)
 
       if Files.exists(normalizedOutputDir) then
-        moveDirectory(normalizedOutputDir, backupDir)
+        move(normalizedOutputDir, backupDir)
         hasBackup = true
 
-      try moveDirectory(stagingDir, normalizedOutputDir)
+      try move(stagingDir, normalizedOutputDir)
       catch
         case installError: Exception =>
           if hasBackup && !Files.exists(normalizedOutputDir) then
-            try moveDirectory(backupDir, normalizedOutputDir)
+            try move(backupDir, normalizedOutputDir)
             catch
               case rollbackError: Exception =>
                 installError.addSuppressed(rollbackError)

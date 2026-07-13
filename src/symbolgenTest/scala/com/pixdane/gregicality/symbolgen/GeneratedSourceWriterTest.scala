@@ -1,14 +1,19 @@
 package com.pixdane.gregicality.symbolgen
 
+import java.io.IOException
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.attribute.FileTime
 
+import scala.jdk.CollectionConverters.*
+import scala.util.Using
+
 import com.pixdane.gregicality.symbolgen.io.GeneratedSourceWriter
 import com.pixdane.gregicality.symbolgen.model.GeneratedScalaFile
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -75,6 +80,79 @@ class GeneratedSourceWriterTest:
     )
 
   @Test
+  def failedInstallRestoresTheExistingOutput(): Unit =
+    val outputDir = tempDir.resolve("generated")
+    val existingFile = outputDir.resolve("Existing.scala")
+    val installError = new IOException("install failed")
+    var moveCount = 0
+    Files.createDirectories(outputDir)
+    Files.writeString(existingFile, "existing\n", StandardCharsets.UTF_8)
+
+    val error = assertThrows(
+      classOf[IOException],
+      () =>
+        GeneratedSourceWriter.syncWithMover(
+          outputDir,
+          Vector(GeneratedScalaFile("pkg/Fresh.scala", "fresh\n"))
+        ) { (source, target) =>
+          moveCount += 1
+          if moveCount == 2 then throw installError
+          Files.move(source, target)
+          ()
+        }
+    )
+
+    assertSame(installError, error)
+    assertEquals(3, moveCount)
+    assertEquals(
+      "existing\n",
+      Files.readString(existingFile, StandardCharsets.UTF_8)
+    )
+    assertFalse(Files.exists(outputDir.resolve("pkg/Fresh.scala")))
+    assertTrue(pathsWithPrefix(".generated.staging-").isEmpty)
+    assertTrue(pathsWithPrefix(".generated.backup-").isEmpty)
+
+  @Test
+  def failedRollbackPreservesTheBackupForRecovery(): Unit =
+    val outputDir = tempDir.resolve("generated")
+    val existingFile = outputDir.resolve("Existing.scala")
+    val installError = new IOException("install failed")
+    val rollbackError = new IOException("rollback failed")
+    var moveCount = 0
+    Files.createDirectories(outputDir)
+    Files.writeString(existingFile, "existing\n", StandardCharsets.UTF_8)
+
+    val error = assertThrows(
+      classOf[IOException],
+      () =>
+        GeneratedSourceWriter.syncWithMover(
+          outputDir,
+          Vector(GeneratedScalaFile("pkg/Fresh.scala", "fresh\n"))
+        ) { (source, target) =>
+          moveCount += 1
+          if moveCount == 2 then throw installError
+          if moveCount == 3 then throw rollbackError
+          Files.move(source, target)
+          ()
+        }
+    )
+    val backupDirs = pathsWithPrefix(".generated.backup-")
+
+    assertSame(installError, error)
+    assertEquals(Vector(rollbackError), error.getSuppressed.toVector)
+    assertEquals(3, moveCount)
+    assertFalse(Files.exists(outputDir))
+    assertEquals(1, backupDirs.size)
+    assertEquals(
+      "existing\n",
+      Files.readString(
+        backupDirs.head.resolve("Existing.scala"),
+        StandardCharsets.UTF_8
+      )
+    )
+    assertTrue(pathsWithPrefix(".generated.staging-").isEmpty)
+
+  @Test
   def invalidInputDoesNotModifyTheExistingOutputDirectory(): Unit =
     val outputDir = tempDir.resolve("generated")
     val existingFile = outputDir.resolve("Existing.scala")
@@ -95,3 +173,12 @@ class GeneratedSourceWriterTest:
       "existing\n",
       Files.readString(existingFile, StandardCharsets.UTF_8)
     )
+
+  private def pathsWithPrefix(prefix: String): Vector[Path] =
+    Using.resource(Files.list(tempDir)) { stream =>
+      stream
+        .iterator()
+        .asScala
+        .filter(path => path.getFileName.toString.startsWith(prefix))
+        .toVector
+    }
