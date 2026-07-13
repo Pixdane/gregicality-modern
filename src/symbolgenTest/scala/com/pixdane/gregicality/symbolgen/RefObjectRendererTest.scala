@@ -108,6 +108,25 @@ class RefObjectRendererTest:
     assertTrue(!content.contains("byIdEntries2"))
 
   @Test
+  def renderMaterialFileHandlesEmptyRefs(): Unit =
+    val target = RefObjectTarget(
+      outputPackage = "com.pixdane.gregicality.core.refs.gtceu",
+      outputObject = "GTMaterialsRef",
+      valueType = "MaterialRef"
+    )
+
+    val content =
+      RefObjectRenderer.generateMaterialFile(target, Vector.empty).content
+
+    assertTrue(
+      content.contains(
+        "  private def byIdEntries: Vector[MaterialRef] =\n" +
+          "    Vector.empty"
+      )
+    )
+    assertTrue(!content.contains("byIdEntries0"))
+
+  @Test
   def renderPathOnlyRefObject(): Unit =
     val target = RefObjectTarget(
       outputPackage = "com.pixdane.gregicality.core.refs.gtceu",

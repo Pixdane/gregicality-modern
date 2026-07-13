@@ -90,3 +90,29 @@ class SymbolJobTest:
 
     assertFalse(preprocessCalled)
     assertFalse(renderCalled)
+
+  @Test
+  def runStopsWhenPreprocessFails(): Unit =
+    var renderCalled = false
+    val job = SymbolJob[String, Int, Int](
+      id = "preprocess-failure",
+      target = target,
+      scan = _ => Ior.right(2),
+      preprocess = _ => Ior.left(NonEmptyChain.one("preprocess failed")),
+      render = (_, value) =>
+        renderCalled = true
+        GeneratedScalaFile("Failure.scala", value.toString)
+    )
+
+    job.run(archive) match
+      case Ior.Left(diagnostics) =>
+        assertEquals(List("preprocess failed"), diagnostics.toChain.toList)
+      case Ior.Both(diagnostics, file) =>
+        fail(
+          s"expected Left, got diagnostics ${diagnostics.iterator.mkString(", ")} " +
+            s"with output $file"
+        )
+      case Ior.Right(file) =>
+        fail(s"expected Left, got clean output: $file")
+
+    assertFalse(renderCalled)

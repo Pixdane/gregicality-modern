@@ -1,74 +1,17 @@
-package com.pixdane.gregicality.symbolgen
-
-import com.pixdane.gregicality.symbolgen.archive.SourceArchive
-import com.pixdane.gregicality.symbolgen.gtceu.GtceuSourceScanners
-import com.pixdane.gregicality.symbolgen.gtceu.scan.{
-  GtMaterialsScanSpec,
-  StaticFieldScanSpec
-}
-import com.pixdane.gregicality.symbolgen.scan.ScannedMaterialRef
-import com.pixdane.gregicality.symbolgen.scan.ScannedPathRef
-import com.pixdane.gregicality.core.refs.{ResourceId, ScalaSymbolPath}
+package com.pixdane.gregicality.symbolgen.gtceu.scan.materials
 
 import cats.data.Ior
+import com.pixdane.gregicality.core.refs.{ResourceId, ScalaSymbolPath}
+import com.pixdane.gregicality.symbolgen.archive.SourceArchive
+import com.pixdane.gregicality.symbolgen.gtceu.scan.{
+  GtceuScanResult,
+  GtMaterialsScanSpec
+}
+import com.pixdane.gregicality.symbolgen.scan.ScannedMaterialRef
 import org.junit.jupiter.api.Assertions.{assertEquals, assertTrue, fail}
 import org.junit.jupiter.api.Test
 
-class GtceuSourceScannersTest:
-
-  @Test
-  def scanStaticMembersUsesPublicStaticFinalFieldsOfRequestedType(): Unit =
-    val archive = SourceArchive(
-      Map(
-        "MaterialIconSet.java" ->
-          """
-            |package com.gregtechceu.gtceu.api.data.chemical.material.info;
-            |
-            |import java.util.Map;
-            |
-            |public class MaterialIconSet {
-            |  public static final Map<String, MaterialIconSet> ICON_SETS = null;
-            |  public static final MaterialIconSet DULL = new MaterialIconSet("dull");
-            |  @Deprecated
-            |  public static final MaterialIconSet LEGACY = new MaterialIconSet("legacy");
-            |  @java.lang.Deprecated
-            |  public static final MaterialIconSet QUALIFIED_LEGACY = new MaterialIconSet("qualified_legacy");
-            |  public static final MaterialIconSet METALLIC = new MaterialIconSet("metallic");
-            |  static final MaterialIconSet HIDDEN = new MaterialIconSet("hidden");
-            |}
-            |""".stripMargin
-      )
-    )
-
-    val refs =
-      GtceuSourceScanners.scanStaticMembers(
-        StaticFieldScanSpec(
-          sourcePath = "MaterialIconSet.java",
-          ownerFqcn =
-            "com.gregtechceu.gtceu.api.data.chemical.material.info.MaterialIconSet",
-          memberTypeSimpleName = "MaterialIconSet"
-        )
-      )(archive)
-
-    assertEquals(Vector("DULL", "METALLIC"), refs.map(_.name))
-    assertTrue(refs.forall(_.isInstanceOf[ScannedPathRef]))
-    assertEquals(
-      ScalaSymbolPath(
-        Vector(
-          "com",
-          "gregtechceu",
-          "gtceu",
-          "api",
-          "data",
-          "chemical",
-          "material",
-          "info",
-          "MaterialIconSet",
-          "DULL"
-        )
-      ),
-      refs.head.path
-    )
+class MaterialScannerTest:
 
   @Test
   def scanGtMaterialsSkipsDeprecatedRegisteredMaterials(): Unit =
@@ -105,6 +48,9 @@ class GtceuSourceScannersTest:
       )
     )
     assertTrue(rendered.contains("Hydrogen"))
+    assertTrue(
+      rendered.contains(s"declared at ${materialSource.declarationPath}:")
+    )
 
   @Test
   def scanGtMaterialsRejectsIdNestedOutsideTheBuilderConstructor(): Unit =
@@ -136,7 +82,7 @@ class GtceuSourceScannersTest:
     assertUnsupportedMaterialAssignment(
       archive,
       "Carbon",
-      "assignment target is not owned"
+      s"assignment target is not owned by ${materialSource.ownerFqcn}"
     )
 
   @Test
@@ -270,8 +216,24 @@ class GtceuSourceScannersTest:
           |""".stripMargin
     )
 
-    val rendered = materialDiagnostics(materialSource)(archive)
+    val (rendered, refs) =
+      scanMaterials(materialSource)(archive) match
+        case Ior.Both(diagnostics, refs) =>
+          diagnostics.iterator.map(_.render).mkString("\n") -> refs
+        case Ior.Left(diagnostics) =>
+          fail(
+            "expected partial refs with diagnostics, got Left:\n" +
+              diagnostics.iterator.map(_.render).mkString("\n")
+          )
+          throw new AssertionError("unreachable")
+        case Ior.Right(refs) =>
+          fail(
+            "expected diagnostics with partial refs, got Right: " +
+              refs.map(_.name).mkString(", ")
+          )
+          throw new AssertionError("unreachable")
 
+    assertEquals(Vector("Carbon", "Hydrogen"), refs.map(_.name))
     assertTrue(rendered.contains("duplicate GTCEu material assignments"))
     assertTrue(rendered.contains("duplicate GTCEu material registry ids"))
     assertTrue(
@@ -291,36 +253,6 @@ class GtceuSourceScannersTest:
       rendered.indexOf("duplicate GTCEu material registry ids") <
         rendered.indexOf("without a recognized builder assignment")
     )
-
-  @Test
-  def scanGtMaterialsKeepsRegisteredRefsWhenDiagnosticsExist(): Unit =
-    val archive = materialArchive(
-      declarations = "Carbon, Hydrogen, Oxygen",
-      assignments = """
-          |Carbon = new Material.Builder(GTCEu.id("carbon"))
-          |  .buildAndRegister();
-          |""".stripMargin
-    )
-
-    val result =
-      GtceuSourceScanners.scanGtMaterials(materialSource)(archive)
-
-    result match
-      case Ior.Both(diagnostics, refs) =>
-        assertEquals(Vector("Carbon"), refs.map(_.name))
-        val rendered = diagnostics.iterator.map(_.render).mkString("\n")
-        assertTrue(rendered.contains("Hydrogen"))
-        assertTrue(rendered.contains("Oxygen"))
-      case Ior.Left(diagnostics) =>
-        fail(
-          "expected partial refs with diagnostics, got Left:\n" +
-            diagnostics.iterator.map(_.render).mkString("\n")
-        )
-      case Ior.Right(refs) =>
-        fail(
-          s"expected diagnostics with partial refs, got Right: " +
-            s"${refs.map(_.name).mkString(", ")}"
-        )
 
   @Test
   def scanGtMaterialsJoinsDeclarationsWithBuilderIds(): Unit =
@@ -492,7 +424,7 @@ class GtceuSourceScannersTest:
   private def materialRefs(
       spec: GtMaterialsScanSpec
   )(archive: SourceArchive): Vector[ScannedMaterialRef] =
-    GtceuSourceScanners.scanGtMaterials(spec)(archive) match
+    scanMaterials(spec)(archive) match
       case Ior.Right(refs) =>
         refs
       case Ior.Left(diagnostics) =>
@@ -512,7 +444,7 @@ class GtceuSourceScannersTest:
   private def materialDiagnostics(
       spec: GtMaterialsScanSpec
   )(archive: SourceArchive): String =
-    GtceuSourceScanners.scanGtMaterials(spec)(archive) match
+    scanMaterials(spec)(archive) match
       case Ior.Left(diagnostics) =>
         diagnostics.iterator.map(_.render).mkString("\n")
       case Ior.Both(diagnostics, _) =>
@@ -520,6 +452,13 @@ class GtceuSourceScannersTest:
       case Ior.Right(_) =>
         fail("expected material diagnostics, got a successful scan result")
         throw new AssertionError("unreachable")
+
+  private def scanMaterials(
+      spec: GtMaterialsScanSpec
+  )(archive: SourceArchive): GtceuScanResult[Vector[ScannedMaterialRef]] =
+    MaterialScanner
+      .scan(spec)(archive)
+      .flatMap(MaterialScanner.preprocess)
 
   private def assertUnsupportedMaterialAssignment(
       archive: SourceArchive,

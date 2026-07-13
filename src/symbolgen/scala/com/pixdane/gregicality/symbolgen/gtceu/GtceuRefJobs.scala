@@ -6,6 +6,7 @@ import com.pixdane.gregicality.symbolgen.gtceu.scan.{
   GtceuScanDiagnostic,
   GtceuScanResult,
   GtMaterialsScanSpec,
+  StaticFieldScanner,
   StaticFieldScanSpec
 }
 import com.pixdane.gregicality.symbolgen.gtceu.scan.materials.{
@@ -119,8 +120,7 @@ object GtceuRefJobs:
         outputObject = outputObject,
         valueType = valueType
       ),
-      scan = archive =>
-        Ior.right(GtceuSourceScanners.scanStaticMembers(spec)(archive)),
+      scan = archive => Ior.right(StaticFieldScanner.scan(spec)(archive)),
       preprocess = passThrough,
       render = RefObjectRenderer.generatePathFile
     )
