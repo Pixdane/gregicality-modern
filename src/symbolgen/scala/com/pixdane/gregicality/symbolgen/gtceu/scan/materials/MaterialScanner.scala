@@ -12,7 +12,7 @@ import com.pixdane.gregicality.symbolgen.scan.ScannedMaterialRef
 object MaterialScanner:
   def scan(input: GtMaterialsScanSpec)(
       archive: SourceArchive
-  ): GtceuScanResult[Vector[ScannedMaterialRef]] =
+  ): GtceuScanResult[MaterialScanInput] =
     val declarationUnit = archive.parse(input.declarationPath)
     val declarations =
       MaterialDeclarationScanner.scan(input.declarationPath, declarationUnit)
@@ -34,24 +34,36 @@ object MaterialScanner:
         )
     }
 
+    Ior.right(
+      MaterialScanInput(
+        declarations = declarations,
+        assignments = builderAssignments,
+        rejectedAssignments = rejectedAssignments
+      )
+    )
+
+  def preprocess(
+      input: MaterialScanInput
+  ): GtceuScanResult[Vector[ScannedMaterialRef]] =
+    val declaredMaterialNames = input.declarations.keySet
     val refsByName =
-      builderAssignments
+      input.assignments
         .map(assignment => assignment.ref.name -> assignment.ref)
         .toMap
 
     val assignedNames = refsByName.keySet
-    val rejectedNames = rejectedAssignments.iterator.map(_.name).toSet
+    val rejectedNames = input.rejectedAssignments.iterator.map(_.name).toSet
     val missingNames =
       (declaredMaterialNames -- assignedNames -- rejectedNames).toVector.sorted
 
     val duplicateDiags =
-      MaterialDiagnostics.duplicateAssignments(builderAssignments)
+      MaterialDiagnostics.duplicateAssignments(input.assignments)
     val duplicateIdDiags =
-      MaterialDiagnostics.duplicateMaterialIds(builderAssignments)
+      MaterialDiagnostics.duplicateMaterialIds(input.assignments)
     val rejectedDiags =
-      MaterialDiagnostics.rejectedAssignments(rejectedAssignments)
+      MaterialDiagnostics.rejectedAssignments(input.rejectedAssignments)
     val missingDiags =
-      MaterialDiagnostics.missingAssignments(missingNames, declarations)
+      MaterialDiagnostics.missingAssignments(missingNames, input.declarations)
     val declaredAssignments =
       declaredMaterialNames.toVector
         .flatMap(refsByName.get)

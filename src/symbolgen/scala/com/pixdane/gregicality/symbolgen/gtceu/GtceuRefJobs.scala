@@ -1,29 +1,53 @@
 package com.pixdane.gregicality.symbolgen.gtceu
 
-import com.pixdane.gregicality.symbolgen.render.RefObjectTarget
+import cats.data.Ior
+
+import com.pixdane.gregicality.symbolgen.gtceu.scan.{
+  GtceuScanDiagnostic,
+  GtceuScanResult
+}
+import com.pixdane.gregicality.symbolgen.gtceu.scan.materials.{
+  MaterialScanInput,
+  MaterialScanner
+}
+import com.pixdane.gregicality.symbolgen.job.SymbolJob
+import com.pixdane.gregicality.symbolgen.render.{
+  RefObjectRenderer,
+  RefObjectTarget
+}
+import com.pixdane.gregicality.symbolgen.scan.ScannedMaterialRef
+import com.pixdane.gregicality.symbolgen.scan.ScannedPathRef
 
 object GtceuRefJobs:
   private val OutputPackage =
     "com.pixdane.gregicality.core.refs.gtceu"
 
-  private val gtMaterials: GtceuRefJob =
-    GtceuRefJob.Materials(
+  private val gtMaterials: SymbolJob[
+    GtceuScanDiagnostic,
+    MaterialScanInput,
+    Vector[ScannedMaterialRef]
+  ] =
+    val spec = GtMaterialsScanSpec(
+      declarationPath = "com/gregtechceu/gtceu/common/data/GTMaterials.java",
+      assignmentDir = "com/gregtechceu/gtceu/common/data/materials/",
+      ownerFqcn = "com.gregtechceu.gtceu.common.data.GTMaterials",
+      namespace = "gtceu",
+      idFactoryFqcn = "com.gregtechceu.gtceu.GTCEu"
+    )
+
+    SymbolJob(
       id = "gt-materials",
-      spec = GtMaterialsScanSpec(
-        declarationPath = "com/gregtechceu/gtceu/common/data/GTMaterials.java",
-        assignmentDir = "com/gregtechceu/gtceu/common/data/materials/",
-        ownerFqcn = "com.gregtechceu.gtceu.common.data.GTMaterials",
-        namespace = "gtceu",
-        idFactoryFqcn = "com.gregtechceu.gtceu.GTCEu"
-      ),
       target = RefObjectTarget(
         outputPackage = OutputPackage,
         outputObject = "GTMaterialsRef",
         valueType = "MaterialRef"
-      )
+      ),
+      scan = MaterialScanner.scan(spec),
+      preprocess = MaterialScanner.preprocess,
+      render = RefObjectRenderer.generateMaterialFile
     )
 
-  private val gtElements: GtceuRefJob =
+  private val gtElements =
     staticPathOnly(
       id = "gt-elements",
       outputObject = "GTElementsRef",
@@ -33,7 +57,7 @@ object GtceuRefJobs:
       memberTypeSimpleName = "Element"
     )
 
-  private val materialIconSets: GtceuRefJob =
+  private val materialIconSets =
     staticPathOnly(
       id = "material-icon-sets",
       outputObject = "MaterialIconSetsRef",
@@ -45,7 +69,7 @@ object GtceuRefJobs:
       memberTypeSimpleName = "MaterialIconSet"
     )
 
-  private val fluidAttributes: GtceuRefJob =
+  private val fluidAttributes =
     staticPathOnly(
       id = "fluid-attributes",
       outputObject = "FluidAttributesRef",
@@ -56,7 +80,7 @@ object GtceuRefJobs:
       memberTypeSimpleName = "FluidAttribute"
     )
 
-  private val materialFlags: GtceuRefJob =
+  private val materialFlags =
     staticPathOnly(
       id = "material-flags",
       outputObject = "MaterialFlagsRef",
@@ -75,22 +99,34 @@ object GtceuRefJobs:
       sourcePath: String,
       ownerFqcn: String,
       memberTypeSimpleName: String
-  ): GtceuRefJob =
-    GtceuRefJob.Paths(
+  ): SymbolJob[
+    GtceuScanDiagnostic,
+    Vector[ScannedPathRef],
+    Vector[ScannedPathRef]
+  ] =
+    val spec = StaticFieldScanSpec(
+      sourcePath = sourcePath,
+      ownerFqcn = ownerFqcn,
+      memberTypeSimpleName = memberTypeSimpleName
+    )
+
+    SymbolJob(
       id = id,
-      spec = StaticFieldScanSpec(
-        sourcePath = sourcePath,
-        ownerFqcn = ownerFqcn,
-        memberTypeSimpleName = memberTypeSimpleName
-      ),
       target = RefObjectTarget(
         outputPackage = OutputPackage,
         outputObject = outputObject,
         valueType = valueType
-      )
+      ),
+      scan = archive =>
+        Ior.right(GtceuSourceScanners.scanStaticMembers(spec)(archive)),
+      preprocess = passThrough,
+      render = RefObjectRenderer.generatePathFile
     )
 
-  val jobs: Vector[GtceuRefJob] =
+  private def passThrough[A](value: A): GtceuScanResult[A] =
+    Ior.right(value)
+
+  val jobs: Vector[SymbolJob[GtceuScanDiagnostic, ?, ?]] =
     Vector(
       gtMaterials,
       gtElements,

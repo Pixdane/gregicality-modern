@@ -18,4 +18,6 @@ object GtceuSourceScanners:
   def scanGtMaterials(input: GtMaterialsScanSpec)(
       archive: SourceArchive
   ): GtceuScanResult[Vector[ScannedMaterialRef]] =
-    MaterialScanner.scan(input)(archive)
+    MaterialScanner
+      .scan(input)(archive)
+      .flatMap(MaterialScanner.preprocess)
