@@ -1,4 +1,4 @@
-package com.pixdane.gregicality.symbolgen
+package com.pixdane.gregicality.symbolgen.io
 
 import java.nio.charset.StandardCharsets
 import java.nio.file.Path
@@ -6,6 +6,8 @@ import java.util.zip.ZipFile
 
 import scala.jdk.CollectionConverters.*
 import scala.util.Using
+
+import com.pixdane.gregicality.symbolgen.model.SourceArchive
 
 object SourceArchiveReader:
   def readJar(path: Path): SourceArchive =

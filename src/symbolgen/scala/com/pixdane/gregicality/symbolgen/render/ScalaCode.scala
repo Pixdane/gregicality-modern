@@ -1,4 +1,4 @@
-package com.pixdane.gregicality.symbolgen
+package com.pixdane.gregicality.symbolgen.render
 
 final case class ScalaCode(lines: Vector[String]):
   def ++(other: ScalaCode): ScalaCode =

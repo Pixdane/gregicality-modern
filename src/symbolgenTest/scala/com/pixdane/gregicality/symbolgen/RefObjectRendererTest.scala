@@ -1,19 +1,21 @@
 package com.pixdane.gregicality.symbolgen
 
+import com.pixdane.gregicality.symbolgen.model.*
+import com.pixdane.gregicality.symbolgen.render.RefObjectRenderer
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 class RefObjectRendererTest:
   @Test
   def renderWithIdRefObject(): Unit =
-    val job = RefJob(
+    val job = RefJob.Materials(
       id = "gt-materials",
-      source = _ =>
+      scan = _ =>
         Vector(
-          ScannedRef(
+          ScannedRegisteredMaterialRef(
             name = "Carbon",
-            id = Some(ResourceId("gtceu", "carbon")),
-            path = ScalaPath(
+            id = ResourceId("gtceu", "carbon"),
+            path = ScalaSymbolPath(
               Vector(
                 "com",
                 "gregtechceu",
@@ -24,13 +26,17 @@ class RefObjectRendererTest:
                 "Carbon"
               )
             )
+          ),
+          ScannedMaterialAliasRef(
+            name = "Charcoal",
+            id = ResourceId("gtceu", "carbon"),
+            path = ScalaSymbolPath(Vector("GTMaterials", "Charcoal"))
           )
         ),
-      target = RefObjectTarget(
-        outputPackage = "com.pixdane.gregicality.codegen.dsl.refs",
+      objectTarget = RefObjectTarget(
+        outputPackage = "com.pixdane.gregicality.codegen.dsl.refs.gtceu",
         outputObject = "GTMaterialsRef",
-        valueType = "MaterialRef",
-        renderKind = RefRenderKind.WithId
+        valueType = "MaterialRef"
       )
     )
 
@@ -42,20 +48,28 @@ class RefObjectRendererTest:
     assertTrue(file.content.contains("""ResourceId("gtceu", "carbon")"""))
     assertTrue(
       file.content.contains(
-        """ScalaPath(Vector("com", "gregtechceu", "gtceu", "common", "data", "GTMaterials", "Carbon"))"""
+        "def resolve(id: ResourceId): Option[MaterialRef] ="
+      )
+    )
+    assertTrue(file.content.contains("private lazy val byIdIndex:"))
+    assertTrue(file.content.contains("Map(Carbon.id -> Carbon)"))
+    assertTrue(!file.content.contains("Charcoal.id -> Charcoal"))
+    assertTrue(!file.content.contains("def all:"))
+    assertTrue(
+      file.content.contains(
+        """ScalaSymbolPath(Vector("com", "gregtechceu", "gtceu", "common", "data", "GTMaterials", "Carbon"))"""
       )
     )
 
   @Test
   def renderPathOnlyRefObject(): Unit =
-    val job = RefJob(
+    val job = RefJob.Paths(
       id = "material-icon-sets",
-      source = _ =>
+      scan = _ =>
         Vector(
-          ScannedRef(
+          ScannedPathRef(
             name = "METALLIC",
-            id = None,
-            path = ScalaPath(
+            path = ScalaSymbolPath(
               Vector(
                 "com",
                 "gregtechceu",
@@ -71,11 +85,10 @@ class RefObjectRendererTest:
             )
           )
         ),
-      target = RefObjectTarget(
-        outputPackage = "com.pixdane.gregicality.codegen.dsl.refs",
+      objectTarget = RefObjectTarget(
+        outputPackage = "com.pixdane.gregicality.codegen.dsl.refs.gtceu",
         outputObject = "MaterialIconSetsRef",
-        valueType = "MaterialIconRef",
-        renderKind = RefRenderKind.PathOnly
+        valueType = "MaterialIconRef"
       )
     )
 
@@ -83,8 +96,6 @@ class RefObjectRendererTest:
 
     assertTrue(file.content.contains("object MaterialIconSetsRef:"))
     assertTrue(file.content.contains("def METALLIC: MaterialIconRef ="))
-    assertTrue(file.content.contains("MaterialIconRef(ScalaPath(Vector("))
-    assertTrue(file.content.contains("def all: Vector[MaterialIconRef] ="))
-    assertTrue(
-      file.content.contains("private def all0: Vector[MaterialIconRef] =")
-    )
+    assertTrue(file.content.contains("MaterialIconRef(ScalaSymbolPath(Vector("))
+    assertTrue(!file.content.contains("def all:"))
+    assertTrue(!file.content.contains("byIdIndex"))

@@ -1,0 +1,92 @@
+package com.pixdane.gregicality.symbolgen.model
+
+import com.github.javaparser.StaticJavaParser
+import com.github.javaparser.ast.CompilationUnit
+
+final case class SourceArchive(files: Map[String, String]):
+  def source(path: String): String =
+    files.getOrElse(
+      path,
+      throw new IllegalArgumentException(s"missing source file: $path")
+    )
+
+  def parse(path: String): CompilationUnit =
+    StaticJavaParser.parse(source(path))
+
+  def parseUnder(prefix: String): Vector[(String, CompilationUnit)] =
+    files.toVector
+      .collect {
+        case (path, _) if path.startsWith(prefix) && path.endsWith(".java") =>
+          path -> parse(path)
+      }
+      .sortBy(_._1)
+
+sealed trait ScannedRef:
+  def name: String
+  def path: ScalaSymbolPath
+
+sealed trait ScannedMaterialRef extends ScannedRef:
+  def id: ResourceId
+  def includeInIdIndex: Boolean
+
+final case class ScannedRegisteredMaterialRef(
+    name: String,
+    id: ResourceId,
+    path: ScalaSymbolPath
+) extends ScannedMaterialRef:
+  val includeInIdIndex: Boolean = true
+
+final case class ScannedMaterialAliasRef(
+    name: String,
+    id: ResourceId,
+    path: ScalaSymbolPath
+) extends ScannedMaterialRef:
+  val includeInIdIndex: Boolean = false
+
+final case class ScannedPathRef(
+    name: String,
+    path: ScalaSymbolPath
+) extends ScannedRef
+
+final case class ResourceId(namespace: String, path: String)
+
+final case class ScalaSymbolPath(parts: Vector[String])
+
+object ScalaSymbolPath:
+  def fromFqcn(fqcn: String): ScalaSymbolPath =
+    ScalaSymbolPath(fqcn.split('.').toVector)
+
+  def member(ownerFqcn: String, memberName: String): ScalaSymbolPath =
+    ScalaSymbolPath.fromFqcn(ownerFqcn).append(memberName)
+
+extension (path: ScalaSymbolPath)
+  def append(part: String): ScalaSymbolPath =
+    ScalaSymbolPath(path.parts :+ part)
+
+final case class RefObjectTarget(
+    outputPackage: String,
+    outputObject: String,
+    valueType: String
+)
+
+enum RefJob:
+  case Materials(
+      id: String,
+      scan: SourceArchive => Vector[ScannedMaterialRef],
+      objectTarget: RefObjectTarget
+  )
+  case Paths(
+      id: String,
+      scan: SourceArchive => Vector[ScannedPathRef],
+      objectTarget: RefObjectTarget
+  )
+
+  def target: RefObjectTarget =
+    this match
+      case Materials(_, _, target) => target
+      case Paths(_, _, target)     => target
+
+final case class GeneratedScalaFile(
+    relativePath: String,
+    content: String
+)

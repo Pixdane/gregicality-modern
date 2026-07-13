@@ -1,8 +1,14 @@
-package com.pixdane.gregicality.symbolgen
+package com.pixdane.gregicality.symbolgen.cli
 
 import java.nio.file.Path
 
-object GenerateRef:
+import com.pixdane.gregicality.symbolgen.gtceu.GtceuRefJobs
+import com.pixdane.gregicality.symbolgen.io.GeneratedSourceWriter
+import com.pixdane.gregicality.symbolgen.io.SourceArchiveReader
+import com.pixdane.gregicality.symbolgen.render.RefAggregateRenderer
+import com.pixdane.gregicality.symbolgen.render.RefObjectRenderer
+
+object GenerateGtRefs:
   def main(args: Array[String]): Unit =
     run(Args.parse(args.toVector))
 
@@ -11,18 +17,19 @@ object GenerateRef:
       case "gtceu" =>
         val archive = SourceArchiveReader.readJar(args.sources)
         val refFiles =
-          RefJobs.all.map(job => RefObjectRenderer.generateFile(job, archive))
+          GtceuRefJobs.jobs.map(job =>
+            RefObjectRenderer.generateFile(job, archive)
+          )
         val aggregateFile =
           RefAggregateRenderer.generateFile(
-            outputPackage = "com.pixdane.gregicality.codegen.dsl.refs",
+            outputPackage = "com.pixdane.gregicality.codegen.dsl.refs.gtceu",
             outputObject = "GTRefs",
-            exports = RefJobs.all.map(_.target.outputObject)
+            exports = GtceuRefJobs.jobs.map(_.target.outputObject)
           )
 
         GeneratedSourceWriter.sync(
           outputDir = args.out,
-          files =
-            RefSupportRenderer.generateFile() +: (refFiles :+ aggregateFile)
+          files = refFiles :+ aggregateFile
         )
 
       case other =>

@@ -1,0 +1,136 @@
+package com.pixdane.gregicality.symbolgen.render
+
+import com.pixdane.gregicality.symbolgen.model.*
+
+object RefObjectRenderer:
+  private val IndexChunkSize = 100
+
+  def generateFile(job: RefJob, archive: SourceArchive): GeneratedScalaFile =
+    job match
+      case RefJob.Materials(_, scan, target) =>
+        val refs = scan(archive).sortBy(_.name)
+        generateRefFile(
+          target = target,
+          entries = refs.map(renderMaterialRef(target)),
+          suffix = renderLookupIndex(target, refs)
+        )
+      case RefJob.Paths(_, scan, target) =>
+        val refs = scan(archive).sortBy(_.name)
+        generateRefFile(
+          target = target,
+          entries = refs.map(renderPathRef(target)),
+          suffix = ScalaCode.empty
+        )
+
+  private def generateRefFile(
+      target: RefObjectTarget,
+      entries: Vector[ScalaCode],
+      suffix: ScalaCode
+  ): GeneratedScalaFile =
+    val code = refObjectLayout(target, suffix).apply(entries)
+
+    GeneratedScalaFile(
+      relativePath = target.outputPackage.replace('.', '/') + "/" +
+        target.outputObject + ".scala",
+      content = code.render
+    )
+
+  private def renderMaterialRef(target: RefObjectTarget)(
+      ref: ScannedMaterialRef
+  ): ScalaCode =
+    ScalaCode.lines(
+      s"  def ${ref.name}: ${target.valueType} =",
+      s"    ${target.valueType}(",
+      s"      ResourceId(${quote(ref.id.namespace)}, ${quote(ref.id.path)}),",
+      s"      ${renderScalaPath(ref.path)}",
+      s"    )"
+    )
+
+  private def renderPathRef(target: RefObjectTarget)(
+      ref: ScannedPathRef
+  ): ScalaCode =
+    ScalaCode.lines(
+      s"  def ${ref.name}: ${target.valueType} =",
+      s"    ${target.valueType}(${renderScalaPath(ref.path)})"
+    )
+
+  private def refObjectLayout(
+      target: RefObjectTarget,
+      suffix: ScalaCode
+  ): CodeLayout =
+    CodeLayout(
+      prefix = ScalaCode.lines(
+        s"package ${target.outputPackage}",
+        "",
+        "import com.pixdane.gregicality.codegen.dsl.model.*",
+        "",
+        s"object ${target.outputObject}:"
+      ),
+      separator = ScalaCode.line(""),
+      suffix = suffix
+    )
+
+  private def renderLookupIndex(
+      target: RefObjectTarget,
+      refs: Vector[ScannedMaterialRef]
+  ): ScalaCode =
+    val chunks =
+      refs.filter(_.includeInIdIndex).grouped(IndexChunkSize).toVector
+    val indexExpression =
+      if chunks.isEmpty then "Map.empty"
+      else chunks.indices.map(index => s"byId$index").mkString(" ++ ")
+    val chunkLines = chunks.zipWithIndex.flatMap { case (chunk, index) =>
+      Vector(
+        "",
+        s"  private def byId$index: Map[ResourceId, ${target.valueType}] =",
+        chunk
+          .map(ref => s"${ref.name}.id -> ${ref.name}")
+          .mkString("    Map(", ", ", ")")
+      )
+    }
+
+    ScalaCode.lines(
+      (Vector(
+        "",
+        s"  def resolve(id: ResourceId): Option[${target.valueType}] =",
+        "    byIdIndex.get(id)",
+        "",
+        s"  private lazy val byIdIndex: Map[ResourceId, ${target.valueType}] =",
+        s"    $indexExpression"
+      ) ++ chunkLines)*
+    )
+
+  private def renderScalaPath(path: ScalaSymbolPath): String =
+    s"ScalaSymbolPath(Vector(${path.parts.map(quote).mkString(", ")}))"
+
+  private def quote(value: String): String =
+    "\"" + value.flatMap {
+      case '\\' => "\\\\"
+      case '"'  => "\\\""
+      case '\n' => "\\n"
+      case '\r' => "\\r"
+      case '\t' => "\\t"
+      case char => char.toString
+    } + "\""
+
+object RefAggregateRenderer:
+  def generateFile(
+      outputPackage: String,
+      outputObject: String,
+      exports: Vector[String]
+  ): GeneratedScalaFile =
+    val exportLines = exports.sorted.map(name => s"  export $name.*")
+    val lines =
+      Vector(
+        s"package $outputPackage",
+        "",
+        s"object $outputObject:"
+      ) ++ exportLines
+
+    GeneratedScalaFile(
+      relativePath =
+        outputPackage.replace('.', '/') + "/" + outputObject + ".scala",
+      content = ScalaCode
+        .lines(lines*)
+        .render
+    )

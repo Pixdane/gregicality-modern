@@ -429,20 +429,20 @@ store the final Scala path because they are generated from the same symbol scan
 that discovers the path. They still must not store runtime GTCEu objects.
 
 ```scala
-final case class ScalaPath(parts: Vector[ScalaIdent])
+final case class ScalaSymbolPath(parts: Vector[ScalaIdent])
 final case class ResourceId(namespace: String, path: RegistryPath)
 
 final case class MaterialRef(
   id: ResourceId,
-  path: ScalaPath
+  path: ScalaSymbolPath
 )
 
-final case class ElementRef(path: ScalaPath)
-final case class MaterialFlagRef(path: ScalaPath)
-final case class MaterialFlagPresetRef(path: ScalaPath)
-final case class MaterialIconRef(path: ScalaPath)
-final case class FluidAttributeRef(path: ScalaPath)
-final case class TagPrefixRef(path: ScalaPath)
+final case class ElementRef(path: ScalaSymbolPath)
+final case class MaterialFlagRef(path: ScalaSymbolPath)
+final case class MaterialFlagPresetRef(path: ScalaSymbolPath)
+final case class MaterialIconRef(path: ScalaSymbolPath)
+final case class FluidAttributeRef(path: ScalaSymbolPath)
+final case class TagPrefixRef(path: ScalaSymbolPath)
 
 final case class ComponentSpec(
   material: MaterialRef,
@@ -462,7 +462,7 @@ For materials, the generated ref should include both identity and render path:
 GTMaterialsRef.Carbon
 // MaterialRef(
 //   id = ResourceId("gtceu", "carbon"),
-//   path = ScalaPath(..., "GTMaterials", "Carbon")
+//   path = ScalaSymbolPath(..., "GTMaterials", "Carbon")
 // )
 ```
 
@@ -471,24 +471,24 @@ implementation can be path-only:
 
 ```scala
 MaterialIconSetsRef.METALLIC
-// MaterialIconRef(path = ScalaPath(..., "MaterialIconSet", "METALLIC"))
+// MaterialIconRef(path = ScalaSymbolPath(..., "MaterialIconSet", "METALLIC"))
 ```
 
 For IDE completion, generate Scala ref objects whose values still produce these
 same typed refs:
 
 ```scala
-import com.pixdane.gregicality.codegen.dsl.refs.GTMaterialsRef.*
-import com.pixdane.gregicality.codegen.dsl.refs.MaterialIconSetsRef.*
+import com.pixdane.gregicality.codegen.dsl.refs.gtceu.GTMaterialsRef.*
+import com.pixdane.gregicality.codegen.dsl.refs.gtceu.MaterialIconSetsRef.*
 
 components := components(Carbon -> 22, Hydrogen -> 10)
 iconSet := METALLIC
 ```
 
-For convenience, generated Scala 3 `export` statements may also expose all GTCEu
-refs through `GTRefs.*`. Domain-specific imports remain useful when name
-collisions appear. The aggregate object must rename each exported `all` value,
-because `Vector[...]` erasure otherwise creates duplicate `all` definitions.
+For convenience, generated Scala 3 `export` statements expose the named GTCEu
+refs through `GTRefs.*`. Domain-specific imports remain useful when names from
+different catalogs collide. Catalogs do not expose an `all` collection: the DSL
+needs member completion, and only material ids need a lookup index.
 
 The generated `Carbon` above is a `MaterialRef`, not a runtime GTCEu
 `Material`. This gives normal Scala completion without importing
@@ -677,16 +677,16 @@ should provide the same completion surface while returning pure refs.
 
 Use one Gradle task and one `symbolgen` entrypoint:
 
-- source set: `symbolgen`
-- source path: `src/symbolgen/scala`
-- package: `com.pixdane.gregicality.symbolgen`
-- entrypoint: `com.pixdane.gregicality.symbolgen.GenerateRef`
-- Gradle task: `generateGtRefs`
-- generated source directory: `build/generated/sources/gcyDslRefs/scala/main`
-- generated refs package: `com.pixdane.gregicality.codegen.dsl.refs`
-- ref value package: `com.pixdane.gregicality.codegen.dsl.ref`
+- source set: `symbolgen`;
+- source path: `src/symbolgen/scala`;
+- implementation packages: `cli`, `gtceu`, `io`, `model`, and `render`;
+- entrypoint: `com.pixdane.gregicality.symbolgen.cli.GenerateGtRefs`;
+- Gradle task: `generateGtRefs`;
+- generated source directory: `build/generated/sources/gcyDslRefs/scala/main`;
+- generated refs package: `com.pixdane.gregicality.codegen.dsl.refs.gtceu`;
+- stable ref value package: `com.pixdane.gregicality.codegen.dsl.model`.
 
-The generated refs package contains completion surfaces such as:
+The generated package contains completion surfaces and one aggregate export:
 
 ```scala
 object GTMaterialsRef
@@ -696,198 +696,122 @@ object FluidAttributesRef
 object MaterialFlagsRef
 
 object GTRefs:
-  export GTMaterialsRef.{all as allGTMaterials, *}
-  export GTElementsRef.{all as allGTElements, *}
-  export MaterialIconSetsRef.{all as allMaterialIconSets, *}
-  export FluidAttributesRef.{all as allFluidAttributes, *}
-  export MaterialFlagsRef.{all as allMaterialFlags, *}
+  export GTMaterialsRef.*
+  export GTElementsRef.*
+  export MaterialIconSetsRef.*
+  export FluidAttributesRef.*
+  export MaterialFlagsRef.*
 ```
 
-The singular names remain value types in `codegen.dsl.ref`:
+The stable value types are hand-written codegen models, not files emitted by
+the scanner. This keeps downstream DSL and codegen source compatibility
+independent of generator implementation changes:
 
 ```scala
-final case class ScalaPath(parts: Vector[String])
+final case class ScalaSymbolPath(parts: Vector[String])
 final case class ResourceId(namespace: String, path: String)
 
-final case class MaterialRef(id: ResourceId, path: ScalaPath)
-final case class ElementRef(path: ScalaPath)
-final case class MaterialIconRef(path: ScalaPath)
-final case class MaterialFlagRef(path: ScalaPath)
-final case class FluidAttributeRef(path: ScalaPath)
-final case class TagPrefixRef(path: ScalaPath)
+final case class MaterialRef(id: ResourceId, path: ScalaSymbolPath)
+final case class ElementRef(path: ScalaSymbolPath)
+final case class MaterialIconRef(path: ScalaSymbolPath)
+final case class MaterialFlagRef(path: ScalaSymbolPath)
+final case class FluidAttributeRef(path: ScalaSymbolPath)
+final case class TagPrefixRef(path: ScalaSymbolPath)
 ```
 
-The generator normalizes every discovered symbol to one simple shape:
+The internal scan model encodes whether an id exists in the type hierarchy,
+instead of representing invalid combinations with `Option`:
 
 ```scala
-final case class ScannedRef(
-  name: String,
-  id: Option[ResourceId],
-  path: ScalaPath
-)
+sealed trait ScannedRef:
+  def name: String
+  def path: ScalaSymbolPath
+
+sealed trait ScannedMaterialRef extends ScannedRef:
+  def id: ResourceId
+  def includeInIdIndex: Boolean
+
+final case class ScannedRegisteredMaterialRef(
+  name: String, id: ResourceId, path: ScalaSymbolPath
+) extends ScannedMaterialRef
+
+final case class ScannedMaterialAliasRef(
+  name: String, id: ResourceId, path: ScalaSymbolPath
+) extends ScannedMaterialRef
+
+final case class ScannedPathRef(
+  name: String, path: ScalaSymbolPath
+) extends ScannedRef
 ```
 
-`ScannedRef` is an internal `symbolgen` model. Generated Scala code uses the
-`codegen.dsl.ref` value types shown above. Material refs set `id = Some(...)`;
-path-only refs set `id = None`.
+Registered materials enter the id index. Aliases remain generated members for
+completion, but do not replace the canonical result returned by id lookup.
 
-For materials:
-
-```scala
-ScannedRef(
-  name = "Carbon",
-  id = Some(ResourceId("gtceu", "carbon")),
-  path = ScalaPath(Vector(
-    "com", "gregtechceu", "gtceu", "common", "data", "GTMaterials", "Carbon"
-  ))
-)
-```
-
-For static path-only refs:
+The source reader loads the GTCEu sources jar into a `SourceArchive`. Scanners
+parse only the configured Java sources with JavaParser. Jobs are typed by the
+data they can produce:
 
 ```scala
-ScannedRef(
-  name = "METALLIC",
-  id = None,
-  path = ScalaPath(Vector(
-    "com", "gregtechceu", "gtceu", "api", "data", "chemical", "material",
-    "info", "MaterialIconSet", "METALLIC"
-  ))
-)
-```
-
-Keep the first implementation intentionally narrow. The source reader loads the
-GTCEu sources jar into memory as `Map[String, String]`. Scanners parse only the
-needed Java files with JavaParser and then walk the AST for field declarations
-and material builder assignments. If GTCEu source shapes drift, update the
-scanner for that source shape without changing the `ScannedRef` and renderer
-boundary.
-
-Each generation job is a source plus a target:
-
-```scala
-final case class SourceArchive(files: Map[String, String])
-
-enum RefRenderKind:
-  case WithId
-  case PathOnly
-
-final case class RefObjectTarget(
-  outputPackage: String,
-  outputObject: String,
-  valueType: String,
-  renderKind: RefRenderKind
-)
-
-final case class RefJob(
-  id: String,
-  source: SourceArchive => Vector[ScannedRef],
-  target: RefObjectTarget
-)
+enum RefJob:
+  case Materials(
+    id: String,
+    scan: SourceArchive => Vector[ScannedMaterialRef],
+    objectTarget: RefObjectTarget
+  )
+  case Paths(
+    id: String,
+    scan: SourceArchive => Vector[ScannedPathRef],
+    objectTarget: RefObjectTarget
+  )
 ```
 
 The first jobs are:
 
-| Job id | Output object | Value type | Render kind | Source shape |
+| Job id | Output object | Value type | Job kind | Source shape |
 | --- | --- | --- | --- | --- |
-| `gt-materials` | `GTMaterialsRef` | `MaterialRef` | `WithId` | `GTMaterials.java` declarations plus `common/data/materials/*.java` assignments |
-| `gt-elements` | `GTElementsRef` | `ElementRef` | `PathOnly` | static `Element` fields in `GTElements.java` |
-| `material-icon-sets` | `MaterialIconSetsRef` | `MaterialIconRef` | `PathOnly` | static `MaterialIconSet` fields in `MaterialIconSet.java` |
-| `fluid-attributes` | `FluidAttributesRef` | `FluidAttributeRef` | `PathOnly` | static `FluidAttribute` fields in `FluidAttributes.java` |
-| `material-flags` | `MaterialFlagsRef` | `MaterialFlagRef` | `PathOnly` | static `MaterialFlag` fields in `MaterialFlags.java` |
+| `gt-materials` | `GTMaterialsRef` | `MaterialRef` | `Materials` | `GTMaterials.java` declarations plus material assignments and aliases |
+| `gt-elements` | `GTElementsRef` | `ElementRef` | `Paths` | static `Element` fields in `GTElements.java` |
+| `material-icon-sets` | `MaterialIconSetsRef` | `MaterialIconRef` | `Paths` | static `MaterialIconSet` fields in `MaterialIconSet.java` |
+| `fluid-attributes` | `FluidAttributesRef` | `FluidAttributeRef` | `Paths` | static `FluidAttribute` fields in `FluidAttributes.java` |
+| `material-flags` | `MaterialFlagsRef` | `MaterialFlagRef` | `Paths` | static `MaterialFlag` fields in `MaterialFlags.java` |
 
-For static jobs, scan public static fields of the configured type under the
-configured owner source. For material refs, scan `GTMaterials.java` for declared
-material fields and scan `common/data/materials/*.java` for assignments such as:
+For material refs, the scanner joins declarations to assignments rooted at the
+exact `new Material.Builder(GTCEu.id("..."))` shape. It also recognizes direct
+`GTMaterials` aliases. Missing assignments, duplicate assignments, duplicate
+registered ids, unsupported builder shapes, and assignments through another
+owner are diagnostics rather than silently dropped symbols. This preserves the
+true registry id without lossy field-name conversion.
 
-```java
-Carbon = new Material.Builder(GTCEu.id("carbon"))
-```
-
-Then join by field name. This preserves the true registry id and avoids relying
-on lossy field-name conversion such as `PolyvinylChloride ->
-polyvinyl_chloride`. If sources are unavailable, an ASM fallback may be added
-later. Running GTCEu just to discover ids should remain the last resort.
-
-Rendering is also a small composition:
-
-```text
-SourceArchive
-  -> job.source
-  -> Vector[ScannedRef]
-  -> sort by name
-  -> map(renderRef(target))
-  -> CodeLayout(prefix, separator, suffix)
-  -> GeneratedScalaFile
-```
-
-`renderRef(target)` is a curried function:
-
-```scala
-def renderRef(target: RefObjectTarget)(ref: ScannedRef): ScalaCode
-```
-
-`RefRenderKind.WithId` renders:
+Rendering matches the `RefJob` variant and therefore cannot accidentally render
+a path-only symbol as a material. Generated members remain parameterless `def`s
+so large catalogs do not allocate every ref in the Scala object initializer:
 
 ```scala
 def Carbon: MaterialRef =
-  MaterialRef(ResourceId("gtceu", "carbon"), ScalaPath(Vector(...)))
-```
-
-`RefRenderKind.PathOnly` renders:
-
-```scala
-def METALLIC: MaterialIconRef =
-  MaterialIconRef(ScalaPath(Vector(...)))
-```
-
-Use a tiny `ScalaCode` monoid plus layout combinators instead of a writer monad:
-
-```scala
-final case class ScalaCode(lines: Vector[String]):
-  def ++(other: ScalaCode): ScalaCode =
-    ScalaCode(lines ++ other.lines)
-
-final case class CodeLayout(
-  prefix: ScalaCode,
-  separator: ScalaCode,
-  suffix: ScalaCode
-):
-  def apply(items: Vector[ScalaCode]): ScalaCode =
-    prefix ++ ScalaCode.joinWith(separator)(items) ++ suffix
-```
-
-The object layout adds package/import/object headers, blank-line separators
-between refs, and the final `all` vector. Individual ref renderers do not know
-whether they are first, middle, or last.
-
-Generated refs use parameterless `def`s instead of eager `val`s. Large objects
-such as `GTMaterialsRef` would otherwise place hundreds of allocations in the
-Scala object static initializer and can exceed the JVM method-size limit. The
-`all` accessor is also rendered as a `def` and split into private chunk methods
-when needed:
-
-```scala
-def all: Vector[MaterialRef] =
-  all0 ++ all1
-
-private def all0: Vector[MaterialRef] =
-  Vector(AceticAcid, Acetone, ...)
-```
-
-```scala
-def generateFile(job: RefJob, archive: SourceArchive): GeneratedScalaFile =
-  val refs = job.source(archive).sortBy(_.name)
-  val entries = refs.map(renderRef(job.target))
-  val code = refObjectLayout(job.target, refs).apply(entries)
-
-  GeneratedScalaFile(
-    relativePath =
-      job.target.outputPackage.replace('.', '/') + "/" +
-        job.target.outputObject + ".scala",
-    content = code.render
+  MaterialRef(
+    ResourceId("gtceu", "carbon"),
+    ScalaSymbolPath(Vector(...))
   )
 ```
+
+Only `GTMaterialsRef` has an id lookup API:
+
+```scala
+def resolve(id: ResourceId): Option[MaterialRef] =
+  byIdIndex.get(id)
+
+private lazy val byIdIndex: Map[ResourceId, MaterialRef] =
+  byId0 ++ byId1
+
+private def byId0: Map[ResourceId, MaterialRef] =
+  Map(Carbon.id -> Carbon, ...)
+```
+
+The `lazy val` delays construction until code actually performs an id lookup.
+Ordinary DSL completion and path-based codegen do not pay for the index. The
+private map is split into chunks to avoid oversized JVM methods. There is no
+public `all`: it adds eager bulk allocation and an API surface that neither ref
+completion nor path rendering requires.
 
 Flag presets such as `STD_METAL`, `EXT_METAL`, and `EXT2_METAL` live on
 `GTMaterials` and are collections of flags, not single `MaterialFlag` values.
@@ -897,7 +821,8 @@ separate target and render kind if the DSL needs preset completion.
 Only two places perform I/O:
 
 - `SourceArchiveReader.read(sourcesJar)` reads the jar into `SourceArchive`.
-- `GeneratedSourceWriter.sync(outDir, files)` owns the generated refs directory.
+- `GeneratedSourceWriter.sync(outDir, files)` transactionally replaces the
+  generated refs directory through staging and rollback-safe backup paths.
 
 Everything between those two boundaries should be ordinary data transformation.
 
@@ -914,10 +839,11 @@ symbolgen
   -> compileScala
 ```
 
-`symbolgen` contains only the artifact scanner and ref renderer. It must not
-depend on generated refs or on the `codegen` source set. It renders source text
-that imports the `codegen.dsl.ref` value types. `codegen` and `gcyDsl` may depend
-on the generated ref source directory.
+`symbolgen` contains only the artifact scanner and ref renderer. It does not
+depend on main, generated refs, or the `codegen` source set. Its classpath names
+Scala 3 and JavaParser explicitly. It renders source text that imports the
+`codegen.dsl.model` value types. `codegen` and `gcyDsl` may depend on the
+generated ref source directory.
 
 Generated refs should be available to both:
 
@@ -932,104 +858,13 @@ That scan can read easy-to-find DSL declarations and generate local
 slice to GTCEu artifacts only and does not require scanning authored DSL before
 `compileGcyDsl`.
 
-Gradle 9 deprecates Kotlin DSL delegated container accessors such as
-`val codegen by sourceSets.creating`. Use `sourceSets.create(...)` for this
-small fixed set of source sets.
-
-Sketch:
-
-```kotlin
-val symbolgen = sourceSets.create("symbolgen") {
-    scala.srcDir("src/symbolgen/scala")
-    resources.srcDir("src/symbolgen/resources")
-
-    compileClasspath += sourceSets.main.get().compileClasspath
-    runtimeClasspath += output + compileClasspath
-}
-
-val generatedGtRefsDir =
-    layout.buildDirectory.dir("generated/sources/gcyDslRefs/scala/main")
-
-val generateGtRefs = tasks.register<JavaExec>("generateGtRefs") {
-    group = "code generation"
-    description = "Generates typed Scala refs from GTCEu source artifacts."
-
-    dependsOn(tasks.named(symbolgen.classesTaskName))
-
-    mainClass.set("com.pixdane.gregicality.symbolgen.GenerateRef")
-    classpath = symbolgen.runtimeClasspath
-
-    argumentProviders.add(
-        objects.newInstance(GenerateGtRefsArguments::class.java).apply {
-            sourcesJar.set(gtceuSourcesJar)
-            outputDir.set(generatedGtRefsDir)
-        }
-    )
-
-    inputs.file(gtceuSourcesJar)
-        .withPropertyName("gtceuSourcesJar")
-        .withPathSensitivity(PathSensitivity.NONE)
-    outputs.dir(generatedGtRefsDir)
-}
-
-val codegen = sourceSets.create("codegen") {
-    scala.srcDir("src/codegen/scala")
-    scala.srcDir(generatedGtRefsDir)
-    resources.srcDir("src/codegen/resources")
-
-    compileClasspath += sourceSets.main.get().compileClasspath
-    runtimeClasspath += output + compileClasspath
-}
-
-val gcyDsl = sourceSets.create("gcyDsl") {
-    scala.srcDir("src/gcyDsl/scala")
-    scala.srcDir(generatedGtRefsDir)
-    resources.srcDir("src/gcyDsl/resources")
-
-    compileClasspath += codegen.output + codegen.compileClasspath
-    runtimeClasspath += output + compileClasspath
-}
-
-tasks.named(codegen.classesTaskName) {
-    dependsOn(generateGtRefs)
-}
-
-tasks.named(gcyDsl.classesTaskName) {
-    dependsOn(generateGtRefs)
-}
-
-val generatedGcyDslDir =
-    layout.buildDirectory.dir("generated/sources/gcyDsl/scala/main")
-
-val generateGcyDslSources = tasks.register<JavaExec>("generateGcyDslSources") {
-    group = "code generation"
-    description = "Generates Scala registration sources from Gregicality DSL files."
-
-    dependsOn(tasks.named(codegen.classesTaskName))
-    dependsOn(tasks.named(gcyDsl.classesTaskName))
-
-    mainClass.set("com.pixdane.gregicality.codegen.GenerateGcyDslSources")
-    classpath = codegen.runtimeClasspath + gcyDsl.runtimeClasspath
-
-    args(
-        layout.projectDirectory.dir("src/gcyDsl/scala").asFile.absolutePath,
-        generatedGcyDslDir.get().asFile.absolutePath
-    )
-
-    inputs.dir("src/gcyDsl/scala")
-    inputs.files(codegen.runtimeClasspath)
-    inputs.files(gcyDsl.runtimeClasspath)
-    outputs.dir(generatedGcyDslDir)
-}
-
-sourceSets.main {
-    scala.srcDir(generatedGcyDslDir)
-}
-
-tasks.compileScala {
-    dependsOn(generateGcyDslSources)
-}
-```
+The convention plugin in `build-logic/convention/src/main/kotlin/codegen.gradle.kts`
+creates a non-transitive `gtceuSources` configuration and requests Gradle's
+documentation/sources variant of `deps.gtceu`. The task receives that resolved
+artifact through a path-insensitive `ConfigurableFileCollection`; it does not
+walk Gradle's cache or construct a classifier path manually. `codegen` compiles
+the hand-written models together with the generated catalog sources and depends
+on `generateGtRefs`.
 
 If the generator reads id maps, schema files, package tables, or old source
 extracts, declare them as Gradle inputs. Otherwise Gradle may reuse stale
@@ -1086,7 +921,8 @@ often produce worse error messages than a good `ValidatedNec` validator.
 
 ## Tests
 
-Scala unit tests belong in `src/test/scala`.
+Application unit tests belong in `src/test/scala`. Symbol-generator tests use
+the isolated `src/symbolgenTest/scala` source set and the `testSymbolgen` task.
 
 Test the pure parts there:
 
@@ -1095,6 +931,12 @@ Test the pure parts there:
 - duplicate key and duplicate id reporting;
 - planner output;
 - code AST rendering snapshots.
+
+For symbol generation, test scanner completeness and rejected AST shapes,
+canonical material aliases, lookup-index rendering, aggregate exports, and
+transactional replacement of generated output. The normal build must also run
+`generateGtRefs` against the resolved GTCEu sources artifact and compile the
+result with the hand-written codegen models.
 
 Do not put real DSL input packages in `src/test/scala`. If compiled test DSL
 fixtures are needed later, add a separate `src/testGcyDsl/scala` source set or
@@ -1128,8 +970,8 @@ use small fixtures in `src/test/resources`.
 6. Add validators for ids, fields, required material kind, duplicate ids,
    duplicate fields, and material-kind conflicts.
 7. Add validation or rendering helpers that consume generated refs directly:
-   material refs provide `ResourceId + ScalaPath`, while other refs provide
-   `ScalaPath`.
+   material refs provide `ResourceId + ScalaSymbolPath`, while other refs
+   provide `ScalaSymbolPath`.
 8. Add pure planner and code AST renderer for the subset already shown in
    `GCYMaterials.scala`: `ingot`, `fluid`, `langValue`, `color`, `iconSet`,
    `appendFlags`, `components`, and `blast`.

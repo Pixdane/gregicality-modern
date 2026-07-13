@@ -1,14 +1,16 @@
-package com.pixdane.gregicality.symbolgen
+package com.pixdane.gregicality.symbolgen.gtceu
 
-object RefJobs:
+import com.pixdane.gregicality.symbolgen.model.*
+
+object GtceuRefJobs:
   private val OutputPackage =
-    "com.pixdane.gregicality.codegen.dsl.refs"
+    "com.pixdane.gregicality.codegen.dsl.refs.gtceu"
 
   private val gtMaterials: RefJob =
-    RefJob(
+    RefJob.Materials(
       id = "gt-materials",
-      source = GtceuSourceScanners.scanGtMaterials(
-        GtMaterialsSource(
+      scan = GtceuSourceScanners.scanGtMaterials(
+        GtMaterialsScanSpec(
           declarationPath =
             "com/gregtechceu/gtceu/common/data/GTMaterials.java",
           assignmentDir = "com/gregtechceu/gtceu/common/data/materials/",
@@ -16,11 +18,10 @@ object RefJobs:
           namespace = "gtceu"
         )
       ),
-      target = RefObjectTarget(
+      objectTarget = RefObjectTarget(
         outputPackage = OutputPackage,
         outputObject = "GTMaterialsRef",
-        valueType = "MaterialRef",
-        renderKind = RefRenderKind.WithId
+        valueType = "MaterialRef"
       )
     )
 
@@ -77,24 +78,23 @@ object RefJobs:
       ownerFqcn: String,
       memberTypeSimpleName: String
   ): RefJob =
-    RefJob(
+    RefJob.Paths(
       id = id,
-      source = GtceuSourceScanners.scanStaticMembers(
-        StaticMemberSource(
+      scan = GtceuSourceScanners.scanStaticMembers(
+        StaticFieldScanSpec(
           sourcePath = sourcePath,
           ownerFqcn = ownerFqcn,
           memberTypeSimpleName = memberTypeSimpleName
         )
       ),
-      target = RefObjectTarget(
+      objectTarget = RefObjectTarget(
         outputPackage = OutputPackage,
         outputObject = outputObject,
-        valueType = valueType,
-        renderKind = RefRenderKind.PathOnly
+        valueType = valueType
       )
     )
 
-  val all: Vector[RefJob] =
+  val jobs: Vector[RefJob] =
     Vector(
       gtMaterials,
       gtElements,

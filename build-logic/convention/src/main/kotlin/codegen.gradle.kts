@@ -1,5 +1,8 @@
+import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.DirectoryProperty
-import org.gradle.api.file.RegularFileProperty
+import org.gradle.api.attributes.Category
+import org.gradle.api.attributes.DocsType
+import org.gradle.api.attributes.Usage
 import org.gradle.process.CommandLineArgumentProvider
 
 plugins {
@@ -7,9 +10,9 @@ plugins {
 }
 
 abstract class GenerateGtRefsArguments : CommandLineArgumentProvider {
-    @get:InputFile
+    @get:InputFiles
     @get:PathSensitive(PathSensitivity.NONE)
-    abstract val sourcesJar: RegularFileProperty
+    abstract val sourcesJar: ConfigurableFileCollection
 
     @get:Internal
     abstract val outputDir: DirectoryProperty
@@ -17,7 +20,7 @@ abstract class GenerateGtRefsArguments : CommandLineArgumentProvider {
     override fun asArguments(): Iterable<String> =
         listOf(
             "--kind", "gtceu",
-            "--sources", sourcesJar.get().asFile.absolutePath,
+            "--sources", sourcesJar.singleFile.absolutePath,
             "--out", outputDir.get().asFile.absolutePath,
         )
 }
@@ -30,7 +33,6 @@ val symbolgen = sourceSets.create("symbolgen") {
     scala.srcDir("src/symbolgen/scala")
     resources.srcDir("src/symbolgen/resources")
 
-    compileClasspath += sourceSets.main.get().compileClasspath
     runtimeClasspath += output + compileClasspath
 }
 
@@ -42,33 +44,31 @@ val symbolgenTest = sourceSets.create("symbolgenTest") {
     runtimeClasspath += output + compileClasspath + symbolgen.runtimeClasspath
 }
 
+val gtceuSources = configurations.create("gtceuSources") {
+    isCanBeConsumed = false
+    isCanBeResolved = true
+    isTransitive = false
+
+    attributes {
+        attribute(Category.CATEGORY_ATTRIBUTE, objects.named(Category.DOCUMENTATION))
+        attribute(DocsType.DOCS_TYPE_ATTRIBUTE, objects.named(DocsType.SOURCES))
+        attribute(Usage.USAGE_ATTRIBUTE, objects.named(Usage.JAVA_RUNTIME))
+    }
+}
+
 dependencies {
+    add(symbolgen.implementationConfigurationName, deps.scala3)
     add(symbolgen.implementationConfigurationName, deps.javaparser.core)
 
     add(symbolgenTest.implementationConfigurationName, platform(libs.junit.bom))
     add(symbolgenTest.implementationConfigurationName, libs.junit.jupiter)
     add(symbolgenTest.runtimeOnlyConfigurationName, libs.junit.platform.launcher)
+
+    add(gtceuSources.name, deps.gtceu)
 }
 
 val generatedGtRefsDir =
     layout.buildDirectory.dir("generated/sources/gcyDslRefs/scala/main")
-
-val gtceuSourcesJar =
-    layout.file(
-        providers.provider {
-            val expectedName = "gtceu-1.20.1-${deps.versions.gtceu.get()}-sources.jar"
-            val moduleCacheDir = gradle.gradleUserHomeDir
-                .resolve("caches/modules-2/files-2.1/com.gregtechceu.gtceu/gtceu-1.20.1/${deps.versions.gtceu.get()}")
-
-            moduleCacheDir
-                .walkTopDown()
-                .firstOrNull { file -> file.isFile && file.name == expectedName }
-                ?: throw GradleException(
-                    "Missing GTCEu sources jar in Gradle cache: $expectedName. " +
-                        "Resolve com.gregtechceu.gtceu:gtceu-1.20.1:${deps.versions.gtceu.get()}:sources first."
-                )
-        }
-    )
 
 val generateGtRefs = tasks.register<JavaExec>("generateGtRefs") {
     group = "code generation"
@@ -76,18 +76,15 @@ val generateGtRefs = tasks.register<JavaExec>("generateGtRefs") {
 
     dependsOn(tasks.named(symbolgen.classesTaskName))
 
-    mainClass.set("com.pixdane.gregicality.symbolgen.GenerateRef")
+    mainClass.set("com.pixdane.gregicality.symbolgen.cli.GenerateGtRefs")
     classpath = symbolgen.runtimeClasspath
     argumentProviders.add(
         objects.newInstance(GenerateGtRefsArguments::class.java).apply {
-            sourcesJar.set(gtceuSourcesJar)
+            sourcesJar.from(gtceuSources)
             outputDir.set(generatedGtRefsDir)
         }
     )
 
-    inputs.file(gtceuSourcesJar)
-        .withPropertyName("gtceuSourcesJar")
-        .withPathSensitivity(PathSensitivity.NONE)
     outputs.dir(generatedGtRefsDir)
 }
 

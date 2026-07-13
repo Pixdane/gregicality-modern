@@ -1,0 +1,61 @@
+package com.pixdane.gregicality.symbolgen
+
+import java.nio.charset.StandardCharsets
+import java.nio.file.Files
+import java.nio.file.Path
+
+import com.pixdane.gregicality.symbolgen.io.GeneratedSourceWriter
+import com.pixdane.gregicality.symbolgen.model.GeneratedScalaFile
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertThrows
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.io.TempDir
+
+class GeneratedSourceWriterTest:
+  @TempDir
+  var tempDir: Path = _
+
+  @Test
+  def syncReplacesTheOwnedDirectoryAndDeletesStaleFiles(): Unit =
+    val outputDir = tempDir.resolve("generated")
+    val staleFile = outputDir.resolve("stale.scala")
+    Files.createDirectories(outputDir)
+    Files.writeString(staleFile, "stale", StandardCharsets.UTF_8)
+
+    GeneratedSourceWriter.sync(
+      outputDir,
+      Vector(GeneratedScalaFile("pkg/Fresh.scala", "fresh\n"))
+    )
+
+    assertFalse(Files.exists(staleFile))
+    assertEquals(
+      "fresh\n",
+      Files.readString(
+        outputDir.resolve("pkg/Fresh.scala"),
+        StandardCharsets.UTF_8
+      )
+    )
+
+  @Test
+  def invalidInputDoesNotModifyTheExistingOutputDirectory(): Unit =
+    val outputDir = tempDir.resolve("generated")
+    val existingFile = outputDir.resolve("Existing.scala")
+    Files.createDirectories(outputDir)
+    Files.writeString(existingFile, "existing\n", StandardCharsets.UTF_8)
+
+    assertThrows(
+      classOf[IllegalArgumentException],
+      () =>
+        GeneratedSourceWriter.sync(
+          outputDir,
+          Vector(GeneratedScalaFile("../Escaped.scala", "escaped\n"))
+        )
+    )
+
+    assertTrue(Files.exists(existingFile))
+    assertEquals(
+      "existing\n",
+      Files.readString(existingFile, StandardCharsets.UTF_8)
+    )
