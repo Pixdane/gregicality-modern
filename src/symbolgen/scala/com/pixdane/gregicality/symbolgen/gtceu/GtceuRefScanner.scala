@@ -1,26 +1,32 @@
 package com.pixdane.gregicality.symbolgen.gtceu
 
+import cats.data.Ior
 import com.pixdane.gregicality.symbolgen.archive.SourceArchive
+import com.pixdane.gregicality.symbolgen.gtceu.scan.GtceuScanResult
+import com.pixdane.gregicality.symbolgen.render.RefObjectTarget
 import com.pixdane.gregicality.symbolgen.scan.{
   ScannedMaterialRef,
   ScannedPathRef
 }
-import com.pixdane.gregicality.symbolgen.render.RefObjectTarget
 
 enum GtceuScannedRefs:
   case Materials(target: RefObjectTarget, refs: Vector[ScannedMaterialRef])
   case Paths(target: RefObjectTarget, refs: Vector[ScannedPathRef])
 
 object GtceuRefScanner:
-  def scan(job: GtceuRefJob, archive: SourceArchive): GtceuScannedRefs =
+  def scan(
+      job: GtceuRefJob,
+      archive: SourceArchive
+  ): GtceuScanResult[GtceuScannedRefs] =
     job match
       case GtceuRefJob.Materials(_, spec, target) =>
-        GtceuScannedRefs.Materials(
-          target = target,
-          refs = GtceuSourceScanners.scanGtMaterials(spec)(archive)
-        )
+        GtceuSourceScanners
+          .scanGtMaterials(spec)(archive)
+          .map(refs => GtceuScannedRefs.Materials(target = target, refs = refs))
       case GtceuRefJob.Paths(_, spec, target) =>
-        GtceuScannedRefs.Paths(
-          target = target,
-          refs = GtceuSourceScanners.scanStaticMembers(spec)(archive)
+        Ior.right(
+          GtceuScannedRefs.Paths(
+            target = target,
+            refs = GtceuSourceScanners.scanStaticMembers(spec)(archive)
+          )
         )

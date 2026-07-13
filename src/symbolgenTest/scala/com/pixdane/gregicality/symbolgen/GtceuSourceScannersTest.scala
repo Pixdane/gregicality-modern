@@ -1,15 +1,17 @@
 package com.pixdane.gregicality.symbolgen
 
-import com.pixdane.gregicality.symbolgen.gtceu.*
 import com.pixdane.gregicality.symbolgen.archive.SourceArchive
+import com.pixdane.gregicality.symbolgen.gtceu.*
+import com.pixdane.gregicality.symbolgen.scan.ScannedMaterialRef
 import com.pixdane.gregicality.symbolgen.scan.ScannedPathRef
 import com.pixdane.gregicality.codegen.dsl.model.{ResourceId, ScalaSymbolPath}
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertThrows
-import org.junit.jupiter.api.Assertions.assertTrue
+
+import cats.data.Ior
+import org.junit.jupiter.api.Assertions.{assertEquals, assertTrue, fail}
 import org.junit.jupiter.api.Test
 
 class GtceuSourceScannersTest:
+
   @Test
   def scanStaticMembersUsesPublicStaticFinalFieldsOfRequestedType(): Unit =
     val archive = SourceArchive(
@@ -76,7 +78,7 @@ class GtceuSourceScannersTest:
           |""".stripMargin
     )
 
-    val refs = GtceuSourceScanners.scanGtMaterials(materialSource)(archive)
+    val refs = materialRefs(materialSource)(archive)
 
     assertEquals(Vector("Carbon"), refs.map(_.name))
 
@@ -92,7 +94,7 @@ class GtceuSourceScannersTest:
           |""".stripMargin
     )
 
-    val refs = GtceuSourceScanners.scanGtMaterials(materialSource)(archive)
+    val refs = materialRefs(materialSource)(archive)
 
     assertEquals(Vector("Limonite"), refs.map(_.name))
 
@@ -107,17 +109,14 @@ class GtceuSourceScannersTest:
           |""".stripMargin
     )
 
-    val error = assertThrows(
-      classOf[IllegalArgumentException],
-      () => GtceuSourceScanners.scanGtMaterials(materialSource)(archive)
-    )
+    val rendered = materialDiagnostics(materialSource)(archive)
 
     assertTrue(
-      error.getMessage.contains(
+      rendered.contains(
         "without a recognized builder or alias assignment"
       )
     )
-    assertTrue(error.getMessage.contains("Hydrogen"))
+    assertTrue(rendered.contains("Hydrogen"))
 
   @Test
   def scanGtMaterialsRejectsIdNestedOutsideTheBuilderConstructor(): Unit =
@@ -163,7 +162,7 @@ class GtceuSourceScannersTest:
           |""".stripMargin
     )
 
-    val refs = GtceuSourceScanners.scanGtMaterials(materialSource)(archive)
+    val refs = materialRefs(materialSource)(archive)
 
     assertEquals(Vector("Carbon"), refs.map(_.name))
 
@@ -228,7 +227,7 @@ class GtceuSourceScannersTest:
           |""".stripMargin
     )
 
-    val refs = GtceuSourceScanners.scanGtMaterials(materialSource)(archive)
+    val refs = materialRefs(materialSource)(archive)
 
     assertEquals(Vector("Carbon"), refs.map(_.name))
     assertEquals(ResourceId("gtceu", "carbon"), refs.head.id)
@@ -245,15 +244,12 @@ class GtceuSourceScannersTest:
           |""".stripMargin
     )
 
-    val error = assertThrows(
-      classOf[IllegalArgumentException],
-      () => GtceuSourceScanners.scanGtMaterials(materialSource)(archive)
-    )
+    val rendered = materialDiagnostics(materialSource)(archive)
 
     assertTrue(
-      error.getMessage.contains("duplicate GTCEu material assignments")
+      rendered.contains("duplicate GTCEu material assignments")
     )
-    assertTrue(error.getMessage.contains("Carbon"))
+    assertTrue(rendered.contains("Carbon"))
 
   @Test
   def scanGtMaterialsRejectsDuplicateRegistryIds(): Unit =
@@ -267,17 +263,14 @@ class GtceuSourceScannersTest:
           |""".stripMargin
     )
 
-    val error = assertThrows(
-      classOf[IllegalArgumentException],
-      () => GtceuSourceScanners.scanGtMaterials(materialSource)(archive)
-    )
+    val rendered = materialDiagnostics(materialSource)(archive)
 
     assertTrue(
-      error.getMessage.contains("duplicate GTCEu material registry ids")
+      rendered.contains("duplicate GTCEu material registry ids")
     )
-    assertTrue(error.getMessage.contains("gtceu:shared"))
-    assertTrue(error.getMessage.contains("Carbon"))
-    assertTrue(error.getMessage.contains("Hydrogen"))
+    assertTrue(rendered.contains("gtceu:shared"))
+    assertTrue(rendered.contains("Carbon"))
+    assertTrue(rendered.contains("Hydrogen"))
 
   @Test
   def scanGtMaterialsAggregatesDiagnosticsWithSourceLocations(): Unit =
@@ -293,30 +286,26 @@ class GtceuSourceScannersTest:
           |""".stripMargin
     )
 
-    val error = assertThrows(
-      classOf[IllegalArgumentException],
-      () => GtceuSourceScanners.scanGtMaterials(materialSource)(archive)
-    )
-    val message = error.getMessage
+    val rendered = materialDiagnostics(materialSource)(archive)
 
-    assertTrue(message.contains("duplicate GTCEu material assignments"))
-    assertTrue(message.contains("duplicate GTCEu material registry ids"))
+    assertTrue(rendered.contains("duplicate GTCEu material assignments"))
+    assertTrue(rendered.contains("duplicate GTCEu material registry ids"))
     assertTrue(
-      message.contains(
+      rendered.contains(
         "without a recognized builder or alias assignment"
       )
     )
     assertTrue(
-      message.contains(s"${materialSource.assignmentDir}TestMaterials.java:")
+      rendered.contains(s"${materialSource.assignmentDir}TestMaterials.java:")
     )
-    assertTrue(message.contains(s"${materialSource.declarationPath}:"))
+    assertTrue(rendered.contains(s"${materialSource.declarationPath}:"))
     assertTrue(
-      message.indexOf("duplicate GTCEu material assignments") <
-        message.indexOf("duplicate GTCEu material registry ids")
+      rendered.indexOf("duplicate GTCEu material assignments") <
+        rendered.indexOf("duplicate GTCEu material registry ids")
     )
     assertTrue(
-      message.indexOf("duplicate GTCEu material registry ids") <
-        message.indexOf("without a recognized builder or alias assignment")
+      rendered.indexOf("duplicate GTCEu material registry ids") <
+        rendered.indexOf("without a recognized builder or alias assignment")
     )
 
   @Test
@@ -331,73 +320,81 @@ class GtceuSourceScannersTest:
           |""".stripMargin
     )
 
-    val refs = GtceuSourceScanners.scanGtMaterials(materialSource)(archive)
+    val refs = materialRefs(materialSource)(archive)
 
     assertEquals(Vector("Limonite", "YellowLimonite"), refs.map(_.name))
     assertEquals(refs.head.id, refs.last.id)
     assertEquals("YellowLimonite", refs.last.path.parts.last)
 
-  private def assertUnsupportedMaterialAssignment(
-      archive: SourceArchive,
-      materialName: String,
-      reason: String
-  ): Unit =
-    val error = assertThrows(
-      classOf[IllegalArgumentException],
-      () => GtceuSourceScanners.scanGtMaterials(materialSource)(archive)
+  @Test
+  def scanGtMaterialsReportsAliasCycleAsDiagnostic(): Unit =
+    val archive = materialArchive(
+      declarations = "Alpha, Beta",
+      assignments = """
+          |Alpha = Beta;
+          |Beta = Alpha;
+          |""".stripMargin
     )
 
+    val rendered = materialDiagnostics(materialSource)(archive)
+
+    assertTrue(rendered.contains("Alpha"))
+    assertTrue(rendered.contains("Beta"))
     assertTrue(
-      error.getMessage.contains("unsupported GTCEu material assignments")
+      rendered.toLowerCase.contains("cycle") ||
+        rendered.toLowerCase.contains("circular")
     )
-    assertTrue(error.getMessage.contains(materialName))
-    assertTrue(error.getMessage.contains(reason))
+
+  @Test
+  def scanGtMaterialsReportsUnresolvedAliasTargetAsDiagnostic(): Unit =
+    val archive = materialArchive(
+      declarations = "Carbon, Hydrogen",
+      assignments = """
+          |Carbon = new Material.Builder(GTCEu.id("carbon"))
+          |  .buildAndRegister();
+          |Hydrogen = GTMaterials.Oxygen;
+          |""".stripMargin
+    )
+
+    val rendered = materialDiagnostics(materialSource)(archive)
+
+    assertTrue(rendered.contains("Hydrogen"))
     assertTrue(
-      error.getMessage.contains(
-        s"${materialSource.assignmentDir}TestMaterials.java:"
-      )
+      rendered.toLowerCase.contains("unresolved") ||
+        rendered.toLowerCase.contains("cannot resolve") ||
+        rendered.toLowerCase.contains("not a member")
     )
 
-  private val materialSource = GtMaterialsScanSpec(
-    declarationPath = "com/gregtechceu/gtceu/common/data/GTMaterials.java",
-    assignmentDir = "com/gregtechceu/gtceu/common/data/materials/",
-    ownerFqcn = "com.gregtechceu.gtceu.common.data.GTMaterials",
-    namespace = "gtceu"
-  )
-
-  private def materialArchive(
-      declarations: String,
-      assignments: String
-  ): SourceArchive =
-    SourceArchive(
-      Map(
-        materialSource.declarationPath ->
-          s"""
-             |package com.gregtechceu.gtceu.common.data;
-             |
-             |import com.gregtechceu.gtceu.api.data.chemical.material.Material;
-             |
-             |public class GTMaterials {
-             |  public static Material $declarations;
-             |}
-             |""".stripMargin,
-        s"${materialSource.assignmentDir}TestMaterials.java" ->
-          s"""
-             |package com.gregtechceu.gtceu.common.data.materials;
-             |
-             |import com.gregtechceu.gtceu.GTCEu;
-             |import com.gregtechceu.gtceu.api.data.chemical.material.Material;
-             |
-             |import static com.gregtechceu.gtceu.common.data.GTMaterials.*;
-             |
-             |public class TestMaterials {
-             |  public static void register() {
-             |    $assignments
-             |  }
-             |}
-             |""".stripMargin
-      )
+  @Test
+  def scanGtMaterialsKeepsResolvedPartialRefsWhenDiagnosticsExist(): Unit =
+    val archive = materialArchive(
+      declarations = "Carbon, Hydrogen, Oxygen",
+      assignments = """
+          |Carbon = new Material.Builder(GTCEu.id("carbon"))
+          |  .buildAndRegister();
+          |Hydrogen = GTMaterials.Oxygen;
+          |""".stripMargin
     )
+
+    val result =
+      GtceuSourceScanners.scanGtMaterials(materialSource)(archive)
+
+    result match
+      case Ior.Both(diagnostics, refs) =>
+        assertEquals(Vector("Carbon"), refs.map(_.name))
+        val rendered = diagnostics.iterator.map(_.render).mkString("\n")
+        assertTrue(rendered.contains("Hydrogen"))
+        assertTrue(rendered.contains("Oxygen"))
+      case Ior.Left(diagnostics) =>
+        fail(
+          "expected partial refs with diagnostics, got Left:\n" +
+            diagnostics.iterator.map(_.render).mkString("\n")
+        )
+      case Ior.Right(refs) =>
+        fail(
+          s"expected diagnostics with partial refs, got Right: " +
+            s"${refs.map(_.name).mkString(", ")}"
+        )
 
   @Test
   def scanGtMaterialsJoinsDeclarationsWithBuilderIds(): Unit =
@@ -443,7 +440,7 @@ class GtceuSourceScannersTest:
     )
 
     val refs =
-      GtceuSourceScanners.scanGtMaterials(
+      materialRefs(
         GtMaterialsScanSpec(
           declarationPath =
             "com/gregtechceu/gtceu/common/data/GTMaterials.java",
@@ -468,4 +465,95 @@ class GtceuSourceScannersTest:
         )
       ),
       refs.head.path
+    )
+
+  private def materialRefs(
+      spec: GtMaterialsScanSpec
+  )(archive: SourceArchive): Vector[ScannedMaterialRef] =
+    GtceuSourceScanners.scanGtMaterials(spec)(archive) match
+      case Ior.Right(refs) =>
+        refs
+      case Ior.Left(diagnostics) =>
+        fail(
+          "expected successful material refs, got diagnostics:\n" +
+            diagnostics.iterator.map(_.render).mkString("\n")
+        )
+        throw new AssertionError("unreachable")
+      case Ior.Both(diagnostics, refs) =>
+        fail(
+          "expected successful material refs, got partial result with diagnostics:\n" +
+            diagnostics.iterator.map(_.render).mkString("\n") +
+            "\npartial refs: " + refs.map(_.name).mkString(", ")
+        )
+        throw new AssertionError("unreachable")
+
+  private def materialDiagnostics(
+      spec: GtMaterialsScanSpec
+  )(archive: SourceArchive): String =
+    GtceuSourceScanners.scanGtMaterials(spec)(archive) match
+      case Ior.Left(diagnostics) =>
+        diagnostics.iterator.map(_.render).mkString("\n")
+      case Ior.Both(diagnostics, _) =>
+        diagnostics.iterator.map(_.render).mkString("\n")
+      case Ior.Right(_) =>
+        fail("expected material diagnostics, got a successful scan result")
+        throw new AssertionError("unreachable")
+
+  private def assertUnsupportedMaterialAssignment(
+      archive: SourceArchive,
+      materialName: String,
+      reason: String
+  ): Unit =
+    val rendered = materialDiagnostics(materialSource)(archive)
+
+    assertTrue(
+      rendered.contains("unsupported GTCEu material assignments")
+    )
+    assertTrue(rendered.contains(materialName))
+    assertTrue(rendered.contains(reason))
+    assertTrue(
+      rendered.contains(
+        s"${materialSource.assignmentDir}TestMaterials.java:"
+      )
+    )
+
+  private val materialSource = GtMaterialsScanSpec(
+    declarationPath = "com/gregtechceu/gtceu/common/data/GTMaterials.java",
+    assignmentDir = "com/gregtechceu/gtceu/common/data/materials/",
+    ownerFqcn = "com.gregtechceu.gtceu.common.data.GTMaterials",
+    namespace = "gtceu"
+  )
+
+  private def materialArchive(
+      declarations: String,
+      assignments: String
+  ): SourceArchive =
+    SourceArchive(
+      Map(
+        materialSource.declarationPath ->
+          s"""
+             |package com.gregtechceu.gtceu.common.data;
+             |
+             |import com.gregtechceu.gtceu.api.data.chemical.material.Material;
+             |
+             |public class GTMaterials {
+             |  public static Material $declarations;
+             |}
+             |""".stripMargin,
+        s"${materialSource.assignmentDir}TestMaterials.java" ->
+          s"""
+             |package com.gregtechceu.gtceu.common.data.materials;
+             |
+             |import com.gregtechceu.gtceu.GTCEu;
+             |import com.gregtechceu.gtceu.api.data.chemical.material.Material;
+             |
+             |import static com.gregtechceu.gtceu.common.data.GTMaterials.*;
+             |
+             |public class TestMaterials {
+             |  public static void register() {
+             |    $assignments
+             |  }
+             |}
+             |""".stripMargin
+      )
     )

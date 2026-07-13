@@ -10,8 +10,7 @@ object GtceuRefJobs:
     GtceuRefJob.Materials(
       id = "gt-materials",
       spec = GtMaterialsScanSpec(
-        declarationPath =
-          "com/gregtechceu/gtceu/common/data/GTMaterials.java",
+        declarationPath = "com/gregtechceu/gtceu/common/data/GTMaterials.java",
         assignmentDir = "com/gregtechceu/gtceu/common/data/materials/",
         ownerFqcn = "com.gregtechceu.gtceu.common.data.GTMaterials",
         namespace = "gtceu"

@@ -59,6 +59,7 @@ val gtceuSources = configurations.create("gtceuSources") {
 dependencies {
     add(symbolgen.implementationConfigurationName, deps.scala3)
     add(symbolgen.implementationConfigurationName, deps.javaparser.core)
+    add(symbolgen.implementationConfigurationName, deps.cats)
 
     add(symbolgenTest.implementationConfigurationName, platform(libs.junit.bom))
     add(symbolgenTest.implementationConfigurationName, libs.junit.jupiter)
