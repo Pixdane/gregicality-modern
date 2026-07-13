@@ -75,7 +75,10 @@ object RefObjectRenderer:
       refs: Vector[ScannedMaterialRef]
   ): ScalaCode =
     val chunks =
-      refs.filter(_.includeInIdIndex).grouped(IndexChunkSize).toVector
+      refs
+        .collect { case ref: ScannedRegisteredMaterialRef => ref }
+        .grouped(IndexChunkSize)
+        .toVector
     val indexExpression =
       if chunks.isEmpty then "Map.empty"
       else chunks.indices.map(index => s"byId$index").mkString(" ++ ")

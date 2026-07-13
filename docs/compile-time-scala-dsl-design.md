@@ -729,7 +729,6 @@ sealed trait ScannedRef:
 
 sealed trait ScannedMaterialRef extends ScannedRef:
   def id: ResourceId
-  def includeInIdIndex: Boolean
 
 final case class ScannedRegisteredMaterialRef(
   name: String, id: ResourceId, path: ScalaSymbolPath

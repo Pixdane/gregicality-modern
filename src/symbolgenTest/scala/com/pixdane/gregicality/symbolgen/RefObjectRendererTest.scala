@@ -45,6 +45,7 @@ class RefObjectRendererTest:
     assertTrue(file.relativePath.endsWith("GTMaterialsRef.scala"))
     assertTrue(file.content.contains("object GTMaterialsRef:"))
     assertTrue(file.content.contains("def Carbon: MaterialRef ="))
+    assertTrue(file.content.contains("def Charcoal: MaterialRef ="))
     assertTrue(file.content.contains("""ResourceId("gtceu", "carbon")"""))
     assertTrue(
       file.content.contains(

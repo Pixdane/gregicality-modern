@@ -27,21 +27,18 @@ sealed trait ScannedRef:
 
 sealed trait ScannedMaterialRef extends ScannedRef:
   def id: ResourceId
-  def includeInIdIndex: Boolean
 
 final case class ScannedRegisteredMaterialRef(
     name: String,
     id: ResourceId,
     path: ScalaSymbolPath
-) extends ScannedMaterialRef:
-  val includeInIdIndex: Boolean = true
+) extends ScannedMaterialRef
 
 final case class ScannedMaterialAliasRef(
     name: String,
     id: ResourceId,
     path: ScalaSymbolPath
-) extends ScannedMaterialRef:
-  val includeInIdIndex: Boolean = false
+) extends ScannedMaterialRef
 
 final case class ScannedPathRef(
     name: String,
