@@ -29,6 +29,8 @@ final case class GtMaterialsScanSpec(
 )
 
 object GtceuSourceScanners:
+  private val GtceuOwnerFqcn = "com.gregtechceu.gtceu.GTCEu"
+
   private final case class SourceSite(path: String, line: Option[Int]):
     def render: String =
       line.fold(path)(value => s"$path:$value")
@@ -308,8 +310,27 @@ object GtceuSourceScanners:
       expression: Expression,
       ownerFqcn: String
   ): Boolean =
-    val owner = expression.toString
-    owner == ownerFqcn || owner == ownerFqcn.split('.').last
+    isOwnerReference(expression, ownerFqcn)
+
+  private def isOwnerReference(
+      expression: Expression,
+      ownerFqcn: String
+  ): Boolean =
+    val ownerParts = ownerFqcn.split('.').toVector
+    qualifiedNameParts(expression).exists(parts =>
+      parts == ownerParts || parts == Vector(ownerParts.last)
+    )
+
+  private def qualifiedNameParts(
+      expression: Expression
+  ): Option[Vector[String]] =
+    expression match
+      case name: NameExpr =>
+        Some(Vector(name.getNameAsString))
+      case field: FieldAccessExpr =>
+        qualifiedNameParts(field.getScope).map(_ :+ field.getNameAsString)
+      case _ =>
+        None
 
   private def extractGtceuMaterialId(expression: Expression): Option[String] =
     fluentRoot(expression) match
@@ -320,7 +341,7 @@ object GtceuSourceScanners:
           case call: MethodCallExpr
               if call.getNameAsString == "id" &&
                 call.getScope.isPresent &&
-                call.getScope.get.toString == "GTCEu" &&
+                isOwnerReference(call.getScope.get, GtceuOwnerFqcn) &&
                 call.getArguments.size == 1 =>
             call.getArgument(0) match
               case literal: StringLiteralExpr => Some(literal.asString)

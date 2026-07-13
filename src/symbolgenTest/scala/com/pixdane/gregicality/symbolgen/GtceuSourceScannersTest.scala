@@ -180,6 +180,23 @@ class GtceuSourceScannersTest:
     assertMissingMaterial(archive, "Carbon")
 
   @Test
+  def scanGtMaterialsRecognizesFullyQualifiedOwners(): Unit =
+    val archive = materialArchive(
+      declarations = "Carbon",
+      assignments = """
+          |com.gregtechceu.gtceu.common.data.GTMaterials.Carbon =
+          |  new Material.Builder(
+          |    com.gregtechceu.gtceu.GTCEu.id("carbon")
+          |  ).buildAndRegister();
+          |""".stripMargin
+    )
+
+    val refs = GtceuSourceScanners.scanGtMaterials(materialSource)(archive)
+
+    assertEquals(Vector("Carbon"), refs.map(_.name))
+    assertEquals(ResourceId("gtceu", "carbon"), refs.head.id)
+
+  @Test
   def scanGtMaterialsRejectsDuplicateSymbolAssignments(): Unit =
     val archive = materialArchive(
       declarations = "Carbon",
