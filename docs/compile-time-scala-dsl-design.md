@@ -4,6 +4,10 @@ Status: design note. This document records the current architecture decisions
 for Gregicality registration code generation. It is not yet an implementation
 contract; update it when implementation proves a different shape is better.
 
+Current Gradle ownership: `scala-project` provides built-in Scala setup and
+generic resource ordering; `scalafmt` owns formatting tasks; and `codegen` owns
+the symbolgen/codegen source sets, generated resources, and generation tasks.
+
 The design goal is to let migration authors write typed Scala configuration
 files that feel closer to TOML or JSON than handwritten GTCEu builder code,
 while still getting IDE completion, type checking, navigation, generated source
