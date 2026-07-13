@@ -1,16 +1,10 @@
 package com.pixdane.gregicality.symbolgen.gtceu.scan.materials
 
 import com.pixdane.gregicality.symbolgen.gtceu.scan.SourceSite
-import com.pixdane.gregicality.symbolgen.scan.ScannedRegisteredMaterialRef
+import com.pixdane.gregicality.symbolgen.scan.ScannedMaterialRef
 
 final case class LocatedMaterialAssignment(
-    ref: ScannedRegisteredMaterialRef,
-    site: SourceSite
-)
-
-final case class LocatedMaterialAlias(
-    name: String,
-    targetName: String,
+    ref: ScannedMaterialRef,
     site: SourceSite
 )
 

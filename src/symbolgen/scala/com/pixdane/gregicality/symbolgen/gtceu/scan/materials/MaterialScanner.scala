@@ -1,11 +1,11 @@
 package com.pixdane.gregicality.symbolgen.gtceu.scan.materials
 
+import cats.data.{Ior, NonEmptyChain}
 import com.pixdane.gregicality.symbolgen.archive.SourceArchive
 import com.pixdane.gregicality.symbolgen.gtceu.GtMaterialsScanSpec
 import com.pixdane.gregicality.symbolgen.gtceu.scan.{
   GtceuScanDiagnostic,
-  GtceuScanResult,
-  GtceuScanResultOps
+  GtceuScanResult
 }
 import com.pixdane.gregicality.symbolgen.scan.ScannedMaterialRef
 
@@ -24,11 +24,6 @@ object MaterialScanner:
         MaterialAssignmentScanner.scanAssignments(sourcePath, unit, input)
       }
       .filter(assignment => declaredMaterialNames.contains(assignment.ref.name))
-    val aliases = assignmentUnits
-      .flatMap { case (sourcePath, unit) =>
-        MaterialAliasScanner.scan(sourcePath, unit, input)
-      }
-      .filter(alias => declaredMaterialNames.contains(alias.name))
     val rejectedAssignments = assignmentUnits.flatMap {
       case (sourcePath, unit) =>
         MaterialAssignmentScanner.scanRejected(
@@ -39,26 +34,18 @@ object MaterialScanner:
         )
     }
 
-    val refsByName = builderAssignments
-      .map(assignment => assignment.ref.name -> assignment.ref)
-      .toMap
+    val refsByName =
+      builderAssignments
+        .map(assignment => assignment.ref.name -> assignment.ref)
+        .toMap
 
-    val aliasResolution =
-      MaterialAliasResolver.resolve(aliases, refsByName, input.ownerFqcn)
-
-    val resolvedRefByName: Map[String, ScannedMaterialRef] =
-      refsByName ++ aliasResolution.refs.map(ref => ref.name -> ref)
-
-    val assignedNames = resolvedRefByName.keySet
+    val assignedNames = refsByName.keySet
     val rejectedNames = rejectedAssignments.iterator.map(_.name).toSet
-    val aliasDiagnosticNames =
-      aliasResolution.cycles.iterator.flatMap(_.names).toSet ++
-        aliasResolution.unresolved.iterator.map(_.name).toSet
     val missingNames =
-      (declaredMaterialNames -- assignedNames -- rejectedNames -- aliasDiagnosticNames).toVector.sorted
+      (declaredMaterialNames -- assignedNames -- rejectedNames).toVector.sorted
 
     val duplicateDiags =
-      MaterialDiagnostics.duplicateAssignments(builderAssignments, aliases)
+      MaterialDiagnostics.duplicateAssignments(builderAssignments)
     val duplicateIdDiags =
       MaterialDiagnostics.duplicateMaterialIds(builderAssignments)
     val rejectedDiags =
@@ -67,19 +54,14 @@ object MaterialScanner:
       MaterialDiagnostics.missingAssignments(missingNames, declarations)
     val declaredAssignments =
       declaredMaterialNames.toVector
-        .flatMap(resolvedRefByName.get)
+        .flatMap(refsByName.get)
         .sortBy(_.name)
 
-    GtceuScanDiagnostic.fromCategories(
-      duplicates = duplicateDiags,
-      duplicateIds = duplicateIdDiags,
-      rejected = rejectedDiags,
-      missing = missingDiags,
-      aliasCycles = aliasResolution.cycles,
-      unresolvedAliases = aliasResolution.unresolved
-    ) match
+    val orderedDiags: Vector[GtceuScanDiagnostic] =
+      duplicateDiags ++ duplicateIdDiags ++ rejectedDiags ++ missingDiags
+    NonEmptyChain.fromSeq(orderedDiags) match
       case None =>
-        GtceuScanResultOps.clean(declaredAssignments)
+        Ior.right(declaredAssignments)
       case Some(nec) =>
-        GtceuScanResultOps.withDiagnostics(nec, declaredAssignments)
+        Ior.both(nec, declaredAssignments)
 end MaterialScanner

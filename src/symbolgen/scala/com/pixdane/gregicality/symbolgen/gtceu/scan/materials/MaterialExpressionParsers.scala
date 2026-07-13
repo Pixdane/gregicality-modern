@@ -37,30 +37,10 @@ object MaterialExpressionParsers:
       case _ =>
         MaterialAssignmentTarget.Unrelated
 
-  def materialReferenceName(
-      expression: Expression,
-      ownerFqcn: String
-  ): Option[String] =
-    expression match
-      case name: NameExpr =>
-        Some(name.getNameAsString)
-      case field: FieldAccessExpr
-          if isMaterialOwner(field.getScope, ownerFqcn) =>
-        Some(field.getNameAsString)
-      case _ => None
-
-  def rejectedValueReason(
-      expression: Expression,
-      ownerFqcn: String
-  ): String =
+  def rejectedValueReason(expression: Expression): String =
     if looksLikeMaterialBuilder(expression) then
       """builder constructor must be new Material.Builder(GTCEu.id("literal"))"""
-    else
-      expression match
-        case _: NameExpr | _: FieldAccessExpr =>
-          s"alias target is not a member of $ownerFqcn"
-        case _ =>
-          "unsupported assignment value"
+    else "unsupported assignment value"
 
   def looksLikeMaterialBuilder(expression: Expression): Boolean =
     fluentRoot(expression) match

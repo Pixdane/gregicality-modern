@@ -2,9 +2,8 @@ package com.pixdane.gregicality.symbolgen
 
 import com.pixdane.gregicality.symbolgen.render.RefObjectTarget
 import com.pixdane.gregicality.symbolgen.scan.{
-  ScannedMaterialAliasRef,
-  ScannedPathRef,
-  ScannedRegisteredMaterialRef
+  ScannedMaterialRef,
+  ScannedPathRef
 }
 import com.pixdane.gregicality.core.refs.{ResourceId, ScalaSymbolPath}
 import com.pixdane.gregicality.symbolgen.render.RefObjectRenderer
@@ -21,7 +20,7 @@ class RefObjectRendererTest:
       valueType = "MaterialRef"
     )
     val refs = Vector(
-      ScannedRegisteredMaterialRef(
+      ScannedMaterialRef(
         name = "Carbon",
         id = ResourceId("gtceu", "carbon"),
         path = ScalaSymbolPath(
@@ -35,11 +34,6 @@ class RefObjectRendererTest:
             "Carbon"
           )
         )
-      ),
-      ScannedMaterialAliasRef(
-        name = "Charcoal",
-        id = ResourceId("gtceu", "carbon"),
-        path = ScalaSymbolPath(Vector("GTMaterials", "Charcoal"))
       )
     )
 
@@ -61,12 +55,6 @@ class RefObjectRendererTest:
          |      ScalaSymbolPath(Vector("com", "gregtechceu", "gtceu", "common", "data", "GTMaterials", "Carbon"))
          |    )
          |
-         |  def Charcoal: MaterialRef =
-         |    MaterialRef(
-         |      ResourceId("gtceu", "carbon"),
-         |      ScalaSymbolPath(Vector("GTMaterials", "Charcoal"))
-         |    )
-         |
          |  def resolve(id: ResourceId): Option[MaterialRef] =
          |    byIdIndex.get(id)
          |
@@ -86,7 +74,7 @@ class RefObjectRendererTest:
   def renderMaterialIndexSplitsAfterTwoHundredRegisteredRefs(): Unit =
     val refs = Vector.tabulate(201) { index =>
       val name = f"Material$index%03d"
-      ScannedRegisteredMaterialRef(
+      ScannedMaterialRef(
         name = name,
         id = ResourceId("gtceu", s"material_$index"),
         path = ScalaSymbolPath(Vector("GTMaterials", name))

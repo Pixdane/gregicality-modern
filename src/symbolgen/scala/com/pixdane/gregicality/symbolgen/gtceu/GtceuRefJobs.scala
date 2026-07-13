@@ -16,7 +16,7 @@ object GtceuRefJobs:
         namespace = "gtceu",
         idFactoryFqcn = "com.gregtechceu.gtceu.GTCEu"
       ),
-      objectTarget = RefObjectTarget(
+      target = RefObjectTarget(
         outputPackage = OutputPackage,
         outputObject = "GTMaterialsRef",
         valueType = "MaterialRef"
@@ -83,7 +83,7 @@ object GtceuRefJobs:
         ownerFqcn = ownerFqcn,
         memberTypeSimpleName = memberTypeSimpleName
       ),
-      objectTarget = RefObjectTarget(
+      target = RefObjectTarget(
         outputPackage = OutputPackage,
         outputObject = outputObject,
         valueType = valueType

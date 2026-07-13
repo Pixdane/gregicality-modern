@@ -8,12 +8,10 @@ import com.pixdane.gregicality.symbolgen.gtceu.scan.{
 
 object MaterialDiagnostics:
   def duplicateAssignments(
-      assignments: Vector[LocatedMaterialAssignment],
-      aliases: Vector[LocatedMaterialAlias]
+      assignments: Vector[LocatedMaterialAssignment]
   ): Vector[GtceuScanDiagnostic.DuplicateAssignment] =
     val occurrences =
-      assignments.map(assignment => assignment.ref.name -> assignment.site) ++
-        aliases.map(alias => alias.name -> alias.site)
+      assignments.map(assignment => assignment.ref.name -> assignment.site)
     occurrences
       .groupBy(_._1)
       .collect {
@@ -75,3 +73,4 @@ object MaterialDiagnostics:
         declarationSite = declarations(name)
       )
     )
+end MaterialDiagnostics

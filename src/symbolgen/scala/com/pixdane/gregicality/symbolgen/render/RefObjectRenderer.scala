@@ -3,8 +3,7 @@ package com.pixdane.gregicality.symbolgen.render
 import com.pixdane.gregicality.core.refs.{ResourceId, ScalaSymbolPath}
 import com.pixdane.gregicality.symbolgen.scan.{
   ScannedMaterialRef,
-  ScannedPathRef,
-  ScannedRegisteredMaterialRef
+  ScannedPathRef
 }
 
 object RefObjectRenderer:
@@ -86,7 +85,6 @@ object RefObjectRenderer:
   ): ScalaCode =
     val chunks =
       refs
-        .collect { case ref: ScannedRegisteredMaterialRef => ref }
         .grouped(IndexChunkSize)
         .toVector
     val entriesExpression =

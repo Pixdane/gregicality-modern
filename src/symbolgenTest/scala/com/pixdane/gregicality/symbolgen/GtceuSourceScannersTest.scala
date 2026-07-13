@@ -83,22 +83,6 @@ class GtceuSourceScannersTest:
     assertEquals(Vector("Carbon"), refs.map(_.name))
 
   @Test
-  def scanGtMaterialsSkipsDeprecatedAliases(): Unit =
-    val archive = materialArchive(
-      declarations =
-        "Limonite; @java.lang.Deprecated public static Material YellowLimonite",
-      assignments = """
-          |Limonite = new Material.Builder(GTCEu.id("limonite"))
-          |  .buildAndRegister();
-          |GTMaterials.YellowLimonite = GTMaterials.Limonite;
-          |""".stripMargin
-    )
-
-    val refs = materialRefs(materialSource)(archive)
-
-    assertEquals(Vector("Limonite"), refs.map(_.name))
-
-  @Test
   def scanGtMaterialsRejectsDeclaredMaterialWithoutRecognizedAssignment()
       : Unit =
     val archive = materialArchive(
@@ -113,7 +97,7 @@ class GtceuSourceScannersTest:
 
     assertTrue(
       rendered.contains(
-        "without a recognized builder or alias assignment"
+        "without a recognized builder assignment"
       )
     )
     assertTrue(rendered.contains("Hydrogen"))
@@ -152,6 +136,19 @@ class GtceuSourceScannersTest:
     )
 
   @Test
+  def scanGtMaterialsRejectsNonBuilderAssignmentValue(): Unit =
+    val archive = materialArchive(
+      declarations = "Carbon",
+      assignments = "Carbon = null;"
+    )
+
+    assertUnsupportedMaterialAssignment(
+      archive,
+      "Carbon",
+      "unsupported assignment value"
+    )
+
+  @Test
   def scanGtMaterialsIgnoresUnrelatedForeignAssignments(): Unit =
     val archive = materialArchive(
       declarations = "Carbon",
@@ -165,23 +162,6 @@ class GtceuSourceScannersTest:
     val refs = materialRefs(materialSource)(archive)
 
     assertEquals(Vector("Carbon"), refs.map(_.name))
-
-  @Test
-  def scanGtMaterialsRejectsAliasThroughAnotherOwner(): Unit =
-    val archive = materialArchive(
-      declarations = "Carbon, Hydrogen",
-      assignments = """
-          |Carbon = new Material.Builder(GTCEu.id("carbon"))
-          |  .buildAndRegister();
-          |Hydrogen = other.Carbon;
-          |""".stripMargin
-    )
-
-    assertUnsupportedMaterialAssignment(
-      archive,
-      "Hydrogen",
-      "alias target is not a member"
-    )
 
   @Test
   def scanGtMaterialsRejectsNonStringGtceuId(): Unit =
@@ -292,7 +272,7 @@ class GtceuSourceScannersTest:
     assertTrue(rendered.contains("duplicate GTCEu material registry ids"))
     assertTrue(
       rendered.contains(
-        "without a recognized builder or alias assignment"
+        "without a recognized builder assignment"
       )
     )
     assertTrue(
@@ -305,74 +285,16 @@ class GtceuSourceScannersTest:
     )
     assertTrue(
       rendered.indexOf("duplicate GTCEu material registry ids") <
-        rendered.indexOf("without a recognized builder or alias assignment")
+        rendered.indexOf("without a recognized builder assignment")
     )
 
   @Test
-  def scanGtMaterialsResolvesMaterialAliasesWithoutTreatingTheirIdAsDuplicate()
-      : Unit =
-    val archive = materialArchive(
-      declarations = "Limonite, YellowLimonite",
-      assignments = """
-          |Limonite = new Material.Builder(GTCEu.id("limonite"))
-          |  .buildAndRegister();
-          |GTMaterials.YellowLimonite = com.gregtechceu.gtceu.common.data.GTMaterials.Limonite;
-          |""".stripMargin
-    )
-
-    val refs = materialRefs(materialSource)(archive)
-
-    assertEquals(Vector("Limonite", "YellowLimonite"), refs.map(_.name))
-    assertEquals(refs.head.id, refs.last.id)
-    assertEquals("YellowLimonite", refs.last.path.parts.last)
-
-  @Test
-  def scanGtMaterialsReportsAliasCycleAsDiagnostic(): Unit =
-    val archive = materialArchive(
-      declarations = "Alpha, Beta",
-      assignments = """
-          |Alpha = Beta;
-          |Beta = Alpha;
-          |""".stripMargin
-    )
-
-    val rendered = materialDiagnostics(materialSource)(archive)
-
-    assertTrue(rendered.contains("Alpha"))
-    assertTrue(rendered.contains("Beta"))
-    assertTrue(
-      rendered.toLowerCase.contains("cycle") ||
-        rendered.toLowerCase.contains("circular")
-    )
-
-  @Test
-  def scanGtMaterialsReportsUnresolvedAliasTargetAsDiagnostic(): Unit =
-    val archive = materialArchive(
-      declarations = "Carbon, Hydrogen",
-      assignments = """
-          |Carbon = new Material.Builder(GTCEu.id("carbon"))
-          |  .buildAndRegister();
-          |Hydrogen = GTMaterials.Oxygen;
-          |""".stripMargin
-    )
-
-    val rendered = materialDiagnostics(materialSource)(archive)
-
-    assertTrue(rendered.contains("Hydrogen"))
-    assertTrue(
-      rendered.toLowerCase.contains("unresolved") ||
-        rendered.toLowerCase.contains("cannot resolve") ||
-        rendered.toLowerCase.contains("not a member")
-    )
-
-  @Test
-  def scanGtMaterialsKeepsResolvedPartialRefsWhenDiagnosticsExist(): Unit =
+  def scanGtMaterialsKeepsRegisteredRefsWhenDiagnosticsExist(): Unit =
     val archive = materialArchive(
       declarations = "Carbon, Hydrogen, Oxygen",
       assignments = """
           |Carbon = new Material.Builder(GTCEu.id("carbon"))
           |  .buildAndRegister();
-          |Hydrogen = GTMaterials.Oxygen;
           |""".stripMargin
     )
 

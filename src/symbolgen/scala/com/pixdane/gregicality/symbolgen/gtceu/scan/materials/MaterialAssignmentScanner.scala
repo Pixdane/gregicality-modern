@@ -5,7 +5,7 @@ import com.github.javaparser.ast.expr.AssignExpr
 import com.pixdane.gregicality.core.refs.{ResourceId, ScalaSymbolPath}
 import com.pixdane.gregicality.symbolgen.gtceu.GtMaterialsScanSpec
 import com.pixdane.gregicality.symbolgen.gtceu.scan.SourceSite
-import com.pixdane.gregicality.symbolgen.scan.ScannedRegisteredMaterialRef
+import com.pixdane.gregicality.symbolgen.scan.ScannedMaterialRef
 
 import scala.jdk.CollectionConverters.*
 
@@ -30,7 +30,7 @@ object MaterialAssignmentScanner:
             input.idFactoryFqcn
           )
         yield LocatedMaterialAssignment(
-          ref = ScannedRegisteredMaterialRef(
+          ref = ScannedMaterialRef(
             name = name,
             id = ResourceId(input.namespace, idPath),
             path = ScalaSymbolPath.member(input.ownerFqcn, name)
@@ -62,15 +62,12 @@ object MaterialAssignmentScanner:
               if declaredMaterialNames.contains(name) &&
                 MaterialExpressionParsers
                   .extractGtceuMaterialId(value, input.idFactoryFqcn)
-                  .isEmpty &&
-                MaterialExpressionParsers
-                  .materialReferenceName(value, input.ownerFqcn)
                   .isEmpty =>
             Some(
               RejectedMaterialAssignment(
                 name = name,
                 reason = MaterialExpressionParsers
-                  .rejectedValueReason(value, input.ownerFqcn),
+                  .rejectedValueReason(value),
                 site = SourceSite.fromNode(sourcePath, assignment)
               )
             )
