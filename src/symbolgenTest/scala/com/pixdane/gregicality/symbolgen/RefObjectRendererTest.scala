@@ -2,6 +2,7 @@ package com.pixdane.gregicality.symbolgen
 
 import com.pixdane.gregicality.symbolgen.model.*
 import com.pixdane.gregicality.symbolgen.render.RefObjectRenderer
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
@@ -42,31 +43,83 @@ class RefObjectRendererTest:
 
     val file = RefObjectRenderer.generateFile(job, SourceArchive(Map.empty))
 
-    assertTrue(file.relativePath.endsWith("GTMaterialsRef.scala"))
-    assertTrue(file.content.contains("object GTMaterialsRef:"))
-    assertTrue(file.content.contains("def Carbon: MaterialRef ="))
-    assertTrue(file.content.contains("def Charcoal: MaterialRef ="))
-    assertTrue(file.content.contains("""ResourceId("gtceu", "carbon")"""))
-    assertTrue(
-      file.content.contains(
-        "def resolve(id: ResourceId): Option[MaterialRef] ="
+    assertEquals(
+      "com/pixdane/gregicality/codegen/dsl/refs/gtceu/GTMaterialsRef.scala",
+      file.relativePath
+    )
+    assertEquals(
+      """|package com.pixdane.gregicality.codegen.dsl.refs.gtceu
+         |
+         |import com.pixdane.gregicality.codegen.dsl.model.*
+         |
+         |object GTMaterialsRef:
+         |  def Carbon: MaterialRef =
+         |    MaterialRef(
+         |      ResourceId("gtceu", "carbon"),
+         |      ScalaSymbolPath(Vector("com", "gregtechceu", "gtceu", "common", "data", "GTMaterials", "Carbon"))
+         |    )
+         |
+         |  def Charcoal: MaterialRef =
+         |    MaterialRef(
+         |      ResourceId("gtceu", "carbon"),
+         |      ScalaSymbolPath(Vector("GTMaterials", "Charcoal"))
+         |    )
+         |
+         |  def resolve(id: ResourceId): Option[MaterialRef] =
+         |    byIdIndex.get(id)
+         |
+         |  private lazy val byIdIndex: Map[ResourceId, MaterialRef] =
+         |    byIdEntries.iterator.map(ref => ref.id -> ref).toMap
+         |
+         |  private def byIdEntries: Vector[MaterialRef] =
+         |    byIdEntries0
+         |
+         |  private def byIdEntries0: Vector[MaterialRef] =
+         |    Vector(Carbon)
+         |""".stripMargin,
+      file.content
+    )
+
+  @Test
+  def renderMaterialIndexSplitsAfterTwoHundredRegisteredRefs(): Unit =
+    val refs = Vector.tabulate(201) { index =>
+      val name = f"Material$index%03d"
+      ScannedRegisteredMaterialRef(
+        name = name,
+        id = ResourceId("gtceu", s"material_$index"),
+        path = ScalaSymbolPath(Vector("GTMaterials", name))
+      )
+    }
+    val job = RefJob.Materials(
+      id = "gt-materials",
+      scan = _ => refs,
+      objectTarget = RefObjectTarget(
+        outputPackage = "com.pixdane.gregicality.codegen.dsl.refs.gtceu",
+        outputObject = "GTMaterialsRef",
+        valueType = "MaterialRef"
       )
     )
-    assertTrue(file.content.contains("private lazy val byIdIndex:"))
+
+    val content =
+      RefObjectRenderer.generateFile(job, SourceArchive(Map.empty)).content
+    val firstChunk =
+      Vector
+        .tabulate(200)(index => f"Material$index%03d")
+        .mkString("    Vector(", ", ", ")")
+
+    assertEquals(
+      201,
+      content.linesIterator.count(_.startsWith("  def Material"))
+    )
     assertTrue(
-      file.content.contains(
-        "byIdEntries.iterator.map(ref => ref.id -> ref).toMap"
+      content.contains(
+        "  private def byIdEntries: Vector[MaterialRef] =\n" +
+          "    byIdEntries0 ++ byIdEntries1"
       )
     )
-    assertTrue(file.content.contains("Vector(Carbon)"))
-    assertTrue(!file.content.contains("Charcoal.id -> Charcoal"))
-    assertTrue(!file.content.contains("Vector(Carbon, Charcoal)"))
-    assertTrue(!file.content.contains("def all:"))
-    assertTrue(
-      file.content.contains(
-        """ScalaSymbolPath(Vector("com", "gregtechceu", "gtceu", "common", "data", "GTMaterials", "Carbon"))"""
-      )
-    )
+    assertTrue(content.contains(firstChunk))
+    assertTrue(content.contains("    Vector(Material200)"))
+    assertTrue(!content.contains("byIdEntries2"))
 
   @Test
   def renderPathOnlyRefObject(): Unit =
