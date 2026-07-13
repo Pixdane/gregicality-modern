@@ -1,4 +1,4 @@
-package com.pixdane.gregicality.symbolgen.gtceu
+package com.pixdane.gregicality.symbolgen.gtceu.scan
 
 final case class StaticFieldScanSpec(
     sourcePath: String,

@@ -2,9 +2,9 @@ package com.pixdane.gregicality.symbolgen.gtceu.scan.materials
 
 import cats.data.{Ior, NonEmptyChain}
 import com.pixdane.gregicality.symbolgen.archive.SourceArchive
-import com.pixdane.gregicality.symbolgen.gtceu.GtMaterialsScanSpec
 import com.pixdane.gregicality.symbolgen.gtceu.scan.{
   GtceuScanDiagnostic,
+  GtMaterialsScanSpec,
   GtceuScanResult
 }
 import com.pixdane.gregicality.symbolgen.scan.ScannedMaterialRef

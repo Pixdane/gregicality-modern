@@ -3,7 +3,6 @@ package com.pixdane.gregicality.symbolgen.gtceu.scan
 import com.github.javaparser.ast.body.FieldDeclaration
 import com.pixdane.gregicality.core.refs.ScalaSymbolPath
 import com.pixdane.gregicality.symbolgen.archive.SourceArchive
-import com.pixdane.gregicality.symbolgen.gtceu.StaticFieldScanSpec
 import com.pixdane.gregicality.symbolgen.scan.ScannedPathRef
 
 import scala.jdk.CollectionConverters.*

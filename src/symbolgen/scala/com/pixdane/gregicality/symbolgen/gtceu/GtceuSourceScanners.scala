@@ -1,7 +1,11 @@
 package com.pixdane.gregicality.symbolgen.gtceu
 
 import com.pixdane.gregicality.symbolgen.archive.SourceArchive
-import com.pixdane.gregicality.symbolgen.gtceu.scan.GtceuScanResult
+import com.pixdane.gregicality.symbolgen.gtceu.scan.{
+  GtMaterialsScanSpec,
+  GtceuScanResult,
+  StaticFieldScanSpec
+}
 import com.pixdane.gregicality.symbolgen.gtceu.scan.materials.MaterialScanner
 import com.pixdane.gregicality.symbolgen.gtceu.scan.StaticFieldScanner
 import com.pixdane.gregicality.symbolgen.scan.{

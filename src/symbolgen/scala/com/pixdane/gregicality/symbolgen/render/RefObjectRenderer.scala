@@ -36,7 +36,15 @@ object RefObjectRenderer:
       entries: Vector[ScalaCode],
       suffix: ScalaCode
   ): GeneratedScalaFile =
-    val code = refObjectLayout(target, suffix).apply(entries)
+    val prefix = ScalaCode.lines(
+      s"package ${target.outputPackage}",
+      "",
+      "import com.pixdane.gregicality.core.refs.*",
+      "",
+      s"object ${target.outputObject}:"
+    )
+    val separator = ScalaCode.line("")
+    val code = prefix ++ ScalaCode.joinWith(separator)(entries) ++ suffix
 
     GeneratedScalaFile(
       relativePath = target.outputPackage.replace('.', '/') + "/" +
@@ -61,22 +69,6 @@ object RefObjectRenderer:
     ScalaCode.lines(
       s"  def ${ref.name}: ${target.valueType} =",
       s"    ${target.valueType}(${renderScalaPath(ref.path)})"
-    )
-
-  private def refObjectLayout(
-      target: RefObjectTarget,
-      suffix: ScalaCode
-  ): CodeLayout =
-    CodeLayout(
-      prefix = ScalaCode.lines(
-        s"package ${target.outputPackage}",
-        "",
-        "import com.pixdane.gregicality.core.refs.*",
-        "",
-        s"object ${target.outputObject}:"
-      ),
-      separator = ScalaCode.line(""),
-      suffix = suffix
     )
 
   private def renderLookupIndex(

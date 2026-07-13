@@ -3,8 +3,8 @@ package com.pixdane.gregicality.symbolgen.gtceu.scan.materials
 import com.github.javaparser.ast.CompilationUnit
 import com.github.javaparser.ast.expr.AssignExpr
 import com.pixdane.gregicality.core.refs.{ResourceId, ScalaSymbolPath}
-import com.pixdane.gregicality.symbolgen.gtceu.GtMaterialsScanSpec
 import com.pixdane.gregicality.symbolgen.gtceu.scan.SourceSite
+import com.pixdane.gregicality.symbolgen.gtceu.scan.GtMaterialsScanSpec
 import com.pixdane.gregicality.symbolgen.scan.ScannedMaterialRef
 
 import scala.jdk.CollectionConverters.*

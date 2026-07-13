@@ -4,7 +4,9 @@ import cats.data.Ior
 
 import com.pixdane.gregicality.symbolgen.gtceu.scan.{
   GtceuScanDiagnostic,
-  GtceuScanResult
+  GtceuScanResult,
+  GtMaterialsScanSpec,
+  StaticFieldScanSpec
 }
 import com.pixdane.gregicality.symbolgen.gtceu.scan.materials.{
   MaterialScanInput,
