@@ -22,19 +22,6 @@ import com.github.javaparser.ast.expr.StringLiteralExpr
 
 import scala.jdk.CollectionConverters.*
 
-final case class StaticFieldScanSpec(
-    sourcePath: String,
-    ownerFqcn: String,
-    memberTypeSimpleName: String
-)
-
-final case class GtMaterialsScanSpec(
-    declarationPath: String,
-    assignmentDir: String,
-    ownerFqcn: String,
-    namespace: String
-)
-
 object GtceuSourceScanners:
   private val GtceuOwnerFqcn = "com.gregtechceu.gtceu.GTCEu"
 

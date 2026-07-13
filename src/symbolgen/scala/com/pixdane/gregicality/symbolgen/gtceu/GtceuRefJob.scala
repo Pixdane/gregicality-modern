@@ -1,21 +1,16 @@
-package com.pixdane.gregicality.symbolgen.job
+package com.pixdane.gregicality.symbolgen.gtceu
 
-import com.pixdane.gregicality.symbolgen.archive.SourceArchive
 import com.pixdane.gregicality.symbolgen.render.RefObjectTarget
-import com.pixdane.gregicality.symbolgen.scan.{
-  ScannedMaterialRef,
-  ScannedPathRef
-}
 
-enum RefJob:
+enum GtceuRefJob:
   case Materials(
       id: String,
-      scan: SourceArchive => Vector[ScannedMaterialRef],
+      spec: GtMaterialsScanSpec,
       objectTarget: RefObjectTarget
   )
   case Paths(
       id: String,
-      scan: SourceArchive => Vector[ScannedPathRef],
+      spec: StaticFieldScanSpec,
       objectTarget: RefObjectTarget
   )
 

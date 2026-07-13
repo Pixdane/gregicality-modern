@@ -2,10 +2,13 @@ package com.pixdane.gregicality.symbolgen.cli
 
 import java.nio.file.Path
 
-import com.pixdane.gregicality.symbolgen.gtceu.GtceuRefJobs
+import com.pixdane.gregicality.symbolgen.gtceu.{
+  GtceuRefJobs,
+  GtceuRefScanner,
+  GtceuScannedRefs
+}
 import com.pixdane.gregicality.symbolgen.io.GeneratedSourceWriter
 import com.pixdane.gregicality.symbolgen.io.SourceArchiveReader
-import com.pixdane.gregicality.symbolgen.job.RefJob
 import com.pixdane.gregicality.symbolgen.render.RefAggregateRenderer
 import com.pixdane.gregicality.symbolgen.render.RefObjectRenderer
 
@@ -19,10 +22,12 @@ object GenerateGtRefs:
         val archive = SourceArchiveReader.readJar(args.sources)
         val refFiles =
           GtceuRefJobs.jobs.map {
-            case RefJob.Materials(_, scan, target) =>
-              RefObjectRenderer.generateMaterialFile(target, scan(archive))
-            case RefJob.Paths(_, scan, target) =>
-              RefObjectRenderer.generatePathFile(target, scan(archive))
+            job =>
+              GtceuRefScanner.scan(job, archive) match
+                case GtceuScannedRefs.Materials(target, refs) =>
+                  RefObjectRenderer.generateMaterialFile(target, refs)
+                case GtceuScannedRefs.Paths(target, refs) =>
+                  RefObjectRenderer.generatePathFile(target, refs)
           }
         val aggregateFile =
           RefAggregateRenderer.generateFile(

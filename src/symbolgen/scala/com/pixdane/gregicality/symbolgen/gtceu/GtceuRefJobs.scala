@@ -1,23 +1,20 @@
 package com.pixdane.gregicality.symbolgen.gtceu
 
-import com.pixdane.gregicality.symbolgen.job.RefJob
 import com.pixdane.gregicality.symbolgen.render.RefObjectTarget
 
 object GtceuRefJobs:
   private val OutputPackage =
     "com.pixdane.gregicality.codegen.dsl.refs.gtceu"
 
-  private val gtMaterials: RefJob =
-    RefJob.Materials(
+  private val gtMaterials: GtceuRefJob =
+    GtceuRefJob.Materials(
       id = "gt-materials",
-      scan = GtceuSourceScanners.scanGtMaterials(
-        GtMaterialsScanSpec(
-          declarationPath =
-            "com/gregtechceu/gtceu/common/data/GTMaterials.java",
-          assignmentDir = "com/gregtechceu/gtceu/common/data/materials/",
-          ownerFqcn = "com.gregtechceu.gtceu.common.data.GTMaterials",
-          namespace = "gtceu"
-        )
+      spec = GtMaterialsScanSpec(
+        declarationPath =
+          "com/gregtechceu/gtceu/common/data/GTMaterials.java",
+        assignmentDir = "com/gregtechceu/gtceu/common/data/materials/",
+        ownerFqcn = "com.gregtechceu.gtceu.common.data.GTMaterials",
+        namespace = "gtceu"
       ),
       objectTarget = RefObjectTarget(
         outputPackage = OutputPackage,
@@ -26,7 +23,7 @@ object GtceuRefJobs:
       )
     )
 
-  private val gtElements: RefJob =
+  private val gtElements: GtceuRefJob =
     staticPathOnly(
       id = "gt-elements",
       outputObject = "GTElementsRef",
@@ -36,7 +33,7 @@ object GtceuRefJobs:
       memberTypeSimpleName = "Element"
     )
 
-  private val materialIconSets: RefJob =
+  private val materialIconSets: GtceuRefJob =
     staticPathOnly(
       id = "material-icon-sets",
       outputObject = "MaterialIconSetsRef",
@@ -48,7 +45,7 @@ object GtceuRefJobs:
       memberTypeSimpleName = "MaterialIconSet"
     )
 
-  private val fluidAttributes: RefJob =
+  private val fluidAttributes: GtceuRefJob =
     staticPathOnly(
       id = "fluid-attributes",
       outputObject = "FluidAttributesRef",
@@ -59,7 +56,7 @@ object GtceuRefJobs:
       memberTypeSimpleName = "FluidAttribute"
     )
 
-  private val materialFlags: RefJob =
+  private val materialFlags: GtceuRefJob =
     staticPathOnly(
       id = "material-flags",
       outputObject = "MaterialFlagsRef",
@@ -78,15 +75,13 @@ object GtceuRefJobs:
       sourcePath: String,
       ownerFqcn: String,
       memberTypeSimpleName: String
-  ): RefJob =
-    RefJob.Paths(
+  ): GtceuRefJob =
+    GtceuRefJob.Paths(
       id = id,
-      scan = GtceuSourceScanners.scanStaticMembers(
-        StaticFieldScanSpec(
-          sourcePath = sourcePath,
-          ownerFqcn = ownerFqcn,
-          memberTypeSimpleName = memberTypeSimpleName
-        )
+      spec = StaticFieldScanSpec(
+        sourcePath = sourcePath,
+        ownerFqcn = ownerFqcn,
+        memberTypeSimpleName = memberTypeSimpleName
       ),
       objectTarget = RefObjectTarget(
         outputPackage = OutputPackage,
@@ -95,7 +90,7 @@ object GtceuRefJobs:
       )
     )
 
-  val jobs: Vector[RefJob] =
+  val jobs: Vector[GtceuRefJob] =
     Vector(
       gtMaterials,
       gtElements,
