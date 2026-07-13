@@ -1,6 +1,7 @@
 package com.pixdane.gregicality.symbolgen.render
 
 import com.pixdane.gregicality.symbolgen.model.*
+import com.pixdane.gregicality.codegen.dsl.model.{ResourceId, ScalaSymbolPath}
 
 object RefObjectRenderer:
   private val IndexChunkSize = 200

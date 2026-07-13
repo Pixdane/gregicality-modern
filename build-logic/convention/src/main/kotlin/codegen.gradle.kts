@@ -93,6 +93,7 @@ val codegen = sourceSets.create("codegen") {
     scala.srcDir(generatedGtRefsDir)
     resources.srcDir("src/codegen/resources")
 
+    compileClasspath += symbolgen.output
     compileClasspath += sourceSets.main.get().compileClasspath
     runtimeClasspath += output + compileClasspath
 }

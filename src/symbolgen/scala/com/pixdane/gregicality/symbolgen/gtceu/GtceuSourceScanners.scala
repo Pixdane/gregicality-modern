@@ -1,6 +1,7 @@
 package com.pixdane.gregicality.symbolgen.gtceu
 
 import com.pixdane.gregicality.symbolgen.model.*
+import com.pixdane.gregicality.codegen.dsl.model.{ResourceId, ScalaSymbolPath}
 
 import com.github.javaparser.ast.Node
 import com.github.javaparser.ast.CompilationUnit

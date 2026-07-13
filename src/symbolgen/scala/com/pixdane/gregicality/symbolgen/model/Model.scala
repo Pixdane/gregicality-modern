@@ -2,6 +2,7 @@ package com.pixdane.gregicality.symbolgen.model
 
 import com.github.javaparser.StaticJavaParser
 import com.github.javaparser.ast.CompilationUnit
+import com.pixdane.gregicality.codegen.dsl.model.{ResourceId, ScalaSymbolPath}
 
 final case class SourceArchive(files: Map[String, String]):
   def source(path: String): String =
@@ -44,21 +45,6 @@ final case class ScannedPathRef(
     name: String,
     path: ScalaSymbolPath
 ) extends ScannedRef
-
-final case class ResourceId(namespace: String, path: String)
-
-final case class ScalaSymbolPath(parts: Vector[String])
-
-object ScalaSymbolPath:
-  def fromFqcn(fqcn: String): ScalaSymbolPath =
-    ScalaSymbolPath(fqcn.split('.').toVector)
-
-  def member(ownerFqcn: String, memberName: String): ScalaSymbolPath =
-    ScalaSymbolPath.fromFqcn(ownerFqcn).append(memberName)
-
-extension (path: ScalaSymbolPath)
-  def append(part: String): ScalaSymbolPath =
-    ScalaSymbolPath(path.parts :+ part)
 
 final case class RefObjectTarget(
     outputPackage: String,
