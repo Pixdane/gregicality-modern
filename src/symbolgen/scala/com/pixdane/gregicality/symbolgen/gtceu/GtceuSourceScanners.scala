@@ -2,6 +2,7 @@ package com.pixdane.gregicality.symbolgen.gtceu
 
 import com.pixdane.gregicality.symbolgen.model.*
 
+import com.github.javaparser.ast.Node
 import com.github.javaparser.ast.CompilationUnit
 import com.github.javaparser.ast.body.FieldDeclaration
 import com.github.javaparser.ast.expr.AssignExpr
@@ -28,6 +29,24 @@ final case class GtMaterialsScanSpec(
 )
 
 object GtceuSourceScanners:
+  private final case class SourceSite(path: String, line: Option[Int]):
+    def render: String =
+      line.fold(path)(value => s"$path:$value")
+
+    def sortKey: (String, Int) =
+      path -> line.getOrElse(Int.MaxValue)
+
+  private final case class LocatedMaterialAssignment(
+      ref: ScannedRegisteredMaterialRef,
+      site: SourceSite
+  )
+
+  private final case class LocatedMaterialAlias(
+      name: String,
+      targetName: String,
+      site: SourceSite
+  )
+
   def scanStaticMembers(input: StaticFieldScanSpec)(
       archive: SourceArchive
   ): Vector[ScannedPathRef] =
@@ -58,33 +77,30 @@ object GtceuSourceScanners:
       archive: SourceArchive
   ): Vector[ScannedMaterialRef] =
     val declarationUnit = archive.parse(input.declarationPath)
-    val declaredMaterialNames = scanDeclaredMaterialNames(declarationUnit)
+    val declarations =
+      scanDeclaredMaterials(input.declarationPath, declarationUnit)
+    val declaredMaterialNames = declarations.keySet
 
-    val assignmentUnits = archive.parseUnder(input.assignmentDir).map(_._2)
+    val assignmentUnits = archive.parseUnder(input.assignmentDir)
     val builderAssignments = assignmentUnits
-      .flatMap(unit => scanMaterialAssignments(unit, input))
-      .filter(ref => declaredMaterialNames.contains(ref.name))
+      .flatMap { case (sourcePath, unit) =>
+        scanMaterialAssignments(sourcePath, unit, input)
+      }
+      .filter(assignment => declaredMaterialNames.contains(assignment.ref.name))
     val aliases = assignmentUnits
-      .flatMap(unit => scanMaterialAliases(unit, input))
-      .filter { case (name, _) => declaredMaterialNames.contains(name) }
+      .flatMap { case (sourcePath, unit) =>
+        scanMaterialAliases(sourcePath, unit, input)
+      }
+      .filter(alias => declaredMaterialNames.contains(alias.name))
 
-    val duplicateNames = (builderAssignments.map(_.name) ++ aliases.map(_._1))
-      .groupBy(identity)
-      .collect { case (name, occurrences) if occurrences.sizeIs > 1 => name }
-      .toVector
-      .sorted
-
-    if duplicateNames.nonEmpty then
-      throw new IllegalArgumentException(
-        s"duplicate GTCEu material assignments: ${duplicateNames.mkString(", ")}"
+    val refsByName: scala.collection.mutable.Map[String, ScannedMaterialRef] =
+      scala.collection.mutable.Map.from(
+        builderAssignments.map(assignment =>
+          assignment.ref.name -> assignment.ref
+        )
       )
-
-    validateDuplicateMaterialIds(builderAssignments)
-
-    val refsByName = scala.collection.mutable.Map.from(
-      builderAssignments.map(ref => ref.name -> ref)
-    )
-    val aliasesByName = aliases.toMap
+    val aliasesByName =
+      aliases.map(alias => alias.name -> alias.targetName).toMap
 
     def resolve(
         name: String,
@@ -111,42 +127,92 @@ object GtceuSourceScanners:
     val declaredAssignments = declaredMaterialNames.toVector.flatMap(resolve(_))
     val assignedNames = declaredAssignments.iterator.map(_.name).toSet
     val missingNames = (declaredMaterialNames -- assignedNames).toVector.sorted
+    val diagnostics = Vector(
+      duplicateAssignmentDiagnostic(builderAssignments, aliases),
+      duplicateMaterialIdDiagnostic(builderAssignments),
+      missingAssignmentDiagnostic(missingNames, declarations)
+    ).flatten
 
-    if missingNames.nonEmpty then
+    if diagnostics.nonEmpty then
       throw new IllegalArgumentException(
-        s"declared GTCEu materials without a recognized builder or alias assignment: ${missingNames.mkString(", ")}"
+        "GTCEu material scan failed:\n" +
+          diagnostics.map(message => s"- $message").mkString("\n")
       )
 
     declaredAssignments.sortBy(_.name)
 
-  private def validateDuplicateMaterialIds(
-      assignments: Vector[ScannedMaterialRef]
-  ): Unit =
-    val duplicateIds = assignments
-      .map(ref => ref.id -> ref.name)
+  private def duplicateAssignmentDiagnostic(
+      assignments: Vector[LocatedMaterialAssignment],
+      aliases: Vector[LocatedMaterialAlias]
+  ): Option[String] =
+    val occurrences =
+      assignments.map(assignment => assignment.ref.name -> assignment.site) ++
+        aliases.map(alias => alias.name -> alias.site)
+    val duplicates = occurrences
       .groupBy(_._1)
       .collect {
-        case (id, refs) if refs.sizeIs > 1 =>
-          id -> refs.map(_._2).sorted
+        case (name, values) if values.sizeIs > 1 =>
+          name -> values.map(_._2).sortBy(_.sortKey)
+      }
+      .toVector
+      .sortBy(_._1)
+
+    Option.when(duplicates.nonEmpty) {
+      val details = duplicates
+        .map { case (name, sites) =>
+          s"$name (${sites.map(_.render).mkString(", ")})"
+        }
+        .mkString("; ")
+
+      s"duplicate GTCEu material assignments: $details"
+    }
+
+  private def duplicateMaterialIdDiagnostic(
+      assignments: Vector[LocatedMaterialAssignment]
+  ): Option[String] =
+    val duplicateIds = assignments
+      .groupBy(_.ref.id)
+      .collect {
+        case (id, values) if values.sizeIs > 1 =>
+          id -> values.sortBy(assignment =>
+            assignment.ref.name -> assignment.site.sortKey
+          )
       }
       .toVector
       .sortBy { case (id, _) => (id.namespace, id.path) }
 
-    if duplicateIds.nonEmpty then
+    Option.when(duplicateIds.nonEmpty) {
       val details = duplicateIds
-        .map { case (id, names) =>
-          s"${id.namespace}:${id.path} (${names.mkString(", ")})"
+        .map { case (id, values) =>
+          val refs = values
+            .map(assignment =>
+              s"${assignment.ref.name} at ${assignment.site.render}"
+            )
+            .mkString(", ")
+          s"${id.namespace}:${id.path} ($refs)"
         }
         .mkString("; ")
 
-      throw new IllegalArgumentException(
-        s"duplicate GTCEu material registry ids: $details"
-      )
+      s"duplicate GTCEu material registry ids: $details"
+    }
+
+  private def missingAssignmentDiagnostic(
+      missingNames: Vector[String],
+      declarations: Map[String, SourceSite]
+  ): Option[String] =
+    Option.when(missingNames.nonEmpty) {
+      val details = missingNames
+        .map(name => s"$name (declared at ${declarations(name).render})")
+        .mkString(", ")
+
+      s"declared GTCEu materials without a recognized builder or alias assignment: $details"
+    }
 
   private def scanMaterialAliases(
+      sourcePath: String,
       unit: CompilationUnit,
       input: GtMaterialsScanSpec
-  ): Vector[(String, String)] =
+  ): Vector[LocatedMaterialAlias] =
     unit
       .findAll(classOf[AssignExpr])
       .asScala
@@ -158,10 +224,17 @@ object GtceuSourceScanners:
             assignment.getValue,
             input.ownerFqcn
           )
-        yield name -> targetName
+        yield LocatedMaterialAlias(
+          name = name,
+          targetName = targetName,
+          site = sourceSite(sourcePath, assignment)
+        )
       }
 
-  private def scanDeclaredMaterialNames(unit: CompilationUnit): Set[String] =
+  private def scanDeclaredMaterials(
+      sourcePath: String,
+      unit: CompilationUnit
+  ): Map[String, SourceSite] =
     unit
       .findAll(classOf[FieldDeclaration])
       .asScala
@@ -173,8 +246,10 @@ object GtceuSourceScanners:
       )
       .flatMap(_.getVariables.asScala.toVector)
       .filter(_.getType.asString == "Material")
-      .map(_.getNameAsString)
-      .toSet
+      .map(variable =>
+        variable.getNameAsString -> sourceSite(sourcePath, variable)
+      )
+      .toMap
 
   private def isDeprecated(field: FieldDeclaration): Boolean =
     field.getAnnotations.asScala.exists { annotation =>
@@ -182,10 +257,18 @@ object GtceuSourceScanners:
       name == "Deprecated" || name.endsWith(".Deprecated")
     }
 
+  private def sourceSite(sourcePath: String, node: Node): SourceSite =
+    val begin = node.getBegin
+    SourceSite(
+      path = sourcePath,
+      line = Option.when(begin.isPresent)(begin.get.line)
+    )
+
   private def scanMaterialAssignments(
+      sourcePath: String,
       unit: CompilationUnit,
       input: GtMaterialsScanSpec
-  ): Vector[ScannedMaterialRef] =
+  ): Vector[LocatedMaterialAssignment] =
     unit
       .findAll(classOf[AssignExpr])
       .asScala
@@ -194,10 +277,13 @@ object GtceuSourceScanners:
         for
           name <- assignedName(assignment, input.ownerFqcn)
           idPath <- extractGtceuMaterialId(assignment.getValue)
-        yield ScannedRegisteredMaterialRef(
-          name = name,
-          id = ResourceId(input.namespace, idPath),
-          path = ScalaSymbolPath.member(input.ownerFqcn, name)
+        yield LocatedMaterialAssignment(
+          ref = ScannedRegisteredMaterialRef(
+            name = name,
+            id = ResourceId(input.namespace, idPath),
+            path = ScalaSymbolPath.member(input.ownerFqcn, name)
+          ),
+          site = sourceSite(sourcePath, assignment)
         )
       }
 

@@ -65,8 +65,7 @@ class GtceuSourceScannersTest:
   @Test
   def scanGtMaterialsSkipsDeprecatedRegisteredMaterials(): Unit =
     val archive = materialArchive(
-      declarations =
-        "Carbon; @Deprecated public static Material LegacyCarbon",
+      declarations = "Carbon; @Deprecated public static Material LegacyCarbon",
       assignments = """
           |Carbon = new Material.Builder(GTCEu.id("carbon"))
           |  .buildAndRegister();
@@ -225,6 +224,46 @@ class GtceuSourceScannersTest:
     assertTrue(error.getMessage.contains("gtceu:shared"))
     assertTrue(error.getMessage.contains("Carbon"))
     assertTrue(error.getMessage.contains("Hydrogen"))
+
+  @Test
+  def scanGtMaterialsAggregatesDiagnosticsWithSourceLocations(): Unit =
+    val archive = materialArchive(
+      declarations = "Carbon, Hydrogen, Oxygen",
+      assignments = """
+          |Carbon = new Material.Builder(GTCEu.id("shared"))
+          |  .buildAndRegister();
+          |Carbon = new Material.Builder(GTCEu.id("carbon_duplicate"))
+          |  .buildAndRegister();
+          |Hydrogen = new Material.Builder(GTCEu.id("shared"))
+          |  .buildAndRegister();
+          |""".stripMargin
+    )
+
+    val error = assertThrows(
+      classOf[IllegalArgumentException],
+      () => GtceuSourceScanners.scanGtMaterials(materialSource)(archive)
+    )
+    val message = error.getMessage
+
+    assertTrue(message.contains("duplicate GTCEu material assignments"))
+    assertTrue(message.contains("duplicate GTCEu material registry ids"))
+    assertTrue(
+      message.contains(
+        "without a recognized builder or alias assignment"
+      )
+    )
+    assertTrue(
+      message.contains(s"${materialSource.assignmentDir}TestMaterials.java:")
+    )
+    assertTrue(message.contains(s"${materialSource.declarationPath}:"))
+    assertTrue(
+      message.indexOf("duplicate GTCEu material assignments") <
+        message.indexOf("duplicate GTCEu material registry ids")
+    )
+    assertTrue(
+      message.indexOf("duplicate GTCEu material registry ids") <
+        message.indexOf("without a recognized builder or alias assignment")
+    )
 
   @Test
   def scanGtMaterialsResolvesMaterialAliasesWithoutTreatingTheirIdAsDuplicate()
