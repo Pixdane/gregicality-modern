@@ -41,6 +41,7 @@ object GtceuSourceScanners:
         field.isPublic &&
           field.isStatic &&
           field.isFinal &&
+          !isDeprecated(field) &&
           field.getElementType.asString == input.memberTypeSimpleName
       )
       .flatMap(_.getVariables.asScala.toVector)
@@ -167,12 +168,19 @@ object GtceuSourceScanners:
       .toVector
       .filter(field =>
         field.isPublic &&
-          field.isStatic
+          field.isStatic &&
+          !isDeprecated(field)
       )
       .flatMap(_.getVariables.asScala.toVector)
       .filter(_.getType.asString == "Material")
       .map(_.getNameAsString)
       .toSet
+
+  private def isDeprecated(field: FieldDeclaration): Boolean =
+    field.getAnnotations.asScala.exists { annotation =>
+      val name = annotation.getNameAsString
+      name == "Deprecated" || name.endsWith(".Deprecated")
+    }
 
   private def scanMaterialAssignments(
       unit: CompilationUnit,

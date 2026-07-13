@@ -21,6 +21,10 @@ class GtceuSourceScannersTest:
             |public class MaterialIconSet {
             |  public static final Map<String, MaterialIconSet> ICON_SETS = null;
             |  public static final MaterialIconSet DULL = new MaterialIconSet("dull");
+            |  @Deprecated
+            |  public static final MaterialIconSet LEGACY = new MaterialIconSet("legacy");
+            |  @java.lang.Deprecated
+            |  public static final MaterialIconSet QUALIFIED_LEGACY = new MaterialIconSet("qualified_legacy");
             |  public static final MaterialIconSet METALLIC = new MaterialIconSet("metallic");
             |  static final MaterialIconSet HIDDEN = new MaterialIconSet("hidden");
             |}
@@ -57,6 +61,39 @@ class GtceuSourceScannersTest:
       ),
       refs.head.path
     )
+
+  @Test
+  def scanGtMaterialsSkipsDeprecatedRegisteredMaterials(): Unit =
+    val archive = materialArchive(
+      declarations =
+        "Carbon; @Deprecated public static Material LegacyCarbon",
+      assignments = """
+          |Carbon = new Material.Builder(GTCEu.id("carbon"))
+          |  .buildAndRegister();
+          |LegacyCarbon = new Material.Builder(GTCEu.id("legacy_carbon"))
+          |  .buildAndRegister();
+          |""".stripMargin
+    )
+
+    val refs = GtceuSourceScanners.scanGtMaterials(materialSource)(archive)
+
+    assertEquals(Vector("Carbon"), refs.map(_.name))
+
+  @Test
+  def scanGtMaterialsSkipsDeprecatedAliases(): Unit =
+    val archive = materialArchive(
+      declarations =
+        "Limonite; @java.lang.Deprecated public static Material YellowLimonite",
+      assignments = """
+          |Limonite = new Material.Builder(GTCEu.id("limonite"))
+          |  .buildAndRegister();
+          |GTMaterials.YellowLimonite = GTMaterials.Limonite;
+          |""".stripMargin
+    )
+
+    val refs = GtceuSourceScanners.scanGtMaterials(materialSource)(archive)
+
+    assertEquals(Vector("Limonite"), refs.map(_.name))
 
   @Test
   def scanGtMaterialsRejectsDeclaredMaterialWithoutRecognizedAssignment()

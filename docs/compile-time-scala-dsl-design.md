@@ -782,6 +782,12 @@ registered ids, unsupported builder shapes, and assignments through another
 owner are diagnostics rather than silently dropped symbols. This preserves the
 true registry id without lossy field-name conversion.
 
+Fields annotated with `@Deprecated` are intentionally excluded from every
+generated ref surface, including static path refs, registered materials, and
+material aliases. Material declarations are filtered before assignments are
+validated, so a deprecated declaration produces neither a generated member nor
+a missing-assignment diagnostic.
+
 Rendering matches the `RefJob` variant and therefore cannot accidentally render
 a path-only symbol as a material. Generated members remain parameterless `def`s
 so large catalogs do not allocate every ref in the Scala object initializer:
