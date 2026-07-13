@@ -11,7 +11,7 @@ import java.util.UUID
 import scala.jdk.CollectionConverters.*
 import scala.util.Using
 
-import com.pixdane.gregicality.symbolgen.model.GeneratedScalaFile
+import com.pixdane.gregicality.symbolgen.render.GeneratedScalaFile
 
 object GeneratedSourceWriter:
   def sync(outputDir: Path, files: Vector[GeneratedScalaFile]): Unit =

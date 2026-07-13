@@ -1,6 +1,12 @@
 package com.pixdane.gregicality.symbolgen.render
 
-import com.pixdane.gregicality.symbolgen.model.*
+import com.pixdane.gregicality.symbolgen.archive.SourceArchive
+import com.pixdane.gregicality.symbolgen.job.RefJob
+import com.pixdane.gregicality.symbolgen.scan.{
+  ScannedMaterialRef,
+  ScannedPathRef,
+  ScannedRegisteredMaterialRef
+}
 import com.pixdane.gregicality.codegen.dsl.model.{ResourceId, ScalaSymbolPath}
 
 object RefObjectRenderer:

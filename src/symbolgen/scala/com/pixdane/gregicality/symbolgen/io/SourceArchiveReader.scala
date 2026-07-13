@@ -7,7 +7,7 @@ import java.util.zip.ZipFile
 import scala.jdk.CollectionConverters.*
 import scala.util.Using
 
-import com.pixdane.gregicality.symbolgen.model.SourceArchive
+import com.pixdane.gregicality.symbolgen.archive.SourceArchive
 
 object SourceArchiveReader:
   def readJar(path: Path): SourceArchive =

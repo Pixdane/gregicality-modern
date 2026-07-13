@@ -1,6 +1,13 @@
 package com.pixdane.gregicality.symbolgen
 
-import com.pixdane.gregicality.symbolgen.model.*
+import com.pixdane.gregicality.symbolgen.archive.SourceArchive
+import com.pixdane.gregicality.symbolgen.job.RefJob
+import com.pixdane.gregicality.symbolgen.render.RefObjectTarget
+import com.pixdane.gregicality.symbolgen.scan.{
+  ScannedMaterialAliasRef,
+  ScannedPathRef,
+  ScannedRegisteredMaterialRef
+}
 import com.pixdane.gregicality.codegen.dsl.model.{ResourceId, ScalaSymbolPath}
 import com.pixdane.gregicality.symbolgen.render.RefObjectRenderer
 import org.junit.jupiter.api.Assertions.assertEquals

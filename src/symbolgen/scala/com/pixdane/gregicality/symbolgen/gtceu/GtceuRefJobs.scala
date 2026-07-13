@@ -1,6 +1,7 @@
 package com.pixdane.gregicality.symbolgen.gtceu
 
-import com.pixdane.gregicality.symbolgen.model.*
+import com.pixdane.gregicality.symbolgen.job.RefJob
+import com.pixdane.gregicality.symbolgen.render.RefObjectTarget
 
 object GtceuRefJobs:
   private val OutputPackage =

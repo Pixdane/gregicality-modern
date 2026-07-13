@@ -1,7 +1,8 @@
 package com.pixdane.gregicality.symbolgen
 
 import com.pixdane.gregicality.symbolgen.gtceu.*
-import com.pixdane.gregicality.symbolgen.model.*
+import com.pixdane.gregicality.symbolgen.archive.SourceArchive
+import com.pixdane.gregicality.symbolgen.scan.ScannedPathRef
 import com.pixdane.gregicality.codegen.dsl.model.{ResourceId, ScalaSymbolPath}
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
