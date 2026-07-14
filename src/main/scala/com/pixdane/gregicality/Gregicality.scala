@@ -6,7 +6,7 @@ import com.gregtechceu.gtceu.api.machine.MachineDefinition
 import com.gregtechceu.gtceu.api.recipe.GTRecipeType
 import com.gregtechceu.gtceu.api.registry.registrate.GTRegistrate
 import com.gregtechceu.gtceu.api.sound.SoundEntry
-import com.pixdane.gregicality.client.Client
+import com.pixdane.gregicality.client.GregicalityClient
 import com.pixdane.gregicality.common.data.GCYMaterials
 import net.minecraft.resources.ResourceLocation
 import net.minecraftforge.api.distmarker.Dist
@@ -23,7 +23,7 @@ object Gregicality:
 
   private val LOGGER = LogManager.getLogger(MOD_ID)
 
-  private val REGISTRATE: GTRegistrate = GTRegistrate.create(MOD_ID)
+  val REGISTRATE: GTRegistrate = GTRegistrate.create(MOD_ID)
 
   init()
 
@@ -40,19 +40,26 @@ object Gregicality:
 
     REGISTRATE.registerRegistrate()
 
-    DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () => () => Client.init(LOGGER, modEventBus))
+    DistExecutor.unsafeRunWhenOn(
+      Dist.CLIENT,
+      () => () => GregicalityClient.init(LOGGER, modEventBus)
+    )
 
   def id(path: String) = ResourceLocation(MOD_ID, path)
 
   @SubscribeEvent
   def onCommonSetup(event: FMLCommonSetupEvent): Unit = {
-    event.enqueueWork[Unit](() =>
-      LOGGER.info("HELLO from common setup")
-    )
+    event.enqueueWork[Unit](() => LOGGER.info("HELLO from common setup"))
   }
 
-  private def registerRecipeTypes(event: RegisterEvent[ResourceLocation, GTRecipeType]): Unit = ()
+  private def registerRecipeTypes(
+      event: RegisterEvent[ResourceLocation, GTRecipeType]
+  ): Unit = ()
 
-  private def registerMachines(event: RegisterEvent[ResourceLocation, MachineDefinition]): Unit = ()
+  private def registerMachines(
+      event: RegisterEvent[ResourceLocation, MachineDefinition]
+  ): Unit = ()
 
-  private def registerSounds(event: RegisterEvent[ResourceLocation, SoundEntry]): Unit = ()
+  private def registerSounds(
+      event: RegisterEvent[ResourceLocation, SoundEntry]
+  ): Unit = ()

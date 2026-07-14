@@ -1,5 +1,7 @@
 plugins {
-    scala
+    alias(conventions.plugins.scala.project)
+    alias(conventions.plugins.scalafmt)
+    alias(conventions.plugins.codegen)
     alias(conventions.plugins.repositories)
     alias(conventions.plugins.minecraft)
     alias(conventions.plugins.publish)
@@ -28,13 +30,4 @@ dependencies {
 
     modImplementation(deps.gtceu)
     modCompileOnly(deps.registrate)
-}
-
-tasks.compileScala {
-    dependsOn(tasks.processResources)
-}
-
-configurations {
-    compileOnly {
-    }
 }
