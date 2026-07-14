@@ -120,7 +120,7 @@ object GtceuRefJobs:
         outputObject = outputObject,
         valueType = valueType
       ),
-      scan = archive => Ior.right(StaticFieldScanner.scan(spec)(archive)),
+      scan = StaticFieldScanner.scan(spec),
       preprocess = passThrough,
       render = RefObjectRenderer.generatePathFile
     )

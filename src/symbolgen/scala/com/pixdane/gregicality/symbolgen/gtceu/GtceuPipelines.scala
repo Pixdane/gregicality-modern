@@ -31,8 +31,8 @@ object GtceuPipelines:
       .traverse(_.run(archive))
       .map(refs => refs :+ aggregateFile)
 
-  val domain: SymbolgenDomain =
+  val domain: SymbolgenDomain[GtceuScanDiagnostic] =
     SymbolgenDomain(
       kind = "gtceu",
-      generate = archive => generate(archive).leftMap(_.map(_.render))
+      generate = generate
     )

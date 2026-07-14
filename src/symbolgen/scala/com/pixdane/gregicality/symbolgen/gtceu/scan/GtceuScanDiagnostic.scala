@@ -1,16 +1,20 @@
 package com.pixdane.gregicality.symbolgen.gtceu.scan
 
-import cats.data.IorNec
+import cats.data.{Ior, IorNec, NonEmptyChain}
+import com.pixdane.gregicality.symbolgen.archive.SourceArchiveError
+import com.pixdane.gregicality.symbolgen.domain.Diagnostic
 
 type GtceuScanResult[A] = IorNec[GtceuScanDiagnostic, A]
 
 final case class MaterialIdOccurrence(name: String, site: SourceSite)
 
-enum GtceuScanDiagnostic:
+enum GtceuScanDiagnostic extends Diagnostic:
   case DuplicateAssignment(name: String, sites: Vector[SourceSite])
   case DuplicateMaterialId(id: String, refs: Vector[MaterialIdOccurrence])
   case RejectedAssignment(name: String, reason: String, site: SourceSite)
   case MissingAssignment(name: String, declarationSite: SourceSite)
+  case MissingSource(path: String)
+  case SourceParseError(path: String, message: String)
 
   def render: String = this match
     case DuplicateAssignment(name, sites) =>
@@ -25,3 +29,32 @@ enum GtceuScanDiagnostic:
     case MissingAssignment(name, declarationSite) =>
       s"declared GTCEu materials without a recognized builder assignment: " +
         s"$name (declared at ${declarationSite.render})"
+    case MissingSource(path) =>
+      s"missing GTCEu source file: $path"
+    case SourceParseError(path, message) =>
+      s"failed to parse GTCEu source: $path ($message)"
+
+object GtceuScanDiagnostic:
+  def fromArchiveError(error: SourceArchiveError): GtceuScanDiagnostic =
+    error match
+      case SourceArchiveError.Missing(path) =>
+        GtceuScanDiagnostic.MissingSource(path)
+      case SourceArchiveError.ParseFailed(path, message) =>
+        GtceuScanDiagnostic.SourceParseError(path, message)
+
+  def fromArchive[A](
+      result: Either[SourceArchiveError, A]
+  ): GtceuScanResult[A] =
+    Ior.fromEither(
+      result.left.map(error =>
+        NonEmptyChain.one(fromArchiveError(error))
+      )
+    )
+
+  def fromParsedUnder[A](
+      value: A,
+      errors: Vector[SourceArchiveError]
+  ): GtceuScanResult[A] =
+    NonEmptyChain.fromSeq(errors.map(fromArchiveError)) match
+      case None        => Ior.right(value)
+      case Some(chain) => Ior.both(chain, value)

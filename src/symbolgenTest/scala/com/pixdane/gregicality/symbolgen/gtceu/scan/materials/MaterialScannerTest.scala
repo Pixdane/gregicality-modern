@@ -4,6 +4,7 @@ import cats.data.Ior
 import com.pixdane.gregicality.core.refs.{ResourceId, ScalaSymbolPath}
 import com.pixdane.gregicality.symbolgen.archive.SourceArchive
 import com.pixdane.gregicality.symbolgen.gtceu.scan.{
+  GtceuScanDiagnostic,
   GtceuScanResult,
   GtMaterialsScanSpec
 }
@@ -12,6 +13,56 @@ import org.junit.jupiter.api.Assertions.{assertEquals, assertTrue, fail}
 import org.junit.jupiter.api.Test
 
 class MaterialScannerTest:
+
+  @Test
+  def scanGtMaterialsReportsMissingDeclarationSource(): Unit =
+    MaterialScanner.scan(materialSource)(SourceArchive(Map.empty)) match
+      case Ior.Left(diagnostics) =>
+        assertEquals(
+          List(
+            GtceuScanDiagnostic.MissingSource(
+              materialSource.declarationPath
+            )
+          ),
+          diagnostics.toChain.toList
+        )
+      case Ior.Both(diagnostics, input) =>
+        fail(
+          s"expected missing source failure, got ${diagnostics.toChain.toList} " +
+            s"with input $input"
+        )
+      case Ior.Right(input) =>
+        fail(s"expected missing source failure, got input $input")
+
+  @Test
+  def scanGtMaterialsKeepsRefsWhenOneAssignmentSourceCannotParse(): Unit =
+    val archive = materialArchive(
+      declarations = "Carbon",
+      assignments = """
+          |Carbon = new Material.Builder(GTCEu.id("carbon"))
+          |  .buildAndRegister();
+          |""".stripMargin
+    )
+    val brokenPath = s"${materialSource.assignmentDir}Broken.java"
+    val archiveWithBrokenSource =
+      SourceArchive(archive.files.updated(brokenPath, "public class Broken {"))
+
+    scanMaterials(materialSource)(archiveWithBrokenSource) match
+      case Ior.Both(diagnostics, refs) =>
+        assertEquals(Vector("Carbon"), refs.map(_.name))
+        diagnostics.toChain.toList match
+          case List(GtceuScanDiagnostic.SourceParseError(path, message)) =>
+            assertEquals(brokenPath, path)
+            assertTrue(message.nonEmpty)
+          case other =>
+            fail(s"expected one source parse error, got $other")
+      case Ior.Left(diagnostics) =>
+        fail(
+          "expected partial refs with diagnostics, got Left:\n" +
+            diagnostics.iterator.map(_.render).mkString("\n")
+        )
+      case Ior.Right(refs) =>
+        fail(s"expected parse diagnostics, got clean refs $refs")
 
   @Test
   def scanGtMaterialsSkipsDeprecatedRegisteredMaterials(): Unit =

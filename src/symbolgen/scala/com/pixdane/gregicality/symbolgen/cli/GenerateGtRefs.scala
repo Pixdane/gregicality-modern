@@ -4,6 +4,7 @@ import java.nio.file.Path
 
 import cats.data.Ior
 
+import com.pixdane.gregicality.symbolgen.domain.Diagnostic
 import com.pixdane.gregicality.symbolgen.domain.SymbolgenDomains
 import com.pixdane.gregicality.symbolgen.io.GeneratedSourceWriter
 import com.pixdane.gregicality.symbolgen.io.SourceArchiveReader
@@ -30,11 +31,11 @@ object GenerateGtRefs:
 
   private def symbolgenFailedException(
       kind: String,
-      diagnostics: List[String]
+      diagnostics: Iterable[Diagnostic]
   ): IllegalArgumentException =
     new IllegalArgumentException(
       s"symbol generation failed for '$kind':\n" +
-        diagnostics.map(diagnostic => s"- $diagnostic").mkString("\n")
+        diagnostics.map(diagnostic => s"- ${diagnostic.render}").mkString("\n")
     )
 
 final case class Args(kind: String, sources: Path, out: Path)

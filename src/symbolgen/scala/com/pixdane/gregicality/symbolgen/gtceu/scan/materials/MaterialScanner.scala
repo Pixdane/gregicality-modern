@@ -13,34 +13,48 @@ object MaterialScanner:
   def scan(input: GtMaterialsScanSpec)(
       archive: SourceArchive
   ): GtceuScanResult[MaterialScanInput] =
-    val declarationUnit = archive.parse(input.declarationPath)
-    val declarations =
-      MaterialDeclarationScanner.scan(input.declarationPath, declarationUnit)
-    val declaredMaterialNames = declarations.keySet
+    GtceuScanDiagnostic
+      .fromArchive(archive.parse(input.declarationPath))
+      .flatMap { declarationUnit =>
+        val declarations =
+          MaterialDeclarationScanner.scan(
+            input.declarationPath,
+            declarationUnit
+          )
+        val declaredMaterialNames = declarations.keySet
 
-    val assignmentUnits = archive.parseUnder(input.assignmentDir)
-    val builderAssignments = assignmentUnits
-      .flatMap { case (sourcePath, unit) =>
-        MaterialAssignmentScanner.scanAssignments(sourcePath, unit, input)
-      }
-      .filter(assignment => declaredMaterialNames.contains(assignment.ref.name))
-    val rejectedAssignments = assignmentUnits.flatMap {
-      case (sourcePath, unit) =>
-        MaterialAssignmentScanner.scanRejected(
-          sourcePath,
-          unit,
-          input,
-          declaredMaterialNames
+        val (assignmentUnits, parseErrors) =
+          archive.parseUnder(input.assignmentDir)
+        val builderAssignments = assignmentUnits
+          .flatMap { case (sourcePath, unit) =>
+            MaterialAssignmentScanner.scanAssignments(
+              sourcePath,
+              unit,
+              input
+            )
+          }
+          .filter(assignment =>
+            declaredMaterialNames.contains(assignment.ref.name)
+          )
+        val rejectedAssignments = assignmentUnits.flatMap {
+          case (sourcePath, unit) =>
+            MaterialAssignmentScanner.scanRejected(
+              sourcePath,
+              unit,
+              input,
+              declaredMaterialNames
+            )
+        }
+
+        GtceuScanDiagnostic.fromParsedUnder(
+          MaterialScanInput(
+            declarations = declarations,
+            assignments = builderAssignments,
+            rejectedAssignments = rejectedAssignments
+          ),
+          parseErrors
         )
-    }
-
-    Ior.right(
-      MaterialScanInput(
-        declarations = declarations,
-        assignments = builderAssignments,
-        rejectedAssignments = rejectedAssignments
-      )
-    )
+      }
 
   def preprocess(
       input: MaterialScanInput

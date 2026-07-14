@@ -1,5 +1,6 @@
 package com.pixdane.gregicality.symbolgen.gtceu.scan
 
+import com.github.javaparser.ast.CompilationUnit
 import com.github.javaparser.ast.body.FieldDeclaration
 import com.pixdane.gregicality.core.refs.ScalaSymbolPath
 import com.pixdane.gregicality.symbolgen.archive.SourceArchive
@@ -10,9 +11,17 @@ import scala.jdk.CollectionConverters.*
 object StaticFieldScanner:
   def scan(input: StaticFieldScanSpec)(
       archive: SourceArchive
-  ): Vector[ScannedPathRef] =
-    val unit = archive.parse(input.sourcePath)
+  ): GtceuScanResult[Vector[ScannedPathRef]] =
+    GtceuScanDiagnostic.fromArchive(
+      archive
+        .parse(input.sourcePath)
+        .map(unit => collectRefs(unit, input))
+    )
 
+  private def collectRefs(
+      unit: CompilationUnit,
+      input: StaticFieldScanSpec
+  ): Vector[ScannedPathRef] =
     unit
       .findAll(classOf[FieldDeclaration])
       .asScala
