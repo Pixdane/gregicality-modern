@@ -11,15 +11,12 @@ import com.pixdane.gregicality.symbolgen.render.{
   RefAggregateRenderer
 }
 
-object GtceuPipelines:
-  private val OutputPackage =
-    "com.pixdane.gregicality.core.refs.gtceu"
-
+object GtceuBackend:
   private val AggregateObject = "GTRefs"
 
   private def aggregateFile: GeneratedScalaFile =
     RefAggregateRenderer.generateFile(
-      outputPackage = OutputPackage,
+      outputPackage = GtceuRefJobs.OutputPackage,
       outputObject = AggregateObject,
       exports = GtceuRefJobs.jobs.map(_.target.outputObject)
     )

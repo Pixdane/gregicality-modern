@@ -11,9 +11,9 @@ import com.pixdane.gregicality.symbolgen.io.SourceArchiveReader
 
 object GenerateGtRefs:
   def main(args: Array[String]): Unit =
-    run(Args.parse(args.toVector))
+    run(GenerateGtRefsArgs.parse(args.toVector))
 
-  def run(args: Args): Unit =
+  def run(args: GenerateGtRefsArgs): Unit =
     val domain = SymbolgenDomains.find(args.kind).getOrElse {
       throw new IllegalArgumentException(
         s"unsupported ref generation kind: ${args.kind}"
@@ -38,11 +38,11 @@ object GenerateGtRefs:
         diagnostics.map(diagnostic => s"- ${diagnostic.render}").mkString("\n")
     )
 
-final case class Args(kind: String, sources: Path, out: Path)
+final case class GenerateGtRefsArgs(kind: String, sources: Path, out: Path)
 
-object Args:
-  def parse(values: Vector[String]): Args =
-    Args(
+object GenerateGtRefsArgs:
+  def parse(values: Vector[String]): GenerateGtRefsArgs =
+    GenerateGtRefsArgs(
       kind = required(values, "--kind"),
       sources = Path.of(required(values, "--sources")),
       out = Path.of(required(values, "--out"))

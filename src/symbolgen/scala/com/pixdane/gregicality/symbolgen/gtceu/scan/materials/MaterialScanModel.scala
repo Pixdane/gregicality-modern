@@ -19,8 +19,3 @@ final case class RejectedMaterialAssignment(
     reason: String,
     site: SourceSite
 )
-
-enum MaterialAssignmentTarget:
-  case Accepted(name: String)
-  case ForeignOwner(name: String)
-  case Unrelated

@@ -6,11 +6,11 @@ import com.pixdane.gregicality.symbolgen.domain.Diagnostic
 
 type GtceuScanResult[A] = IorNec[GtceuScanDiagnostic, A]
 
-final case class MaterialIdOccurrence(name: String, site: SourceSite)
+final case class IdOccurrence(name: String, site: SourceSite)
 
 enum GtceuScanDiagnostic extends Diagnostic:
   case DuplicateAssignment(name: String, sites: Vector[SourceSite])
-  case DuplicateMaterialId(id: String, refs: Vector[MaterialIdOccurrence])
+  case DuplicateMaterialId(id: String, refs: Vector[IdOccurrence])
   case RejectedAssignment(name: String, reason: String, site: SourceSite)
   case MissingAssignment(name: String, declarationSite: SourceSite)
   case MissingSource(path: String)

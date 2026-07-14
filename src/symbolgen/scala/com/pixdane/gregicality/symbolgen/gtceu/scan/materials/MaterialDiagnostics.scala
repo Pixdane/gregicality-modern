@@ -2,7 +2,7 @@ package com.pixdane.gregicality.symbolgen.gtceu.scan.materials
 
 import com.pixdane.gregicality.symbolgen.gtceu.scan.{
   GtceuScanDiagnostic,
-  MaterialIdOccurrence,
+  IdOccurrence,
   SourceSite
 }
 
@@ -39,7 +39,7 @@ object MaterialDiagnostics:
       .sortBy { case (id, _) => (id.namespace, id.path) }
       .map { case (id, values) =>
         val occurrences = values.map(assignment =>
-          MaterialIdOccurrence(
+          IdOccurrence(
             name = assignment.ref.name,
             site = assignment.site
           )

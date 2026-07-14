@@ -1,12 +1,10 @@
-package com.pixdane.gregicality.symbolgen
+package com.pixdane.gregicality.symbolgen.render
 
-import com.pixdane.gregicality.symbolgen.render.RefObjectTarget
 import com.pixdane.gregicality.symbolgen.scan.{
   ScannedMaterialRef,
   ScannedPathRef
 }
 import com.pixdane.gregicality.core.refs.{ResourceId, ScalaSymbolPath}
-import com.pixdane.gregicality.symbolgen.render.RefObjectRenderer
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test

@@ -12,6 +12,11 @@ import com.github.javaparser.ast.expr.{
 
 import scala.annotation.tailrec
 
+enum MaterialAssignmentTarget:
+  case Accepted(name: String)
+  case ForeignOwner(name: String)
+  case Unrelated
+
 object MaterialExpressionParsers:
 
   def assignedName(

@@ -1,6 +1,5 @@
-package com.pixdane.gregicality.symbolgen
+package com.pixdane.gregicality.symbolgen.render
 
-import com.pixdane.gregicality.symbolgen.render.RefAggregateRenderer
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 

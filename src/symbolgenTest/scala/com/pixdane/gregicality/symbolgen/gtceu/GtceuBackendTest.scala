@@ -5,7 +5,7 @@ import com.pixdane.gregicality.symbolgen.archive.SourceArchive
 import org.junit.jupiter.api.Assertions.{assertEquals, fail}
 import org.junit.jupiter.api.Test
 
-class GtceuPipelinesTest:
+class GtceuBackendTest:
   @Test
   def generateRunsEveryJobAndAppendsTheAggregateFile(): Unit =
     val archive = SourceArchive(
@@ -52,7 +52,7 @@ class GtceuPipelinesTest:
       )
     )
 
-    GtceuPipelines.generate(archive) match
+    GtceuBackend.generate(archive) match
       case Ior.Right(files) =>
         assertEquals(
           Vector(

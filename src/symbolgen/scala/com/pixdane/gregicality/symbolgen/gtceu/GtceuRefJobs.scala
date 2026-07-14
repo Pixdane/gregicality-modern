@@ -22,7 +22,7 @@ import com.pixdane.gregicality.symbolgen.scan.ScannedMaterialRef
 import com.pixdane.gregicality.symbolgen.scan.ScannedPathRef
 
 object GtceuRefJobs:
-  private val OutputPackage =
+  private[gtceu] val OutputPackage =
     "com.pixdane.gregicality.core.refs.gtceu"
 
   private val gtMaterials: SymbolJob[
