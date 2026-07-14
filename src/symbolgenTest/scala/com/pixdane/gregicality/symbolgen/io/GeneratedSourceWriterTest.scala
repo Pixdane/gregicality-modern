@@ -9,7 +9,7 @@ import java.nio.file.attribute.FileTime
 import scala.jdk.CollectionConverters.*
 import scala.util.Using
 
-import com.pixdane.gregicality.symbolgen.render.GeneratedScalaFile
+import com.pixdane.gregicality.symbolgen.framework.GeneratedScalaFile
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertSame

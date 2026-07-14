@@ -11,8 +11,17 @@ import java.util.UUID
 import scala.jdk.CollectionConverters.*
 import scala.util.Using
 
-import com.pixdane.gregicality.symbolgen.render.GeneratedScalaFile
+import com.pixdane.gregicality.symbolgen.framework.GeneratedScalaFile
 
+/** Writes generated Scala files to the output directory as a single atomic
+  * swap.
+  *
+  * Files are first written to a sibling staging directory, then the existing
+  * output directory is moved aside to a backup and the staging directory is
+  * moved into its place. If the install fails and a backup exists, the backup
+  * is rolled back. When the output already matches the expected files, the
+  * write is skipped entirely.
+  */
 object GeneratedSourceWriter:
   def sync(outputDir: Path, files: Vector[GeneratedScalaFile]): Unit =
     syncWithMover(outputDir, files)(moveDirectory)

@@ -1,5 +1,11 @@
 package com.pixdane.gregicality.symbolgen.render
 
+/** A small line-oriented builder for emitted Scala source.
+  *
+  * Renderers compose `ScalaCode` values with `++` and `joinWith` and call
+  * `render` to produce the final file content, keeping indentation and
+  * separator handling in one place.
+  */
 final case class ScalaCode(lines: Vector[String]):
   def ++(other: ScalaCode): ScalaCode =
     ScalaCode(lines ++ other.lines)

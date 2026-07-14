@@ -7,8 +7,15 @@ import java.util.zip.ZipFile
 import scala.jdk.CollectionConverters.*
 import scala.util.Using
 
-import com.pixdane.gregicality.symbolgen.archive.SourceArchive
+import com.pixdane.gregicality.symbolgen.framework.SourceArchive
 
+/** Produces a [[SourceArchive]] from a Java sources jar.
+  *
+  * This is the archive's decoupled producer: it knows only how to read a jar
+  * and collect `.java` entries, and is intentionally separate from
+  * [[SourceArchive]] itself so that archive parsing logic can be tested without
+  * touching the filesystem.
+  */
 object SourceArchiveReader:
   def readJar(path: Path): SourceArchive =
     Using.resource(ZipFile(path.toFile)) { zip =>

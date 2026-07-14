@@ -681,15 +681,34 @@ Use two source sets and one generation task:
 - stable ref package: `com.pixdane.gregicality.core.refs`;
 - generator source set: `symbolgen`;
 - generator source path: `src/symbolgen/scala`;
-- generator packages: `archive`, `cli`, `domain`, `io`, `job`, `render`, and
-  `scan`;
-- GTCEu backend package: `gtceu`, with specs and scanners under `gtceu.scan`;
-- entrypoint: `com.pixdane.gregicality.symbolgen.cli.GenerateGtRefs`;
-- parsed CLI arguments are carried by `GenerateGtRefsArgs` (not a bare `Args`
+- generator framework package: `com.pixdane.gregicality.symbolgen.framework`;
+- shared mechanisms: `io` and `render`;
+- backend registry package: `com.pixdane.gregicality.symbolgen.backends`;
+- GTCEu backend package: `backends.gtceu`, with specs and scanners under
+  `backends.gtceu.scan`;
+- entrypoint: `com.pixdane.gregicality.symbolgen.GenerateRefs`;
+- parsed CLI arguments are carried by `GenerateRefsArgs` (not a bare `Args`
   type);
 - Gradle task: `generateGtRefs`;
 - generated source directory: `build/generated/sources/gcyDslRefs/scala/main`;
 - generated refs package: `com.pixdane.gregicality.core.refs.gtceu`.
+
+Within `symbolgen`, dependency direction is:
+
+```text
+framework <- io
+framework <- render
+framework <- backends <- GenerateRefs
+render    <- backends
+io        <- GenerateRefs
+```
+
+`framework` contains the generator contracts and shared pipeline values, not
+the concrete backend list. `io` owns sources-jar loading and transactional
+output replacement. `render` owns Scala source rendering. `backends` owns the
+registry and concrete backend implementations. This keeps the top-level package
+focused on the executable entrypoint and makes backend-specific code visibly
+deeper than shared mechanisms.
 
 `core` is the bottom of the code-generation dependency graph. It may contain
 pure value types and shared ADTs, but it must not depend on Minecraft, GTCEu,
@@ -755,31 +774,34 @@ two pattern-matching dispatch objects.
 
 Diagnostics are structured values, not strings. A common `Diagnostic` trait
 describes what every backend diagnostic must expose; each backend's diagnostic
-enum implements it. `SymbolgenDomain` is parameterized by the backend's concrete
-diagnostic type so structured diagnostics flow through scan and preprocess and
-are only rendered to text at the CLI boundary:
+enum implements it. `SymbolGenerator` is parameterized by the backend's
+concrete diagnostic type so structured diagnostics flow through scan and
+preprocess and are only rendered to text at the CLI boundary:
 
 ```scala
 trait Diagnostic:
   def render: String
 
-final case class SymbolgenDomain[D <: Diagnostic](
+final case class SymbolGenerator[D <: Diagnostic](
   kind: String,
   generate: SourceArchive => IorNec[D, Vector[GeneratedScalaFile]]
 )
 ```
 
-The CLI receives an `IorNec[D, _]` result from the selected domain, renders the
-surviving diagnostics last, and never stringifies a diagnostic before that
-final step.
+The top-level `GenerateRefs` entrypoint asks the backend registry
+(`SymbolGenerators`) for a generator by `kind`. The registry belongs to
+`backends` because it knows the concrete backend list; `framework` remains free
+of backend dependencies. The entrypoint receives an `IorNec[D, _]` result from
+the selected generator, renders the surviving diagnostics last, and never
+stringifies a diagnostic before that final step.
 
 ```scala
 final case class SymbolJob[E, A, B](
   id: String,
-  target: RefObjectTarget,
+  target: RefOutputSpec,
   scan: SourceArchive => IorNec[E, A],
   preprocess: A => IorNec[E, B],
-  render: (RefObjectTarget, B) => GeneratedScalaFile
+  render: (RefOutputSpec, B) => GeneratedScalaFile
 ):
   def run(archive: SourceArchive): IorNec[E, GeneratedScalaFile] =
     scan(archive)
@@ -787,14 +809,15 @@ final case class SymbolJob[E, A, B](
       .map(value => render(target, value))
 ```
 
-The type parameters preserve each job's scan and preprocess types while
-`run` exposes one uniform result. `GtceuRefJobs.jobs` can therefore contain
-heterogeneous `SymbolJob[GtceuScanDiagnostic, ?, ?]` values, and the GTCEu
-backend entry (`GtceuBackend`) can traverse them without erasing the middleware
-types inside each job. `GtceuScanDiagnostic` is the GTCEu enum implementing
+The type parameters preserve each job's scan and preprocess types while `run`
+exposes one uniform result. `GtceuBackend` owns the concrete GTCEu job
+definitions and can therefore keep a heterogeneous
+`Vector[SymbolJob[GtceuScanDiagnostic, ?, ?]]` without a separate job-registry
+file. The backend traverses those jobs without erasing the middleware types
+inside each job. `GtceuScanDiagnostic` is the GTCEu enum implementing
 `Diagnostic`; `type GtceuScanResult[A] = IorNec[GtceuScanDiagnostic, A]` is
-kept as a convenience alias local to `gtceu.scan` and is not shared across
-backends.
+kept as a convenience alias local to `backends.gtceu.scan` and is not shared
+across backends.
 
 Material scanning has a real stage boundary:
 
@@ -827,7 +850,7 @@ and `MaterialAssignmentTarget` lives in the same file as the material expression
 parser that produces it.
 
 Path-only jobs reuse one identity preprocess function and one renderer while
-supplying different `StaticFieldScanSpec` and `RefObjectTarget` values. Adding a
+supplying different `StaticFieldScanSpec` and `RefOutputSpec` values. Adding a
 job with a new intermediate type means supplying another typed scan,
 preprocess, and render combination; it does not require adding cases to shared
 dispatch code.
@@ -928,9 +951,10 @@ core
   -> compileCodegen
 ```
 
-`symbolgen` contains artifact scanners, job composition, the domain registry,
-and renderers. It depends on `core`, Scala 3, JavaParser, and Cats, but not on
-main, generated refs, or `codegen`. Generated source imports
+`symbolgen` contains the framework contracts, artifact scanners, backend job
+composition, backend registry, I/O mechanisms, and renderers. It depends on
+`core`, Scala 3, JavaParser, and Cats, but not on main, generated refs, or
+`codegen`. Generated source imports
 `com.pixdane.gregicality.core.refs`. `codegen` compiles against `core.output`
 and the generated refs source directory; it does not compile against
 `symbolgen.output`.
