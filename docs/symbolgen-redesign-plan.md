@@ -3,6 +3,14 @@
 > 状态：已于 2026-07-14 完成。下方保留执行前计划与问题背景；
 > “执行结果”记录最终实现，若与原计划细节不同，以执行结果和
 > `compile-time-scala-dsl-design.md` 为准。
+>
+> 历史澄清（针对决定 1）：`type GtceuScanResult[A] = IorNec[GtceuScanDiagnostic, A]`
+> 在重构后仍保留为 `gtceu.scan` 内部便利别名，不跨 backend 共享；本计划删除的是
+> `GtceuScanResultOps` object，不是该类型别名。后续目标设计（见主设计文档）
+> 进一步将 GTCEu 入口命名为 `GtceuBackend`、引入公共 `Diagnostic` trait 与
+> `SymbolgenDomain[D <: Diagnostic]`、并把 `MaterialIdOccurrence` 改名
+> `IdOccurrence`、CLI 参数改名 `GenerateGtRefsArgs`；这些不在原执行计划内，
+> 正文保留执行时的命名作为历史记录，不回改。
 
 ## 执行结果
 

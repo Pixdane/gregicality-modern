@@ -685,6 +685,8 @@ Use two source sets and one generation task:
   `scan`;
 - GTCEu backend package: `gtceu`, with specs and scanners under `gtceu.scan`;
 - entrypoint: `com.pixdane.gregicality.symbolgen.cli.GenerateGtRefs`;
+- parsed CLI arguments are carried by `GenerateGtRefsArgs` (not a bare `Args`
+  type);
 - Gradle task: `generateGtRefs`;
 - generated source directory: `build/generated/sources/gcyDslRefs/scala/main`;
 - generated refs package: `com.pixdane.gregicality.core.refs.gtceu`.
@@ -749,7 +751,27 @@ final case class ScannedPathRef(
 The source reader loads the GTCEu sources jar into a `SourceArchive`. Scanners
 parse only configured Java sources with JavaParser. Jobs compose typed,
 replaceable stages rather than selecting implementations through an enum and
-two pattern-matching dispatch objects:
+two pattern-matching dispatch objects.
+
+Diagnostics are structured values, not strings. A common `Diagnostic` trait
+describes what every backend diagnostic must expose; each backend's diagnostic
+enum implements it. `SymbolgenDomain` is parameterized by the backend's concrete
+diagnostic type so structured diagnostics flow through scan and preprocess and
+are only rendered to text at the CLI boundary:
+
+```scala
+trait Diagnostic:
+  def render: String
+
+final case class SymbolgenDomain[D <: Diagnostic](
+  kind: String,
+  generate: SourceArchive => IorNec[D, Vector[GeneratedScalaFile]]
+)
+```
+
+The CLI receives an `IorNec[D, _]` result from the selected domain, renders the
+surviving diagnostics last, and never stringifies a diagnostic before that
+final step.
 
 ```scala
 final case class SymbolJob[E, A, B](
@@ -763,18 +785,16 @@ final case class SymbolJob[E, A, B](
     scan(archive)
       .flatMap(preprocess)
       .map(value => render(target, value))
-
-final case class SymbolgenDomain(
-  kind: String,
-  generate: SourceArchive => IorNec[String, Vector[GeneratedScalaFile]]
-)
 ```
 
 The type parameters preserve each job's scan and preprocess types while
 `run` exposes one uniform result. `GtceuRefJobs.jobs` can therefore contain
-heterogeneous `SymbolJob[GtceuScanDiagnostic, ?, ?]` values, and
-`GtceuPipelines` can traverse them without erasing the middleware types inside
-each job.
+heterogeneous `SymbolJob[GtceuScanDiagnostic, ?, ?]` values, and the GTCEu
+backend entry (`GtceuBackend`) can traverse them without erasing the middleware
+types inside each job. `GtceuScanDiagnostic` is the GTCEu enum implementing
+`Diagnostic`; `type GtceuScanResult[A] = IorNec[GtceuScanDiagnostic, A]` is
+kept as a convenience alias local to `gtceu.scan` and is not shared across
+backends.
 
 Material scanning has a real stage boundary:
 
@@ -793,6 +813,18 @@ and missing assignment diagnostics. It returns
 `IorNec[GtceuScanDiagnostic, Vector[ScannedMaterialRef]]`: `Right` is clean,
 while `Both` preserves valid refs alongside diagnostics. The CLI never writes
 output for `Left` or `Both`.
+
+Stage responsibilities are split by what kind of failure each owns. `scan`
+owns source-archive failures: a missing source file or a JavaParser parse
+failure is a scan-stage diagnostic, not a thrown exception. `preprocess` owns
+relational and semantic diagnostics: duplicate assignments, duplicate registry
+ids, rejected assignment shapes, and missing assignments. An empty scan result
+(no matching symbols) is a valid outcome, not a diagnostic.
+
+Material-scan naming follows the approved target design: the occurrence record
+used by duplicate-id diagnostics is `IdOccurrence` (not `MaterialIdOccurrence`),
+and `MaterialAssignmentTarget` lives in the same file as the material expression
+parser that produces it.
 
 Path-only jobs reuse one identity preprocess function and one renderer while
 supplying different `StaticFieldScanSpec` and `RefObjectTarget` values. Adding a
@@ -873,6 +905,11 @@ Only two places perform I/O:
   generated refs directory through staging and rollback-safe backup paths.
 
 Everything between those two boundaries should be ordinary data transformation.
+
+`SourceArchive` does not express missing or unparseable sources through
+exceptions. Archive loading and per-file parsing report a structured
+`SourceArchiveError`; directory scanning is partial-success and accumulates
+errors rather than failing whole on the first bad file.
 
 Current source-set graph:
 
@@ -989,8 +1026,13 @@ Test the pure parts there:
 For symbol generation, test scanner completeness, rejected AST shapes,
 accumulated diagnostics with partial refs, `SymbolJob` stage composition and
 short-circuiting, lookup-index rendering, aggregate exports, the real GTCEu job
-registry, and transactional replacement of generated output. Scanner tests are
-organized under packages matching `gtceu.scan` and `gtceu.scan.materials`.
+registry, and transactional replacement of generated output. Symbol-generator
+tests are organized under packages mirroring their production packages, so test
+layout tracks production layout. Verification runs only through IDEA MCP run
+configurations: the saved build configuration covers `testSymbolgen`,
+`generateGtRefs`, and `compileCodegenScala`, while focused tests use class run
+points. This section describes the intended verification strategy, not a claim
+that any particular run has already passed.
 The normal build must also run `generateGtRefs` against the resolved GTCEu
 sources artifact and compile the result against the stable value types from
 `core.output`.
