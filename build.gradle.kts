@@ -17,17 +17,18 @@ dependencies {
         annotationProcessor(variantOf(libs.mixin) { classifier("processor") })
     }
 
-    // JEI for dev testing
-    modRuntimeOnly(deps.bundles.jei)
-
     compileOnly(deps.scala3)
     compileOnly(deps.cats)
+
+    modCompileOnly(deps.registrate)
+
     modRuntimeOnly(variantOf(deps.scalablecatsforce) {
         classifier("with-library")
     }) {
         isTransitive = false
     }
+    // JEI for dev testing
+    modRuntimeOnly(deps.bundles.jei)
 
     modImplementation(deps.gtceu)
-    modCompileOnly(deps.registrate)
 }
