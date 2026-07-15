@@ -87,7 +87,9 @@ val generateGtRefs = tasks.register<JavaExec>("generateGtRefs") {
 
     dependsOn(tasks.named(symbolgen.classesTaskName))
 
-    mainClass.set("com.pixdane.gregicality.symbolgen.cli.GenerateGtRefs")
+    // The symbolgen entry point moved out of the `cli` subpackage; the Gradle
+    // task name `generateGtRefs` is intentionally unchanged.
+    mainClass.set("com.pixdane.gregicality.symbolgen.GenerateRefs")
     classpath = symbolgen.runtimeClasspath
     argumentProviders.add(
         objects.newInstance(GenerateGtRefsArguments::class.java).apply {
