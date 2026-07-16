@@ -1,7 +1,7 @@
 # Material ADT Implementation Plan
 
-Status: active plan. Tracks implementation of the material ADT defined in
-material-adt-design.md. The authored-only principle from that doc is binding:
+Status: complete on 2026-07-16. Tracks implementation of the material ADT
+defined in material-adt-design.md. The authored-only principle from that doc is binding:
 the ADT is never expanded with inferred properties or flags. Validation may
 derive a temporary effective-property view to predict GTCEu runtime checks, but
 that view is discarded after validation. The renderer emits only authored
@@ -312,12 +312,22 @@ flags and the absence of the historical `SMELT_INTO_FLUID` declaration.
 
 ## Phase 5 - Cleanup + Doc Sync
 
+Status: complete on 2026-07-16.
+
 1. Complete in Phase 4B: replace the Codegen.scala hello-world stub with the
    real material generation entrypoint.
-2. compile-time-scala-dsl-design.md: mark Raw/DSL routing as deferred and point
-   material content/validation/rendering to material-adt-design.md.
-3. material-builder-api.md: add property-verify fixpoint behavior, EMPTY
-   material, post-registration patch facts from the source read.
+2. Complete: compile-time-scala-dsl-design.md marks Raw/DSL routing as deferred
+   and points material content/validation/rendering to material-adt-design.md.
+3. Complete: material-builder-api.md records property-verification fixpoint
+   behavior, EMPTY material handling, polymer auto-flags, obsolete flag facts,
+   and post-registration patch semantics from GTCEu 7.5.3 source inspection.
+
+Verification result: the final documentation audit reconciled current source
+sets, generated paths, job outputs, ADT status, runtime entrypoints, test
+locations, and deferred scope across the three architecture documents.
+`git diff --check` completed without whitespace errors. Phase 5 changes are
+documentation-only; the Phase 4 IDEA test and compile evidence remains the
+behavioral verification authority.
 
 ## What This Plan Does Not Do
 
@@ -335,4 +345,4 @@ flags and the absence of the historical `SMELT_INTO_FLUID` declaration.
 Phase 0 -> 1 -> 2 is the brain. Phase 3-4 is the output layer. Each phase
 ends with the relevant IDEA MCP run configurations. Phase 2 tests are the
 highest-value deliverable: they encode the conflict rules that make the
-codegen worth having.
+codegen worth having. Phases 0 through 5 are complete.

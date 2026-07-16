@@ -1,12 +1,16 @@
 # Compile-Time Scala DSL Codegen Design
 
-Status: design note. This document records the current architecture decisions
-for Gregicality registration code generation. It is not yet an implementation
-contract; update it when implementation proves a different shape is better.
+Status: architecture record plus deferred DSL sketches. Material content,
+validation, planning, rendering, and generated-source integration are
+implemented through Phase 4. Their binding design is
+`material-adt-design.md`; the Raw ADT, DSL syntax, file routing, SourceTrace,
+Deferred declarations, and local-material scan described below remain future
+work and are not current APIs.
 
 Current Gradle ownership: `scala-project` provides built-in Scala setup and
 generic resource ordering; `scalafmt` owns formatting tasks; and `codegen` owns
-the symbolgen/codegen source sets, generated resources, and generation tasks.
+the core, generatorSupport, symbolgen, codegen, and isolated test source sets
+plus both generation tasks.
 
 The design goal is to let migration authors write typed Scala configuration
 files that feel closer to TOML or JSON than handwritten GTCEu builder code,
@@ -18,28 +22,45 @@ Initial target: material registration.
 Expected extension targets: recipe registration, machine definitions, tag prefix
 registration, worldgen definitions, and other generated registration surfaces.
 
-## Current Decision
+## Current Implementation
 
-Use Scala DSL files as typed config input, compile them in a dedicated source
-set, load the resulting DSL values from a Gradle generator task, transform them
-through pure ADTs and pure code AST rendering, then write ordinary `.scala`
-registration sources under `build/generated/...`.
+The first implemented slice starts with directly constructed authored
+`MaterialSet` values:
+
+```text
+GCYMaterialSets
+  -> MaterialValidator
+  -> MaterialPlanner
+  -> MaterialRenderer
+  -> GeneratedSourceWriter
+  -> build/generated/sources/materials/scala/main/*.scala
+  -> compileScala
+```
+
+The authored ADT records only author intent. Validation derives temporary
+effective properties for checks but returns the same values; rendering emits no
+inferred properties, flags, or builder defaults. Generated `.scala` files are a
+`sourceSets.main.scala` root and compile as normal mod classes.
+
+## Deferred DSL Direction
+
+A later plan may prepend compiled Scala DSL input and Raw conversion:
 
 ```text
 src/gcyDsl/scala/*.scala
   -> compileGcyDsl
-  -> generateGcyDslSources
-  -> build/generated/sources/gcyDsl/scala/main/*.scala
-  -> compileScala
+  -> Raw ADT
+  -> authored MaterialSet
+  -> current implemented pipeline
 ```
 
-The DSL input files are compiled for validation and completion, but they are not
-part of the main mod runtime source set. The generated `.scala` files are added
-to `sourceSets.main.scala` and compiled as normal mod classes.
+That source set, syntax, routing, and conversion layer do not exist yet. The
+sketches below preserve ideas for that later design but must not override the
+implemented ADT in `material-adt-design.md`.
 
 ## Directory Layout
 
-Recommended initial single-project layout:
+Current single-project layout:
 
 ```text
 src/main/scala/
@@ -49,27 +70,24 @@ src/main/scala/
 
 src/codegen/scala/
   com/pixdane/gregicality/codegen/
-    dsl/        # human-facing DSL syntax and keys
-    core/       # ADTs, validators, planners, code AST, renderers
-    gradle/     # generator entrypoint and Gradle-facing helpers
+    Codegen.scala
+    GCYMaterialSets.scala
+    core/materials/  # authored ADT, validator, planner, renderer
 
-src/gcyDsl/scala/
-  com/pixdane/gregicality/gcydsl/materials/chemistry/Polymers.scala
-  com/pixdane/gregicality/gcydsl/materials/metallurgy/Alloys.scala
+src/generatorSupport/scala/
+  com/pixdane/gregicality/generator/
+    GeneratedScalaFile.scala
+    GeneratedSourceWriter.scala
 
 build/generated/sources/materials/scala/main/
   com/pixdane/gregicality/common/data/materials/GCYMaterialsChemistryPolymers.scala
   com/pixdane/gregicality/common/data/materials/GCYMaterialsGeneratedIndex.scala
 ```
 
-The current first implementation slice constructs `MaterialSet` values directly
-in the `codegen` source set. The `gcyDsl` input source set and Raw conversion
-shown above remain deferred; they are not prerequisites for generating and
-compiling the first migrated package.
-
 Important package distinction:
 
-- `com.pixdane.gregicality.gcydsl.*` is input configuration for the generator.
+- future `com.pixdane.gregicality.gcydsl.*` is input configuration for the
+  generator.
 - `com.pixdane.gregicality.codegen.*` is the codegen system.
 - `com.pixdane.gregicality.common.data.*` is runtime-facing registration code.
 
@@ -127,6 +145,10 @@ names such as `GeneratedChemistryPolymers`.
 
 ## DSL Style
 
+Deferred design sketch: none of the DSL syntax or `MaterialPackage` APIs in this
+section are implemented. Current authored values use the case classes and refs
+documented by `material-adt-design.md`.
+
 The authored DSL is Scala, but should read like typed config rather than direct
 GTCEu registration code.
 
@@ -168,23 +190,23 @@ targets harder to support later.
 
 ## Pipeline Boundaries
 
-The system has four conceptual stages:
+The implemented material pipeline is:
 
 ```text
-Scala DSL files
-  -> Raw ADT
-  -> Verified ADT
-  -> Code AST / registration plan
+MaterialSet
+  -> MaterialValidator
+  -> MaterialPlan
   -> Rendered Scala source
-  -> Gradle writes generated .scala files
+  -> GeneratedSourceWriter
 ```
 
-Only the Gradle scan/write layer is impure. DSL-to-ADT validation and
-ADT-to-code rendering should be ordinary pure Scala logic.
+Only final output synchronization is impure. A future DSL may prepend loading
+and Raw conversion without changing this boundary.
 
-### Stage 1: DSL Files And Routing
+### Deferred Stage 1: DSL Files And Routing
 
-Gradle scans `src/gcyDsl/scala` and routes files by directory and file name.
+A future Gradle layer would scan `src/gcyDsl/scala` and route files by directory
+and file name.
 
 | DSL path | Domain | Registration owner |
 | --- | --- | --- |
@@ -202,9 +224,9 @@ src/gcyDsl/scala/.../materials/chemistry/Polymers.scala
   -> generated object: GCYMaterialsChemistryPolymers
 ```
 
-### Stage 2: DSL To ADT
+### Deferred Stage 2: DSL To ADT
 
-This stage is pure after Gradle has loaded a compiled DSL value.
+This future stage would be pure after Gradle loads a compiled DSL value.
 
 Use a generic domain boundary:
 
@@ -231,7 +253,12 @@ object MaterialDomain extends RegisterDomain:
 Recipes can later use the same framework with different `Raw`, `Verified`, and
 `Plan` types.
 
-### Stage 3: ADT To Code AST
+### Implemented Stage 3: ADT To Code Plan
+
+The current types are `MaterialPlan`, `MaterialDeclarationPlan`,
+`NewMaterialPlan`, `MaterialPatchPlan`, `BuilderCall`, and `ScalaExpr`. See
+`material-adt-design.md` for their invariants. The generic AST below is a
+discarded exploratory shape, not the current API.
 
 Do not jump directly from `MaterialSpec` to string concatenation. Use an
 intermediate code AST or registration plan.
@@ -247,29 +274,34 @@ The final render still produces text because Gradle and scalac consume ordinary
 source files. The AST exists to keep generation structured, testable, and
 deterministic.
 
-### Stage 4: Gradle Scan And Write
+### Implemented Stage 4: Gradle Generate And Write
 
-Gradle owns all I/O:
+Gradle owns task orchestration and input/output declarations. The source reader
+and shared writer are the explicit filesystem boundaries:
 
-- scanning DSL source directories;
-- compiling DSL source sets;
-- loading DSL package objects;
-- invoking the pure pipeline;
-- writing generated `.scala` files;
+- compiling codegen and generated GTCEu refs;
+- invoking the pure material pipeline;
+- synchronizing generated `.scala` files through `GeneratedSourceWriter`;
 - deleting stale generated files;
 - wiring generated sources into `compileScala`;
 - declaring inputs and outputs for up-to-date checks and build cache.
 
 The generator should write files only when content changed.
 
-## Raw And Verified ADTs
+## Deferred Raw And DSL ADTs
 
-Use two ADT layers.
+This entire section is a future input-layer sketch. The implemented authored
+material ADT is the keyed-property model in `material-adt-design.md`; it does
+not use `MaterialKind`, `RawMaterialSpec`, `MaterialPackageSpec`, RouteInfo, or
+SourceTrace.
+
+A future DSL could use two input ADT layers.
 
 Raw ADTs are tolerant. They preserve enough bad input to report multiple errors:
 missing fields, repeated keys, invalid combinations, and invalid literals.
 
-Verified ADTs are strict. Codegen should accept only verified ADTs.
+The converted authored ADT is strict. The implemented material pipeline accepts
+only `MaterialSet`; it never consumes these Raw values directly.
 
 ### Common Types
 
@@ -344,7 +376,7 @@ final case class RawMaterialSpec(
 `kind` is a list in the raw layer so duplicate `kind := ...` assignments can be
 reported instead of silently overwritten.
 
-### Verified Material ADT
+### Historical Verified Material Sketch
 
 Verified material declarations should be a top-level sum type. This prevents
 meaningless combinations such as a deferred material with full registration
@@ -544,7 +576,11 @@ enum VoltageExpr:
   case Literal(value: Long)
 ```
 
-## Validation Rules
+## Deferred Raw-Layer Validation Sketch
+
+Current validation rules and issue types are specified in
+`material-adt-design.md`. The rules below apply only if a future tolerant Raw
+layer is introduced.
 
 Validation should be layered:
 
@@ -587,7 +623,11 @@ Semantic validation:
 Use Cats `ValidatedNec[DslError, A]` so a package can report many errors in one
 run.
 
-## Code AST And Rendering
+## Historical Code AST Sketch
+
+Current rendering uses `MaterialPlan` and `ScalaExpr`; see
+`material-adt-design.md`. The generic AST below is retained only as design
+history.
 
 Suggested code AST shape:
 
@@ -617,15 +657,15 @@ object MaterialBuilderStep:
   case object BuildAndRegister extends MaterialBuilderStep
 ```
 
-Example generated material object:
+Current generated material object:
 
 ```scala
 package com.pixdane.gregicality.common.data.materials
 
 import com.gregtechceu.gtceu.api.data.chemical.material.Material
-import com.gregtechceu.gtceu.api.data.chemical.material.info.MaterialFlags.*
-import com.gregtechceu.gtceu.api.data.chemical.material.info.MaterialIconSet.*
-import com.gregtechceu.gtceu.common.data.GTMaterials.*
+import com.gregtechceu.gtceu.api.data.chemical.material.info.MaterialFlags
+import com.gregtechceu.gtceu.api.data.chemical.material.info.MaterialIconSet
+import com.gregtechceu.gtceu.common.data.GTMaterials
 import com.pixdane.gregicality.Gregicality
 
 object GCYMaterialsChemistryPolymers:
@@ -633,12 +673,17 @@ object GCYMaterialsChemistryPolymers:
 
   def register(): Unit =
     Polyimide = new Material.Builder(Gregicality.id("polyimide"))
-      .ingot(4)
+      .polymer(1)
       .liquid()
-      .color(0x2d2d2d)
-      .iconSet(METALLIC)
-      .appendFlags(STD_METAL, GENERATE_PLATE, GENERATE_ROD)
-      .components(Carbon, 22, Hydrogen, 10, Nitrogen, 2, Oxygen, 5)
+      .color(0xff7f50)
+      .iconSet(MaterialIconSet.DULL)
+      .flags(MaterialFlags.GENERATE_PLATE)
+      .components(
+        GTMaterials.Carbon, 22,
+        GTMaterials.Hydrogen, 12,
+        GTMaterials.Nitrogen, 2,
+        GTMaterials.Oxygen, 6
+      )
       .buildAndRegister()
 
   def patch(): Unit =
@@ -653,16 +698,15 @@ Generated material code follows the current GTCEu lifecycle:
 
 ## Gradle Integration
 
-Use dedicated source sets. Do not put authored DSL files under `src/main/scala`,
-because main compilation should consume generated registration code, not the
-raw DSL input.
+Use dedicated source sets. Current authored `MaterialSet` values live in
+`codegen`, while main compilation consumes only generated runtime registration
+code. A future DSL source set must also remain outside `src/main/scala`.
 
 ### GTCEu Symbol Table And Generated Refs
 
-Before compiling authored DSL files, generate stable Scala ref objects from
-GTCEu artifacts. This should be an offline artifact scan, not a runtime import
-of GTCEu classes. A separate symbol table file is optional and only needed for
-diagnostics or sanity checks.
+Before compiling material codegen (and any future authored DSL), generate stable
+Scala ref objects from GTCEu artifacts. This is an offline source-artifact scan,
+not runtime access to GTCEu classes.
 
 The important rule is:
 
@@ -679,15 +723,18 @@ other runtime/static-object access in the generator. Even when an ordinary
 execution phases depend on GTCEu runtime objects. The generated ref objects
 should provide the same completion surface while returning pure refs.
 
-Use two source sets and one generation task:
+Current generator support uses four production source sets and two generation
+tasks:
 
 - foundation source set: `core`;
 - foundation source path: `src/core/scala`;
 - stable ref package: `com.pixdane.gregicality.core.refs`;
+- shared source-writing source set: `generatorSupport`;
+- shared package: `com.pixdane.gregicality.generator`;
 - generator source set: `symbolgen`;
 - generator source path: `src/symbolgen/scala`;
 - generator framework package: `com.pixdane.gregicality.symbolgen.framework`;
-- shared mechanisms: `io` and `render`;
+- symbolgen-local mechanisms: source archive `io` and ref `render`;
 - backend registry package: `com.pixdane.gregicality.symbolgen.backends`;
 - GTCEu backend package: `backends.gtceu`, with specs and scanners under
   `backends.gtceu.scan`;
@@ -696,24 +743,28 @@ Use two source sets and one generation task:
   type);
 - Gradle task: `generateGtRefs`;
 - generated source directory: `build/generated/sources/gcyDslRefs/scala/main`;
-- generated refs package: `com.pixdane.gregicality.core.refs.gtceu`.
+- generated refs package: `com.pixdane.gregicality.core.refs.gtceu`;
+- material generator source set: `codegen`;
+- material task: `runCodegen`;
+- material output:
+  `build/generated/sources/materials/scala/main`.
 
-Within `symbolgen`, dependency direction is:
+Generator dependency direction is:
 
 ```text
-framework <- io
-framework <- render
-framework <- backends <- GenerateRefs
-render    <- backends
-io        <- GenerateRefs
+core -------------> symbolgen
+  \----------------> codegen
+generatorSupport -> symbolgen
+  \----------------> codegen
+symbolgen -> generateGtRefs -> generated refs -> codegen
+codegen -> runCodegen -> generated materials -> main
 ```
 
-`framework` contains the generator contracts and shared pipeline values, not
-the concrete backend list. `io` owns sources-jar loading and transactional
-output replacement. `render` owns Scala source rendering. `backends` owns the
-registry and concrete backend implementations. This keeps the top-level package
-focused on the executable entrypoint and makes backend-specific code visibly
-deeper than shared mechanisms.
+`framework` contains symbolgen contracts, not the concrete backend list.
+Symbolgen `io` owns sources-jar loading; `generatorSupport` owns transactional
+output replacement; symbolgen `render` owns ref source rendering; and
+`backends` owns the concrete registry. Material validation and rendering remain
+inside `codegen`.
 
 `core` is the bottom of the code-generation dependency graph. It may contain
 pure value types and shared ADTs, but it must not depend on Minecraft, GTCEu,
@@ -729,14 +780,18 @@ object GTMaterialsRef
 object GTElementsRef
 object MaterialIconSetsRef
 object FluidAttributesRef
+object FluidStorageKeysRef
 object MaterialFlagsRef
+object MaterialFlagPresetsRef
 
 object GTRefs:
-  export GTMaterialsRef.*
-  export GTElementsRef.*
-  export MaterialIconSetsRef.*
   export FluidAttributesRef.*
+  export FluidStorageKeysRef.*
+  export GTElementsRef.*
+  export GTMaterialsRef.*
+  export MaterialFlagPresetsRef.*
   export MaterialFlagsRef.*
+  export MaterialIconSetsRef.*
 ```
 
 The stable value types are hand-written `core` source, not scanner output:
@@ -749,7 +804,9 @@ final case class MaterialRef(id: ResourceId, path: ScalaSymbolPath)
 final case class ElementRef(path: ScalaSymbolPath)
 final case class MaterialIconRef(path: ScalaSymbolPath)
 final case class MaterialFlagRef(path: ScalaSymbolPath)
+final case class MaterialFlagPresetRef(path: ScalaSymbolPath)
 final case class FluidAttributeRef(path: ScalaSymbolPath)
+final case class FluidStorageKeyRef(path: ScalaSymbolPath)
 ```
 
 The internal scan model keeps the common symbol fields in a small trait while
@@ -1051,16 +1108,19 @@ often produce worse error messages than a good `ValidatedNec` validator.
 
 ## Tests
 
-Application unit tests belong in `src/test/scala`. Symbol-generator tests use
-the isolated `src/symbolgenTest/scala` source set and the `testSymbolgen` task.
+Material-codegen tests use the isolated `src/codegenTest/scala` source set and
+the `testCodegen` task. Symbol-generator tests use
+`src/symbolgenTest/scala` and `testSymbolgen`.
 
-Test the pure parts there:
+Current material tests cover:
 
 - opaque type constructors;
-- Raw-to-Verified validators;
-- duplicate key and duplicate id reporting;
+- authored-content preservation and defaults;
+- accumulated semantic, identity, and generated-flag-metadata validation;
 - planner output;
-- code AST rendering snapshots.
+- renderer golden snapshots;
+- complete Polyimide package/index generation;
+- unchanged-output timestamps through the shared writer.
 
 For symbol generation, test scanner completeness, rejected AST shapes,
 accumulated diagnostics with partial refs, `SymbolJob` stage composition and
@@ -1068,58 +1128,37 @@ short-circuiting, lookup-index rendering, aggregate exports, the real GTCEu job
 registry, and transactional replacement of generated output. Symbol-generator
 tests are organized under packages mirroring their production packages, so test
 layout tracks production layout. Verification runs only through IDEA MCP run
-configurations: the saved build configuration covers `testSymbolgen`,
-`generateGtRefs`, and `compileCodegenScala`, while focused tests use class run
-points. This section describes the intended verification strategy, not a claim
-that any particular run has already passed.
-The normal build must also run `generateGtRefs` against the resolved GTCEu
-sources artifact and compile the result against the stable value types from
-`core.output`.
+configurations and class/main run points. The normal build runs `generateGtRefs`
+against the resolved GTCEu sources artifact, runs `runCodegen`, and compiles the
+generated runtime source through `compileScala`.
 
-Do not put real DSL input packages in `src/test/scala`. If compiled test DSL
-fixtures are needed later, add a separate `src/testGcyDsl/scala` source set or
-use small fixtures in `src/test/resources`.
+If compiled DSL fixtures are needed later, add a dedicated future test source
+set. Raw-to-authored conversion tests arrive with that deferred layer.
 
-## First Implementation Slice
+## Implemented Checkpoint
 
-1. Add the dependency-free `core` source set with stable ref value types.
-2. Add `symbolgen` source set with a GTCEu artifact scanner, typed jobs, and
-   generated-ref renderer.
-3. Add `generateGtRefs` for the first GTCEu generated-ref slice:
-   - `GTMaterialsRef`;
-   - `GTElementsRef`;
-   - `MaterialIconSetsRef`;
-   - `FluidAttributesRef`;
-   - `MaterialFlagsRef`;
-   - `GTRefs`.
-4. Add `codegen` source set with material DSL API, ADTs, validation, planning,
-   and rendering.
-5. Add `gcyDsl` source set with one material package containing the current test
-   material.
-6. Implement Raw and Verified material ADTs for:
-   - `RegisterNew`;
-   - `MaterialKind.Ingot`, `Dust`, `Gem`, and `Polymer`;
-   - `FluidSpec`;
-   - `HexRgb`;
-   - `MaterialIconRef`;
-   - `MaterialFlagRef`;
-   - `ComponentSpec`;
-   - `BlastSpec`;
-   - `MaterialRef`.
-6. Add validators for ids, fields, required material kind, duplicate ids,
-   duplicate fields, and material-kind conflicts.
-7. Add validation or rendering helpers that consume generated refs directly:
-   material refs provide `ResourceId + ScalaSymbolPath`, while other refs
-   provide `ScalaSymbolPath`.
-8. Add pure planner and code AST renderer for the subset already shown in
-   `GCYMaterials.scala`: `ingot`, `fluid`, `langValue`, `color`, `iconSet`,
-   `appendFlags`, `components`, and `blast`.
-9. Add `generateGcyDslSources`.
-10. Generate `GCYMaterialsChemistryPolymers` or an equivalent first package plus
-   `GCYMaterialsGeneratedIndex`.
-11. Wire generated sources into `compileScala`.
-12. Run `compileScala` and confirm unchanged DSL files do not cause regenerated
-   source churn.
+Complete as of July 16, 2026:
 
-Only after that slice is stable should the system start importing larger
-material packages from the migration tables or old Gregicality source.
+1. `core` provides pure ref values.
+2. `generatorSupport` provides the shared generated-file value and transactional
+   writer.
+3. `symbolgen` scans GTCEu 7.5.3 and generates material, element, icon, fluid
+   attribute, fluid storage key, material flag, and flag preset refs plus
+   metadata lookups and `GTRefs`.
+4. `codegen` provides the authored material ADT, accumulating validator,
+   deterministic planner, renderer, direct `GCYMaterialSets`, and executable
+   entrypoint.
+5. `runCodegen` generates `GCYMaterialsChemistryPolymers` and
+   `GCYMaterialsGeneratedIndex` under the main generated-source root.
+6. `GCYMaterials` routes MaterialEvent/PostMaterialEvent through the generated
+   index.
+7. The real Polyimide migration compiles through `compileScala`, and unchanged
+   outputs make both `runCodegen` and `compileScala` UP-TO-DATE.
+
+Still deferred:
+
+- human-facing DSL syntax and `gcyDsl` source set;
+- Raw ADT and Raw-to-authored conversion;
+- file routing, SourceTrace, Deferred declarations, and local material refs;
+- additional property slots and larger migration packages listed in
+  `material-adt-design.md`.

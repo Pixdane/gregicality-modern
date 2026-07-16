@@ -1,10 +1,10 @@
 # Material Registration ADT Design
 
-Status: implemented through planner and renderer (Phase 3); generated-source
-integration remains pending. This document defines the material-content ADT,
-validation boundary, and rendering boundary. DSL syntax, Raw input, file
-routing, and source tracing are deliberately deferred. This document supersedes
-the exploratory material shapes in
+Status: implemented through generated-source integration (Phase 4). This
+document defines the material-content ADT, validation boundary, planning,
+rendering, and generated-source boundary. DSL syntax, Raw input, file routing,
+and source tracing are deliberately deferred. This document supersedes the
+exploratory material shapes in
 compile-time-scala-dsl-design.md and the stubs in
 src/codegen/scala/.../core/materials/{MaterialSpec,MaterialForms,MaterialVisual}.scala.
 
@@ -35,7 +35,7 @@ Four decisions drive everything below:
 
 ## Why Not a Single MaterialKind
 
-The current stubs model a material as MaterialSpec(forms, visual) where
+The superseded stubs modeled a material as MaterialSpec(forms, visual), where
 MaterialForms holds a Vector[SolidForm] and Vector[FluidForm]. That shape
 cannot represent GTCEu accurately:
 
@@ -70,6 +70,10 @@ MaterialSet
   -> validated MaterialSet    (same values; validation never rewrites them)
   -> MaterialPlan             (builder overload selection, ordering, imports)
   -> RenderedScalaSource
+  -> GeneratedScalaFile       (owned relative path + complete content)
+  -> GeneratedSourceWriter    (atomic directory synchronization)
+  -> sourceSets.main.scala
+  -> compileScala
 ```
 
 The validator checks conflicts that GTCEu would throw at runtime and
@@ -133,8 +137,9 @@ final case class ToolTypeRef(path: ScalaSymbolPath)
 final case class ItemTagRef(path: ScalaSymbolPath)
 ```
 
-FluidStorageKeyRef is new: GTCEu has four built-in keys (LIQUID, GAS, PLASMA,
-MOLTEN) and addons can register more, so fluid identity cannot be a closed
+FluidStorageKeyRef is a hand-written pure ref type; `FluidStorageKeysRef`
+generates values for the four built-in GTCEu keys (LIQUID, GAS, PLASMA,
+MOLTEN). Addons can register more, so fluid identity cannot be a closed
 three-variant enum.
 
 ## Material Content ADT
@@ -613,7 +618,9 @@ addon's id-factory symbol. It produces a `MaterialPlan` containing deterministic
 imports, field declarations, registration plans, and patch plans. It never
 revalidates by mutating content and never expands presets, flags, or properties.
 The codegen source set owns a small local `ScalaCode` value rather than depending
-on symbolgen internals.
+on symbolgen internals. `GeneratedScalaFile` and the transactional
+`GeneratedSourceWriter` live in the shared `generatorSupport` source set because
+both symbolgen and material codegen need them; `core` remains pure data.
 
 References render as `Owner.Member` with an exact import of `Owner`, rather than
 depending on wildcard-import order. Preset order, fluid order, component order,
@@ -684,10 +691,10 @@ use one `flags(...)` call. With presets, each authored preset uses
 No inferred dust property, required flag, polymer flag, default multiplier,
 default wash amount, default color, or internal sentinel is emitted.
 
-## First Implementation Slice
+## Implemented First Slice
 
-The design is intentionally complete, but the first codegen slice should
-implement only what the migration needs immediately:
+The design is intentionally broader than the current migration. The implemented
+first slice contains:
 
 1. NewMaterialSpec with dust settings, ingot, gem, wood, polymer, fluid, ore, blast,
    composition, visuals, and flag presets/flags.
@@ -707,6 +714,31 @@ Phase 3 implementation uses `MaterialOutputSpec`, `MaterialPlan`,
 boundary. `MaterialRenderer` emits one object with stable fields plus separate
 `register()` and `patch()` methods. Marker fields use `MarkerMaterial`, new
 fields use `Material`, and patch-only objects import no id factory.
+
+## Phase 4 Integration
+
+The first runtime integration directly constructs authored `MaterialSet` values
+in `GCYMaterialSets`; it does not load a DSL or Raw ADT. `Codegen` validates,
+plans, and renders each package, then atomically owns:
+
+```text
+build/generated/sources/materials/scala/main/
+  com/pixdane/gregicality/common/data/materials/
+    GCYMaterialsChemistryPolymers.scala
+    GCYMaterialsGeneratedIndex.scala
+```
+
+`GCYMaterialsGeneratedIndex.registerAll()` is called during `MaterialEvent`;
+`patchAll()` is called during `PostMaterialEvent`. The first migrated material
+is Polyimide with authored polymer/harvest, LIQUID fluid, color, DULL icon,
+C22/H12/N2/O6 composition, and `GENERATE_PLATE`. The renderer emits no display
+name, formula, inferred properties, polymer auto-flags, or obsolete
+`SMELT_INTO_FLUID` flag.
+
+Gradle declares the generated directory as both the `runCodegen` output and a
+`sourceSets.main.scala` root. `compileScala` depends on `runCodegen`; unchanged
+content leaves the owned directory untouched and lets both tasks become
+UP-TO-DATE.
 
 ## Open Questions
 
