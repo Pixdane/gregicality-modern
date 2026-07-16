@@ -110,6 +110,23 @@ val codegen = sourceSets.create("codegen") {
     runtimeClasspath += output + compileClasspath
 }
 
+val codegenTest = sourceSets.create("codegenTest") {
+    scala.srcDir("src/codegenTest/scala")
+    resources.srcDir("src/codegenTest/resources")
+
+    compileClasspath += codegen.output + codegen.compileClasspath
+    runtimeClasspath += output + compileClasspath + codegen.runtimeClasspath
+}
+
+dependencies {
+    add(codegen.implementationConfigurationName, deps.scala3)
+    add(codegen.implementationConfigurationName, deps.cats)
+
+    add(codegenTest.implementationConfigurationName, platform(libs.junit.bom))
+    add(codegenTest.implementationConfigurationName, libs.junit.jupiter)
+    add(codegenTest.runtimeOnlyConfigurationName, libs.junit.platform.launcher)
+}
+
 tasks.named(codegen.classesTaskName) {
     dependsOn(generateGtRefs)
 }
@@ -127,8 +144,18 @@ val testSymbolgen = tasks.register<Test>("testSymbolgen") {
     useJUnitPlatform()
 }
 
+val testCodegen = tasks.register<Test>("testCodegen") {
+    group = "verification"
+    description = "Runs codegen unit tests."
+
+    testClassesDirs = codegenTest.output.classesDirs
+    classpath = codegenTest.runtimeClasspath
+    useJUnitPlatform()
+}
+
 tasks.check {
     dependsOn(testSymbolgen)
+    dependsOn(testCodegen)
 }
 
 val runCodegen = tasks.register<JavaExec>("runCodegen") {
