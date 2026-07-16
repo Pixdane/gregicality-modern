@@ -1,6 +1,7 @@
 # Material Registration ADT Design
 
-Status: design note, conclusion-first. This document defines the authored
+Status: implemented through the authored-content ADT (Phase 1); validator,
+planner, renderer, and integration remain pending. This document defines the
 material-content ADT, validation boundary, and rendering boundary. DSL syntax,
 Raw input, file routing, and source tracing are deliberately deferred. This
 document supersedes the exploratory material shapes in
@@ -87,14 +88,27 @@ opaque type ScalaIdent = String
 opaque type HexRgb = Int
 opaque type PositiveInt = Int
 opaque type NonNegativeInt = Int
-opaque type Kelvin = Int
-opaque type DurationTicks = Int
+opaque type Kelvin = Int             // > 0; blast temperature
+opaque type DurationTicks = Int       // > 0; authored recipe override
 opaque type HarvestLevel = Int       // >= 0; wood() legitimately uses 0
 opaque type BurnTimeTicks = Int      // >= 0
-opaque type Voltage = Long           // GTValues.V[tier] or literal
+opaque type Voltage = Long           // > 0; literal EU/t
 opaque type FluidTemperature = Int   // >= 0 Kelvin
 opaque type ProgressionMultiplier = Float
+
+sealed trait ValidationIssue
+type ValidationResult[A] = ValidatedNec[ValidationIssue, A]
+
+enum VoltageExpr:
+  case Tier(name: ScalaIdent)         // GTValues.V[GTValues.<name>]
+  case VA(name: ScalaIdent)           // GTValues.VA(GTValues.<name>)
+  case Literal(value: Voltage)
 ```
+
+Each opaque scalar exposes a `from` constructor returning ValidationResult.
+RegistryPath is the path part only, so it accepts Minecraft's lowercase path
+grammar and never includes a namespace. Material-specific naming policy, such
+as rejecting a trailing underscore on a material id, remains a Phase 2 check.
 
 Refs come from the generated symbol scan and live in core.refs:
 
@@ -241,6 +255,10 @@ final case class MaterialProperties(
 Every field is Option because a material may author any subset. A material with
 zero properties is legal; GTCEu assigns EMPTY at build time.
 
+The first implementation slice contains only dust, ingot, gem, wood, polymer,
+fluid, ore, and blast slots. The remaining slots above document the stable
+extension direction and are added only when their migration is implemented.
+
 The validator computes a check-only effective-property view:
 
 - ingot, gem, wood, polymer, ore, and wire imply dust;
@@ -274,9 +292,11 @@ final case class PolymerPropertySpec()
 
 Dust settings are recorded once. Ingot/gem/polymer/wood are property-presence
 slots. The planner maps dust settings onto the appropriate builder overload:
-ingot(harvest,burn), gem(...), polymer(...), or wood(...). If none of those
-forms is present, it emits dust(...). This avoids materializing runtime defaults
-or emitting duplicate setters.
+ingot(harvest,burn), gem(...), or wood(...). GTCEu 7.5.3's
+polymer(harvest,burn) implementation ignores its burnTime argument, so polymer
+uses polymer(harvest) plus a separate burnTime(...) call when burn time is
+authored. If none of those forms is present, the planner emits dust(...). This
+avoids materializing runtime defaults or emitting duplicate setters.
 
 ```scala
 final case class FluidPropertySpec(
@@ -298,8 +318,8 @@ final case class FluidBuilderSpec(
   viscosity: Option[FluidViscosity],
   attributes: Vector[FluidAttributeRef],
   textures: FluidTextures,
-  hasBlock: Boolean,
-  hasBucket: Boolean,
+  createBlock: Boolean,                  // true emits block()
+  disableBucket: Boolean,                // true emits disableBucket()
   burnTime: Option[BurnTimeTicks],
   name: Option[RegistryPath],
   translation: Option[String]
@@ -333,13 +353,22 @@ using GAS.
 
 ```scala
 final case class OrePropertySpec(
-  oreMultiplier: PositiveInt,           // default 1
-  byproductMultiplier: PositiveInt,     // default 1
-  emissive: Boolean,                    // default false
+  multipliers: Option[OreMultipliers],
+  emissive: Boolean,                    // true selects an emissive ore overload
   directSmeltResult: Option[MaterialRef],
-  washedIn: Option[(MaterialRef, PositiveInt)],   // (material, amount in mb; default 100)
+  washedIn: Option[OreWashSpec],
   separatedInto: Vector[MaterialRef],   // additive; GTCEu appends
   byproducts: Vector[MaterialRef]       // set, not append; setter clears first
+)
+
+final case class OreMultipliers(
+  ore: PositiveInt,
+  byproduct: PositiveInt
+)
+
+final case class OreWashSpec(
+  material: MaterialRef,
+  amount: Option[PositiveInt]           // None selects washedIn(material)
 )
 
 final case class BlastPropertySpec(
@@ -505,10 +534,11 @@ migration metadata, not part of DSL routing.
 
 Validation accumulates issues via ValidatedNec:
 
-1. Scalar: registry path format (including no trailing underscore for material
-   ids), Scala identifier validity, RGB range, and numeric bounds.
-2. Identity: material ids and fields are unique in MaterialSet; new ids do not
-   collide with known canonical GTCEu ids.
+1. Scalar: registry path syntax, Scala identifier validity, RGB range, and
+   numeric bounds.
+2. Identity: material ids and fields are unique in MaterialSet; material ids do
+   not end in an underscore; new ids do not collide with known canonical GTCEu
+   ids.
 3. Semantic: fluid storage keys are unique within a material; check-only
    effective properties contain neither ingot+gem nor fluidPipe+itemPipe.
 4. Flag dependency: each authored flag's required flags are authored, and its
@@ -571,9 +601,11 @@ registrations and the source code is:
 
 Steps 2-4 require overload selection. dust+ingot is valid content, but the
 planner renders one ingot overload carrying the dust harvest/burn settings
-rather than two independent setters. The same rule applies to gem, polymer, and
-wood. Bare dust renders dust(...); a burn-only override may render burnTime(...).
-No inferred dust property is added to the ADT.
+rather than two independent setters. The same rule applies to gem and wood.
+Polymer harvest settings use its overload, but an authored polymer burn time is
+rendered separately because GTCEu 7.5.3 ignores the overload's burnTime
+argument. Bare dust renders dust(...); a burn-only override may render
+burnTime(...). No inferred dust property is added to the ADT.
 
 ## First Implementation Slice
 

@@ -49,11 +49,14 @@ problems in the build script, Refs.scala, or RefsTest.scala.
 
 Goal: authored material content compiles as pure data, without DSL routing.
 
+Status: complete on 2026-07-16.
+
 1. Delete stubs: MaterialForms.scala, MaterialVisual.scala, MaterialSpec.scala.
 2. Add codegen-local validated scalar types and ValidationIssue:
    RegistryPath, ScalaIdent, HexRgb, PositiveInt, NonNegativeInt, Kelvin,
    DurationTicks, HarvestLevel, BurnTimeTicks, Voltage, FluidTemperature.
-   These use cats ValidatedNec and do not enter core.
+   These use cats ValidatedNec and do not enter core. RegistryPath is the
+   namespace-free Minecraft path; material-id naming policy remains in Phase 2.
 3. codegen/core/materials/: NewMaterialSpec, MaterialProperties, VisualSpec +
    ColorSpec + FluidColorPolicy, CompositionSpec + ComponentSpec +
    FormulaOverride, MaterialTagConfig, MaterialIdentity.
@@ -64,7 +67,12 @@ Goal: authored material content compiles as pure data, without DSL routing.
      presence markers; their dust settings are represented once in dust.
    - FluidPropertySpec uses NonEmptyVector[FluidEntry] and
      Option[FluidStorageKeyRef] primaryKey.
-   - FluidBuilderSpec, OrePropertySpec, BlastPropertySpec.
+   - FluidBuilderSpec records createBlock/disableBucket call intent rather than
+     materializing FluidBuilder defaults.
+   - OrePropertySpec uses optional OreMultipliers and an OreWashSpec with an
+     optional amount so `.ore()` and `.washedIn(material)` keep their defaults
+     inside the GTCEu builder.
+   - BlastPropertySpec.
 5. MarkerMaterialSpec and MaterialPatchSpec + PatchOperation. DSL-oriented
    MaterialPackageSpec, RouteInfo, SourceTrace, Raw ADTs, and Deferred are not
    implemented in this plan.
@@ -74,6 +82,13 @@ Goal: authored material content compiles as pure data, without DSL routing.
 
 Verify: run the Phase 1 test class through IDEA MCP. ADT remains pure case
 classes and contains no runtime GTCEu objects.
+
+Verification result: the IDEA run points for MaterialValuesTest,
+MaterialContentTest, and MaterialDeclarationsTest all completed with exit code
+0. The 14 tests cover scalar bounds, neutral authored defaults, property and
+fluid shapes, runtime-default omission, induced-property non-materialization,
+and non-empty declaration/patch collections. The codegen material package has
+no GTCEu runtime imports.
 
 ## Phase 2 - Validator (checks only)
 
@@ -117,8 +132,10 @@ Goal: authored ADT -> Scala source in canonical order.
 2. MaterialRenderer: MaterialPlan -> ScalaCode. Reuse or fork the ScalaCode
    helper from symbolgen/render.
 3. Dust-settings rule: when ingot/gem/polymer/wood is present, planner folds
-   DustPropertySpec settings into that builder overload and emits no separate
-   dust call. Bare dust emits dust(...); burn-only settings use burnTime(...).
+   DustPropertySpec settings into the applicable builder overload and emits no
+   separate dust call. GTCEu 7.5.3 ignores polymer(harvest,burn)'s burnTime
+   argument, so polymer burn time uses a separate burnTime(...) call. Bare dust
+   emits dust(...); other burn-only settings also use burnTime(...).
 4. MaterialPatchRenderer: PatchOperation -> PostMaterialEvent handler body.
 5. MarkerMaterialRenderer: emit new MarkerMaterial(...), never Material.Builder.
 6. Tests: golden-file string assertions for a representative NewMaterial (e.g.
