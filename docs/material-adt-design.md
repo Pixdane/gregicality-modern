@@ -1,10 +1,10 @@
 # Material Registration ADT Design
 
-Status: implemented through authored content and Phase 2A symbol metadata;
-validator, planner, renderer, and integration remain pending. This document
-defines the material-content ADT, validation boundary, and rendering boundary.
-DSL syntax, Raw input, file routing, and source tracing are deliberately
-deferred. This document supersedes the exploratory material shapes in
+Status: implemented through checks-only validation (Phase 2); planner,
+renderer, and integration remain pending. This document defines the
+material-content ADT, validation boundary, and rendering boundary. DSL syntax,
+Raw input, file routing, and source tracing are deliberately deferred. This
+document supersedes the exploratory material shapes in
 compile-time-scala-dsl-design.md and the stubs in
 src/codegen/scala/.../core/materials/{MaterialSpec,MaterialForms,MaterialVisual}.scala.
 
@@ -273,10 +273,11 @@ extension direction and are added only when their migration is implemented.
 
 The validator computes a check-only effective-property view:
 
-- ingot, gem, wood, polymer, ore, and wire imply dust;
-- blast, rotor, and polymer imply ingot;
-- tool implies ingot unless wood or gem is present;
-- fluidPipe/itemPipe imply ingot unless wood is present.
+- first slice: ingot, gem, wood, polymer, and ore imply dust; blast and
+  polymer imply ingot;
+- later slots: wire implies dust; rotor implies ingot; tool implies ingot
+  unless wood or gem is present; fluidPipe/itemPipe imply ingot unless wood is
+  present.
 
 That view is used to detect effective ingot+gem and fluidPipe+itemPipe conflicts
 and to satisfy flag requiredProps checks. It is never stored in MaterialProperties.
@@ -552,9 +553,19 @@ Validation accumulates issues via ValidatedNec:
    not end in an underscore; new ids do not collide with known canonical GTCEu
    ids.
 3. Semantic: fluid storage keys are unique within a material; check-only
-   effective properties contain neither ingot+gem nor fluidPipe+itemPipe.
+   effective properties contain neither ingot+gem nor fluidPipe+itemPipe; an
+   explicitly authored fluid primary key names one of that material's entries.
 4. Flag dependency: each authored flag's required flags are authored, and its
    required properties are present in the check-only effective-property view.
+   Presets are expanded through generated metadata for checks only. Unknown
+   flag or preset refs are errors because their dependencies cannot be checked.
+
+MaterialValidator receives a MaterialValidationSymbols lookup boundary. The
+production implementation delegates to generated MaterialFlagsRef,
+MaterialFlagPresetsRef, and GTMaterialsRef; tests can provide map-backed
+lookups. validateSpec and validateSet return the exact input object on success.
+MaterialSet uniqueness covers NewMaterial and MarkerMaterial ids/fields, while
+canonical GTCEu path collisions apply only to NewMaterial registrations.
 
 The validator returns the original MaterialSet on success. It never adds
 properties or flags. GTCEu runtime handles ensureSet, flags.verify, polymer
@@ -624,7 +635,7 @@ burnTime(...). No inferred dust property is added to the ADT.
 The design is intentionally complete, but the first codegen slice should
 implement only what the migration needs immediately:
 
-1. NewMaterialSpec with dust settings, ingot, gem, fluid, ore, blast,
+1. NewMaterialSpec with dust settings, ingot, gem, wood, polymer, fluid, ore, blast,
    composition, visuals, and flag presets/flags.
 2. MarkerMaterialSpec for NULL and color markers.
 3. MaterialPatchSpec with SetOreByproducts, SetWashedIn, SetSeparatedInto,

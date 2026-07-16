@@ -95,17 +95,21 @@ no GTCEu runtime imports.
 Goal: report conflicts without changing the ADT. This is the core value of the
 codegen.
 
-Status: Phase 2A symbol metadata complete on 2026-07-16; validator remains.
+Status: complete on 2026-07-16.
 
 1. MaterialValidator accumulating ValidatedNec:
    - lexical: opaque type from() checks (path format, ident, RGB, bounds)
-   - semantic: fluid keys unique within a material, ingot+gem conflict,
-     fluidPipe+itemPipe conflict
+   - identity: NewMaterial/MarkerMaterial ids and fields unique; trailing
+     underscore rejected; canonical GTCEu path collisions rejected only for
+     NewMaterial
+   - semantic: fluid keys unique within a material, explicit primary key belongs
+     to its entries, ingot+gem conflict; fluidPipe+itemPipe remains deferred
    - effective view: derive implied property presence for checks only; never
-     write it back. This catches blast+gem, polymer+gem, rotor+gem, and
-     non-wood pipe+gem conflicts.
+     write it back. The first slice catches blast+gem and polymer+gem; rotor and
+     pipe checks arrive with those deferred slots.
    - flag dependency: for each authored flag, required flags and required
-     properties must be satisfied by the effective view
+     properties must be satisfied by the effective view; presets expand through
+     generated metadata; unknown flags/presets fail closed
 2. Extend symbolgen so flag dependency data is scanned from MaterialFlags.java,
    while MaterialFlag collection presets are scanned from the List<MaterialFlag>
    fields and ordered static initializer in GTMaterials.java. Generate
@@ -124,6 +128,10 @@ Status: Phase 2A symbol metadata complete on 2026-07-16; validator remains.
    - GENERATE_GEAR without GENERATE_PLATE -> flag-dependency error
    - zero properties -> valid (EMPTY is runtime)
    - fluid with duplicate storage key -> error
+   - explicit fluid primary key absent from entries -> error
+   - duplicate id / duplicate field / trailing underscore / canonical path
+     collision -> accumulated errors
+   - unknown flag or preset ref -> error
 
 Phase 2A verification result: IDEA run points for
 MaterialFlagScannerTest, MaterialFlagPresetScannerTest, RefOutputRendererTest,
@@ -133,6 +141,15 @@ against the GTCEu 7.5.3 sources JAR, producing MaterialFlagsRef requirements
 for all scanned flags and flattened STD_METAL/EXT_METAL/EXT2_METAL preset
 members. MaterialFlagMetadataIntegrationTest consumed those generated lookup
 tables and completed with exit code 0.
+
+Phase 2B verification result: MaterialValidatorTest completed with exit code 0
+for all 12 tests after IDEA reformat. It covers identity error accumulation,
+effective ingot/gem conflicts, fluid key and primary-key checks, direct and
+recursive flag requirements, preset-only authored flags, unknown metadata, and
+the generated production lookup adapter. MaterialValuesTest and
+MaterialContentTest were rerun and completed with exit code 0. Every valid
+validator case asserts reference identity with the input and induced properties
+remain absent from the authored ADT.
 
 Verify: run MaterialValidatorTest through IDEA MCP. Assert the returned
 NewMaterialSpec equals the input for every valid case.

@@ -1,6 +1,12 @@
 package com.pixdane.gregicality.codegen.core.materials
 
 import cats.data.{NonEmptyChain, Validated, ValidatedNec}
+import com.pixdane.gregicality.core.refs.{
+  FluidStorageKeyRef,
+  MaterialFlagPresetRef,
+  MaterialFlagRef,
+  MaterialPropertyKeyRef
+}
 
 /** A validation problem found while constructing or checking material data. */
 sealed trait ValidationIssue extends Product with Serializable:
@@ -16,6 +22,103 @@ object ValidationIssue:
   ) extends ValidationIssue:
     override val message: String =
       s"$name value '$value' must satisfy: $requirement"
+
+  /** Multiple declarations author the same registry path. */
+  final case class DuplicateMaterialId(
+      id: RegistryPath,
+      fields: Vector[ScalaIdent]
+  ) extends ValidationIssue:
+    override val message: String =
+      s"material id '${id.value}' is used by fields " +
+        fields.map(_.value).mkString(", ")
+
+  /** Multiple declarations author the same generated Scala field. */
+  final case class DuplicateMaterialField(
+      field: ScalaIdent,
+      ids: Vector[RegistryPath]
+  ) extends ValidationIssue:
+    override val message: String =
+      s"material field '${field.value}' is used by ids " +
+        ids.map(_.value).mkString(", ")
+
+  /** GTCEu Material.Builder rejects material paths ending in an underscore. */
+  final case class MaterialIdTrailingUnderscore(id: RegistryPath)
+      extends ValidationIssue:
+    override val message: String =
+      s"material id '${id.value}' must not end in an underscore"
+
+  /** A new material path shadows a canonical GTCEu material path. */
+  final case class CanonicalMaterialIdCollision(id: RegistryPath)
+      extends ValidationIssue:
+    override val message: String =
+      s"new material id '${id.value}' collides with a canonical GTCEu material"
+
+  /** The effective property view contains both mutually exclusive base forms.
+    */
+  final case class IngotGemConflict(field: ScalaIdent) extends ValidationIssue:
+    override val message: String =
+      s"material '${field.value}' has both effective ingot and gem properties"
+
+  /** A material registers more than one fluid for the same storage key. */
+  final case class DuplicateFluidKey(
+      field: ScalaIdent,
+      key: FluidStorageKeyRef
+  ) extends ValidationIssue:
+    override val message: String =
+      s"material '${field.value}' repeats fluid key ${symbolName(key.path)}"
+
+  /** An explicit primary fluid key is absent from the material's fluid entries.
+    */
+  final case class PrimaryFluidKeyMissing(
+      field: ScalaIdent,
+      primaryKey: FluidStorageKeyRef
+  ) extends ValidationIssue:
+    override val message: String =
+      s"material '${field.value}' primary fluid key " +
+        s"${symbolName(primaryKey.path)} has no matching fluid entry"
+
+  /** Dependency metadata is unavailable for an authored material flag. */
+  final case class UnknownMaterialFlag(
+      field: ScalaIdent,
+      flag: MaterialFlagRef
+  ) extends ValidationIssue:
+    override val message: String =
+      s"material '${field.value}' uses unknown flag ${symbolName(flag.path)}"
+
+  /** Member metadata is unavailable for an authored material flag preset. */
+  final case class UnknownMaterialFlagPreset(
+      field: ScalaIdent,
+      preset: MaterialFlagPresetRef
+  ) extends ValidationIssue:
+    override val message: String =
+      s"material '${field.value}' uses unknown flag preset " +
+        symbolName(preset.path)
+
+  /** A required flag is absent from the authored flag and preset member set. */
+  final case class MissingRequiredFlag(
+      field: ScalaIdent,
+      flag: MaterialFlagRef,
+      requiredFlag: MaterialFlagRef
+  ) extends ValidationIssue:
+    override val message: String =
+      s"material '${field.value}' flag ${symbolName(flag.path)} requires authored " +
+        s"flag ${symbolName(requiredFlag.path)}"
+
+  /** A flag requirement is absent from the check-only effective property view.
+    */
+  final case class MissingRequiredProperty(
+      field: ScalaIdent,
+      flag: MaterialFlagRef,
+      requiredProperty: MaterialPropertyKeyRef
+  ) extends ValidationIssue:
+    override val message: String =
+      s"material '${field.value}' flag ${symbolName(flag.path)} requires " +
+        s"property ${symbolName(requiredProperty.path)}"
+
+  private def symbolName(
+      path: com.pixdane.gregicality.core.refs.ScalaSymbolPath
+  ): String =
+    path.parts.lastOption.getOrElse(path.parts.mkString("."))
 
 /** Validation that accumulates one or more material issues on failure. */
 type ValidationResult[A] = ValidatedNec[ValidationIssue, A]
