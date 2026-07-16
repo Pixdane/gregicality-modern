@@ -112,7 +112,7 @@ val codegen = sourceSets.create("codegen") {
 
 val codegenTest = sourceSets.create("codegenTest") {
     scala.srcDir("src/codegenTest/scala")
-    resources.srcDir("src/codegenTest/resources")
+    resources.setSrcDirs(listOf("src/codegenTest/resources"))
 
     compileClasspath += codegen.output + codegen.compileClasspath
     runtimeClasspath += output + compileClasspath + codegen.runtimeClasspath

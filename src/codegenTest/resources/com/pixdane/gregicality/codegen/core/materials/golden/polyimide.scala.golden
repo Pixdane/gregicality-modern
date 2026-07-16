@@ -1,0 +1,61 @@
+package com.pixdane.gregicality.common.data.materials
+
+import com.gregtechceu.gtceu.api.GTValues
+import com.gregtechceu.gtceu.api.data.chemical.material.Material
+import com.gregtechceu.gtceu.api.data.chemical.material.info.MaterialFlags
+import com.gregtechceu.gtceu.api.data.chemical.material.info.MaterialIconSet
+import com.gregtechceu.gtceu.api.data.chemical.material.properties.BlastProperty.GasTier
+import com.gregtechceu.gtceu.api.data.chemical.material.properties.PropertyKey
+import com.gregtechceu.gtceu.api.fluids.FluidBuilder
+import com.gregtechceu.gtceu.api.fluids.attribute.FluidAttributes
+import com.gregtechceu.gtceu.api.fluids.store.FluidStorageKeys
+import com.gregtechceu.gtceu.common.data.GTMaterials
+import com.pixdane.gregicality.Gregicality
+
+object GCYMaterialsChemistryPolymers:
+  var Polyimide: Material = _
+
+  def register(): Unit =
+    Polyimide = new Material.Builder(Gregicality.id("polyimide"))
+      .langValue("Polyimide")
+      .polymer(4)
+      .burnTime(200)
+      .liquid(
+        new FluidBuilder()
+          .temperature(700)
+          .disableColor()
+          .attributes(FluidAttributes.ACID)
+          .textures(true, true)
+          .block()
+          .disableBucket()
+          .burnTime(400)
+          .name("liquid_polyimide")
+          .translation("gregicality.fluid.liquid_polyimide")
+      )
+      .gas()
+      .color(0x2d2d2d, false)
+      .secondaryColor(0x111111)
+      .iconSet(MaterialIconSet.METALLIC)
+      .appendFlags(
+        GTMaterials.STD_METAL,
+        MaterialFlags.GENERATE_FOIL,
+        MaterialFlags.GENERATE_PLATE
+      )
+      .components(
+        GTMaterials.Carbon, 22,
+        GTMaterials.Hydrogen, 10,
+        GTMaterials.Nitrogen, 2,
+        GTMaterials.Oxygen, 5
+      )
+      .formula("(C22H10N2O5)n", true)
+      .blast(b =>
+        b
+          .temp(3900, GasTier.HIGH)
+          .blastStats(GTValues.VA(GTValues.EV), 1000)
+          .vacuumStats(GTValues.VA(GTValues.HV), 300)
+      )
+      .buildAndRegister()
+    Polyimide.getProperty(PropertyKey.FLUID).setPrimaryKey(FluidStorageKeys.GAS)
+
+  def patch(): Unit =
+    ()

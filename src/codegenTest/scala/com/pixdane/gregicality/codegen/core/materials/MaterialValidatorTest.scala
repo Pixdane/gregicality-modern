@@ -324,6 +324,63 @@ class MaterialValidatorTest:
         .exists(_.isInstanceOf[ValidationIssue.CanonicalMaterialIdCollision])
     )
 
+  @Test
+  def targetStatesThatWouldMaterializeBuilderDefaultsAreRejected(): Unit =
+    val disabledDefaultColor = material(
+      properties = MaterialProperties(),
+      visuals = VisualSpec(fluidColor = FluidColorPolicy.Disabled)
+    )
+    val disabledAverageColor = material(
+      properties = MaterialProperties(),
+      visuals = VisualSpec(
+        primaryColor = ColorSpec.AverageComponents,
+        fluidColor = FluidColorPolicy.Disabled
+      )
+    )
+    val blastDurationWithoutEut = material(
+      properties = MaterialProperties(
+        blast = Some(
+          BlastPropertySpec(
+            temperature = valid(Kelvin.from(3900)),
+            durationOverride = Some(valid(DurationTicks.from(1000)))
+          )
+        )
+      )
+    )
+    val vacuumDurationWithoutEut = material(
+      properties = MaterialProperties(
+        blast = Some(
+          BlastPropertySpec(
+            temperature = valid(Kelvin.from(3900)),
+            vacuumDurationOverride = Some(valid(DurationTicks.from(300)))
+          )
+        )
+      )
+    )
+
+    assertTrue(
+      issues(MaterialValidator.validateSpec(disabledDefaultColor, emptySymbols))
+        .exists(
+          _.isInstanceOf[ValidationIssue.FluidColorPolicyRequiresExplicitColor]
+        )
+    )
+    assertTrue(
+      issues(MaterialValidator.validateSpec(disabledAverageColor, emptySymbols))
+        .exists(
+          _.isInstanceOf[ValidationIssue.FluidColorPolicyRequiresExplicitColor]
+        )
+    )
+    assertTrue(
+      issues(
+        MaterialValidator.validateSpec(blastDurationWithoutEut, emptySymbols)
+      ).exists(_.isInstanceOf[ValidationIssue.BlastDurationRequiresEut])
+    )
+    assertTrue(
+      issues(
+        MaterialValidator.validateSpec(vacuumDurationWithoutEut, emptySymbols)
+      ).exists(_.isInstanceOf[ValidationIssue.VacuumDurationRequiresEut])
+    )
+
   private val generatePlate = flag("GENERATE_PLATE")
   private val generateRod = flag("GENERATE_ROD")
   private val generateGear = flag("GENERATE_GEAR")
@@ -394,13 +451,15 @@ class MaterialValidatorTest:
       id: String = "test_material",
       field: String = "TestMaterial",
       properties: MaterialProperties = MaterialProperties(),
-      flags: MaterialFlagSpec = MaterialFlagSpec()
+      flags: MaterialFlagSpec = MaterialFlagSpec(),
+      visuals: VisualSpec = VisualSpec()
   ): NewMaterialSpec =
     NewMaterialSpec(
       id = valid(RegistryPath.from(id)),
       field = valid(ScalaIdent.from(field)),
       properties = properties,
-      flags = flags
+      flags = flags,
+      visuals = visuals
     )
 
   private def flag(name: String): MaterialFlagRef =

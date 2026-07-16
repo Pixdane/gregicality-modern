@@ -1,0 +1,13 @@
+package com.pixdane.gregicality.common.data.materials
+
+import com.gregtechceu.gtceu.api.data.chemical.material.MarkerMaterial
+import com.pixdane.gregicality.Gregicality
+
+object GCYMaterialsMarkers:
+  var UEV: MarkerMaterial = _
+
+  def register(): Unit =
+    UEV = new MarkerMaterial(Gregicality.id("uev"))
+
+  def patch(): Unit =
+    ()

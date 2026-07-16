@@ -1,10 +1,10 @@
 # Material Registration ADT Design
 
-Status: implemented through checks-only validation (Phase 2); planner,
-renderer, and integration remain pending. This document defines the
-material-content ADT, validation boundary, and rendering boundary. DSL syntax,
-Raw input, file routing, and source tracing are deliberately deferred. This
-document supersedes the exploratory material shapes in
+Status: implemented through planner and renderer (Phase 3); generated-source
+integration remains pending. This document defines the material-content ADT,
+validation boundary, and rendering boundary. DSL syntax, Raw input, file
+routing, and source tracing are deliberately deferred. This document supersedes
+the exploratory material shapes in
 compile-time-scala-dsl-design.md and the stubs in
 src/codegen/scala/.../core/materials/{MaterialSpec,MaterialForms,MaterialVisual}.scala.
 
@@ -554,11 +554,18 @@ Validation accumulates issues via ValidatedNec:
    ids.
 3. Semantic: fluid storage keys are unique within a material; check-only
    effective properties contain neither ingot+gem nor fluidPipe+itemPipe; an
-   explicitly authored fluid primary key names one of that material's entries.
+   explicitly authored fluid primary key names one of that material's entries;
+   disabled material-level fluid tinting is paired with an explicit primary
+   color because `Material.Builder` has no standalone fluid-color switch.
 4. Flag dependency: each authored flag's required flags are authored, and its
    required properties are present in the check-only effective-property view.
    Presets are expanded through generated metadata for checks only. Unknown
    flag or preset refs are errors because their dependencies cannot be checked.
+5. Target representability: blast duration overrides require their matching
+   EU/t override. GTCEu exposes `blastStats(eut, duration)` and
+   `vacuumStats(eut, duration)`, but no duration-only overload; validation
+   rejects the unrenderable state instead of materializing GTCEu's internal
+   `-1` sentinel.
 
 MaterialValidator receives a MaterialValidationSymbols lookup boundary. The
 production implementation delegates to generated MaterialFlagsRef,
@@ -600,16 +607,29 @@ checks, but does not persist or render the prediction.
 
 ## Rendering Implications
 
-The renderer must emit builder calls in a canonical order that respects
-GTCEu's property-creation side effects. The order derived from the 654
-registrations and the source code is:
+`MaterialPlanner.plan(materials, output)` receives a validated `MaterialSet` and
+a `MaterialOutputSpec` containing the generated package, object name, and
+addon's id-factory symbol. It produces a `MaterialPlan` containing deterministic
+imports, field declarations, registration plans, and patch plans. It never
+revalidates by mutating content and never expands presets, flags, or properties.
+The codegen source set owns a small local `ScalaCode` value rather than depending
+on symbolgen internals.
+
+References render as `Owner.Member` with an exact import of `Owner`, rather than
+depending on wildcard-import order. Preset order, fluid order, component order,
+tag order, declaration order, and patch-operation order remain authored order.
+The unordered `Set[MaterialFlagRef]` is sorted by symbol path before rendering.
+
+The renderer must emit builder calls in a canonical order that respects GTCEu's
+property-creation side effects. The order derived from the 654 registrations and
+the source code is:
 
 ```text
 1. langValue
-2. solid properties: dust settings + ingot | gem | wood | polymer
+2. solid properties and authored ingot transformation targets
 3. burnTime       (when dust burn time is authored separately)
 4. fluids:        fluid | liquid | gas | plasma          (each unique key)
-5. ore            (ensures dust)
+5. ore plus oreSmeltInto, washedIn, separatedInto, addOreByproducts
 6. color, secondaryColor, colorAverage, iconSet
 7. flags, appendFlags
 8. element, components, componentStacks, formula
@@ -619,16 +639,50 @@ registrations and the source code is:
 12. hazard, radioactiveHazard, removeHazard
 13. ignoredTagPrefixes, customTags
 14. buildAndRegister()
-15. setFormula(...)           (post-build, only if formula override needs it)
+15. setPrimaryKey(...)        (separate post-build statement, when authored)
 ```
 
-Steps 2-4 require overload selection. dust+ingot is valid content, but the
-planner renders one ingot overload carrying the dust harvest/burn settings
-rather than two independent setters. The same rule applies to gem and wood.
-Polymer harvest settings use its overload, but an authored polymer burn time is
-rendered separately because GTCEu 7.5.3 ignores the overload's burnTime
-argument. Bare dust renders dust(...); a burn-only override may render
-burnTime(...). No inferred dust property is added to the ADT.
+Steps 2-5 require overload selection:
+
+- Dust settings have exactly one carrier. `wood` has first priority because its
+  overload directly installs the dust slot; the remaining priority is `ingot`,
+  `gem`, `polymer`, then bare `dust`. Other authored solid slots emit their bare
+  call. This permits authored combinations such as wood+ingot without emitting
+  a duplicate dust setter.
+- A harvest-only value selects the one-argument carrier overload. Harvest plus
+  burn selects the two-argument ingot/gem/wood overload. Polymer uses
+  `polymer(harvest)` plus `burnTime(...)` because GTCEu 7.5.3 ignores the
+  `polymer(harvest, burn)` burn argument. Burn-only content uses
+  `burnTime(...)`; that builder call already ensures dust, so the renderer does
+  not add `dust()`.
+- Built-in LIQUID, GAS, and PLASMA keys select `liquid`, `gas`, and `plasma`
+  overloads when their exact owner and authored state are compatible. Matching
+  by exact owner prevents an addon member such as `CustomFluidKeys.GAS` from
+  being mistaken for `FluidStorageKeys.GAS`. A temperature-only fluid selects
+  the integer overload. Other fluid-builder content selects the `FluidBuilder`
+  overload. Arbitrary keys select `fluid(key, state)` when only state is
+  authored, otherwise `fluid(key, new FluidBuilder()...)`.
+- `ore()` and `ore(emissive)` preserve GTCEu's multiplier defaults when
+  multipliers are absent. Explicit multipliers select the two- or three-argument
+  overload. `washedIn(material)` preserves the builder's 100 mB default; the
+  two-argument overload is emitted only when amount is authored.
+- A simple blast selects `blast(temp)` or `blast(temp, gasTier)`. Any authored
+  recipe-stat override selects the lambda builder and emits only the authored
+  `blastStats`/`vacuumStats` calls.
+
+Formula overrides render as the builder call
+`formula(text, formatSubscripts)`. `buildAndRegister()` already applies that
+stored override through `Material.setFormula`, so the renderer does not emit a
+second post-build formula call. `FluidProperty` assigns the first registered key
+internally and `Material.Builder` has no primary-key setter, so an explicit
+primary key renders afterward as
+`Field.getProperty(PropertyKey.FLUID).setPrimaryKey(key)`.
+
+Flag presets are never expanded by the planner. With no preset, authored flags
+use one `flags(...)` call. With presets, each authored preset uses
+`appendFlags(...)`; sorted individual flags are attached to the first preset.
+No inferred dust property, required flag, polymer flag, default multiplier,
+default wash amount, default color, or internal sentinel is emitted.
 
 ## First Implementation Slice
 
@@ -647,6 +701,12 @@ implement only what the migration needs immediately:
 
 tool, armor, rotor, wire, fluidPipe, itemPipe, and hazard are designed but
 deferred until the migration reaches materials that need them.
+
+Phase 3 implementation uses `MaterialOutputSpec`, `MaterialPlan`,
+`MaterialDeclarationPlan`, `BuilderCall`, and `ScalaExpr` as a small code-plan
+boundary. `MaterialRenderer` emits one object with stable fields plus separate
+`register()` and `patch()` methods. Marker fields use `MarkerMaterial`, new
+fields use `Material`, and patch-only objects import no id factory.
 
 ## Open Questions
 

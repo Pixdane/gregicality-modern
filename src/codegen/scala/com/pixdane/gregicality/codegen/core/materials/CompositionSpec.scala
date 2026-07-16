@@ -2,7 +2,7 @@ package com.pixdane.gregicality.codegen.core.materials
 
 import com.pixdane.gregicality.core.refs.MaterialRef
 
-/** Ordered authored components and an optional post-build formula override. */
+/** Ordered authored components and an optional builder-owned formula override. */
 final case class CompositionSpec(
     components: Vector[ComponentSpec] = Vector.empty,
     formulaOverride: Option[FormulaOverride] = None

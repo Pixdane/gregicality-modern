@@ -158,9 +158,11 @@ NewMaterialSpec equals the input for every valid case.
 
 Goal: authored ADT -> Scala source in canonical order.
 
-1. MaterialPlanner: Verified -> MaterialPlan (builder step ordering per the
-   15-step canonical order in the design doc, import collection, generated
-   object naming).
+Status: complete on 2026-07-16.
+
+1. MaterialPlanner: validated MaterialSet + MaterialOutputSpec -> MaterialPlan
+   (builder step ordering per the 15-step canonical order in the design doc,
+   deterministic exact-owner imports, generated object naming).
 2. MaterialRenderer: MaterialPlan -> ScalaCode. Reuse or fork the ScalaCode
    helper from symbolgen/render.
 3. Dust-settings rule: when ingot/gem/polymer/wood is present, planner folds
@@ -168,12 +170,37 @@ Goal: authored ADT -> Scala source in canonical order.
    separate dust call. GTCEu 7.5.3 ignores polymer(harvest,burn)'s burnTime
    argument, so polymer burn time uses a separate burnTime(...) call. Bare dust
    emits dust(...); other burn-only settings also use burnTime(...).
-4. MaterialPatchRenderer: PatchOperation -> PostMaterialEvent handler body.
-5. MarkerMaterialRenderer: emit new MarkerMaterial(...), never Material.Builder.
-6. Tests: golden-file string assertions for a representative NewMaterial (e.g.
-   polyimide), a MarkerMaterial, and a MaterialPatch.
+4. Fluid/ore overload rule: keep LIQUID/GAS/PLASMA and temperature shorthands;
+   use FluidBuilder only for authored builder content. Keep ore multiplier and
+   washed amount defaults inside GTCEu by selecting the no-default overloads.
+5. Builder-owned rule: formula uses `.formula(...)` and is applied internally by
+   `buildAndRegister()`; the renderer does not emit a duplicate `setFormula`.
+   Primary fluid key remains a separate `PropertyKey.FLUID` statement because
+   no builder setter exists.
+6. MaterialPatchRenderer: PatchOperation -> PostMaterialEvent handler body.
+7. MarkerMaterialRenderer: emit new MarkerMaterial(...), never Material.Builder.
+8. Tests:
+   - planner ordering and overload selection for dust carriers, polymer burn,
+     fluid shorthand/custom builder, ore defaults, blast stats, and flags
+   - golden-file string assertions for a representative NewMaterial
+     (polyimide), a MarkerMaterial, and a MaterialPatch
+   - negative checks for target states the public builder cannot represent
+     without materializing defaults or sentinels
 
 Verify: run renderer golden tests through IDEA MCP.
+
+Verification result: MaterialPlannerTest completed with exit code 0 for all 4
+tests, covering dust-carrier selection, polymer burn handling, exact built-in
+fluid-key matching, fluid/ore overloads, canonical ordering, no inferred calls,
+and multiple preset calls. MaterialRendererTest completed with exit code 0 for
+all 3 golden fixtures: representative new material, marker material, and
+post-registration patch. MaterialValidatorTest completed with exit code 0 for
+all 13 tests after adding unrenderable fluid-color and blast-stat checks.
+MaterialContentTest, MaterialDeclarationsTest, MaterialValuesTest,
+MaterialFlagMetadataIntegrationTest, and RefsTest were rerun through IDEA and
+completed with exit code 0. Adding golden resources exposed a duplicate default
+resource root in the codegenTest source set; `resources.setSrcDirs(...)` now
+declares that root once.
 
 ## Phase 4 - Codegen Integration
 

@@ -115,6 +115,29 @@ object ValidationIssue:
       s"material '${field.value}' flag ${symbolName(flag.path)} requires " +
         s"property ${symbolName(requiredProperty.path)}"
 
+  /** Material.Builder can disable fluid tint only while setting a primary
+    * color.
+    */
+  final case class FluidColorPolicyRequiresExplicitColor(field: ScalaIdent)
+      extends ValidationIssue:
+    override val message: String =
+      s"material '${field.value}' must author an explicit primary color " +
+        "when material fluid tinting is disabled"
+
+  /** BlastProperty.Builder has no duration-only blastStats overload. */
+  final case class BlastDurationRequiresEut(field: ScalaIdent)
+      extends ValidationIssue:
+    override val message: String =
+      s"material '${field.value}' blast duration override requires " +
+        "an authored EU/t override"
+
+  /** BlastProperty.Builder has no duration-only vacuumStats overload. */
+  final case class VacuumDurationRequiresEut(field: ScalaIdent)
+      extends ValidationIssue:
+    override val message: String =
+      s"material '${field.value}' vacuum duration override requires " +
+        "an authored EU/t override"
+
   private def symbolName(
       path: com.pixdane.gregicality.core.refs.ScalaSymbolPath
   ): String =

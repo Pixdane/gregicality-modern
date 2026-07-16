@@ -55,6 +55,7 @@ object MaterialValidator:
 
     conflictIssues ++
       fluidIssues(spec) ++
+      representabilityIssues(spec) ++
       flagIssues(spec, effective, symbols)
 
   private def fluidIssues(spec: NewMaterialSpec): Vector[ValidationIssue] =
@@ -75,6 +76,34 @@ object MaterialValidator:
 
       duplicates ++ primaryIssue
     }
+
+  private def representabilityIssues(
+      spec: NewMaterialSpec
+  ): Vector[ValidationIssue] =
+    val hasExplicitPrimaryColor = spec.visuals.primaryColor match
+      case ColorSpec.Explicit(_) => true
+      case _                     => false
+    val fluidColorIssue =
+      if spec.visuals.fluidColor == FluidColorPolicy.Disabled &&
+        !hasExplicitPrimaryColor
+      then
+        Vector(
+          ValidationIssue.FluidColorPolicyRequiresExplicitColor(spec.field)
+        )
+      else Vector.empty
+    val blastIssues = spec.properties.blast.toVector.flatMap { blast =>
+      Vector(
+        Option.when(
+          blast.durationOverride.isDefined && blast.eutOverride.isEmpty
+        )(ValidationIssue.BlastDurationRequiresEut(spec.field)),
+        Option.when(
+          blast.vacuumDurationOverride.isDefined &&
+            blast.vacuumEutOverride.isEmpty
+        )(ValidationIssue.VacuumDurationRequiresEut(spec.field))
+      ).flatten
+    }
+
+    fluidColorIssue ++ blastIssues
 
   private def flagIssues(
       spec: NewMaterialSpec,
