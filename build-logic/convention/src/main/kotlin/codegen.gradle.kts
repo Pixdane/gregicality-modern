@@ -25,7 +25,19 @@ abstract class GenerateGtRefsArguments : CommandLineArgumentProvider {
         )
 }
 
+abstract class RunCodegenArguments : CommandLineArgumentProvider {
+    @get:Internal
+    abstract val outputDir: DirectoryProperty
+
+    override fun asArguments(): Iterable<String> =
+        listOf("--out", outputDir.get().asFile.absolutePath)
+}
+
+val generatedMaterialsDir =
+    layout.buildDirectory.dir("generated/sources/materials/scala/main")
+
 sourceSets.main {
+    scala.srcDir(generatedMaterialsDir)
     resources.srcDir("src/generated/resources")
 }
 
@@ -168,10 +180,20 @@ tasks.check {
 }
 
 val runCodegen = tasks.register<JavaExec>("runCodegen") {
-    description = "Run codegen"
+    group = "code generation"
+    description = "Generates runtime-facing material registration sources."
+
     dependsOn(tasks.named(codegen.classesTaskName))
+
     classpath = codegen.runtimeClasspath
     mainClass.set("com.pixdane.gregicality.codegen.main")
+    argumentProviders.add(
+        objects.newInstance(RunCodegenArguments::class.java).apply {
+            outputDir.set(generatedMaterialsDir)
+        }
+    )
+
+    outputs.dir(generatedMaterialsDir)
 }
 
 tasks.compileScala {

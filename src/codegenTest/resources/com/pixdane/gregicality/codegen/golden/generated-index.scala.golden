@@ -1,0 +1,8 @@
+package com.pixdane.gregicality.common.data.materials
+
+object GCYMaterialsGeneratedIndex:
+  def registerAll(): Unit =
+    GCYMaterialsChemistryPolymers.register()
+
+  def patchAll(): Unit =
+    GCYMaterialsChemistryPolymers.patch()

@@ -25,3 +25,22 @@ Source: `docs/gcy-material-dedupe.csv`, `migration_package=chemistry/polymers`.
 | `Resin` | `resin` | `resin` | `new_candidate` | `Simple Fluid Materials` | `SIMPLE FLUID MATERIALS` |  |
 | `ViscoelasticPolyurethane` | `viscoelastic_polyurethane` | `viscoelastic_polyurethane` | `new_candidate` | `Simple Fluid Materials` | `SIMPLE FLUID MATERIALS` |  |
 | `ViscoelasticPolyurethaneFoam` | `viscoelastic_polyurethane_foam` | `viscoelastic_polyurethane_foam` | `new_candidate` | `Simple Fluid Materials` | `SIMPLE FLUID MATERIALS` |  |
+
+## Implemented Slice
+
+`Polyimide` is the first material generated from the authored material ADT.
+Its migration source is the TJFork `GAMaterials` registration:
+
+- registry id `polyimide`, generated field `Polyimide`
+- polymer property with dust harvest level 1 and one LIQUID fluid
+- material color `0xFF7F50` and DULL icon set
+- components C22, H12, N2, O6
+- explicitly authored `GENERATE_PLATE`
+
+The historical flags `FLAMMABLE`, `NO_SMASHING`, and
+`DISABLE_DECOMPOSITION` are omitted from authored data because modern GTCEu's
+`PolymerProperty.verifyProperty` adds them internally. GTCEu 7.5.3 no longer
+declares the historical `SMELT_INTO_FLUID` flag, so the migration does not
+invent a replacement ref. The generated registration is owned by
+`GCYMaterialsChemistryPolymers`; runtime registration and patch calls are
+routed through `GCYMaterialsGeneratedIndex`.

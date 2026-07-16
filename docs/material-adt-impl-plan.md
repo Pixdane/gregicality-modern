@@ -206,7 +206,7 @@ declares that root once.
 
 Goal: generated .scala compiles as part of the mod.
 
-Status: in progress on 2026-07-16.
+Status: complete on 2026-07-16.
 
 ### Phase 4A - Shared generator support and fluid-key refs
 
@@ -262,6 +262,8 @@ writer's no-op path on production-sized output.
 
 Goal: generate the first real migrated material and compile it as mod source.
 
+Status: complete on 2026-07-16.
+
 1. `runCodegen` consumes a directly constructed `MaterialSet`; DSL loading and
    Raw conversion are outside this plan.
 2. Write owned sources to
@@ -276,12 +278,42 @@ Goal: generate the first real migrated material and compile it as mod source.
 5. Incremental check: unchanged material input does not rewrite generated
    sources.
 
+The first authored package contains only Polyimide, migrated from the TJFork
+registration rather than the synthetic Phase 3 renderer fixture:
+
+- id/field: `polyimide` / `Polyimide`
+- polymer with dust harvest level 1
+- one LIQUID fluid entry
+- color `0xFF7F50`, DULL icon
+- components C22, H12, N2, O6
+- explicit flag: `GENERATE_PLATE`
+- no explicit display name or formula override
+
+`FLAMMABLE`, `NO_SMASHING`, and `DISABLE_DECOMPOSITION` are not authored again
+because GTCEu's `PolymerProperty.verifyProperty` adds them. Source inspection
+also confirms that GTCEu 7.5.3 no longer declares the historical
+`SMELT_INTO_FLUID` flag at all, so codegen does not invent a nonexistent modern
+ref for it. Codegen validates the authored result but does not expand it.
+
 Verify: run the generation and compilation Gradle run configurations through
 IDEA MCP; generated sources compile.
 
+Verification result: `CodegenTest` completed with exit code 0 for all 3 tests,
+covering authored-only Polyimide data, exact material/index golden output, and
+unchanged-output timestamps through the real writer. The parameterized codegen
+main run point generated both runtime files under
+`build/generated/sources/materials/scala/main`. An IDEA Gradle `compileScala`
+run configuration then completed with exit code 0 and compiled those generated
+files with `GCYMaterials`; a second run reported `runCodegen` and
+`compileScala` UP-TO-DATE. `MaterialValidatorTest` (13 tests) and
+`MaterialRendererTest` (3 golden tests) were rerun and completed with exit code
+0. GTCEu 7.5.3 source inspection confirmed the three PolymerProperty-added
+flags and the absence of the historical `SMELT_INTO_FLUID` declaration.
+
 ## Phase 5 - Cleanup + Doc Sync
 
-1. Delete Codegen.scala hello-world stub; replace with real entrypoint.
+1. Complete in Phase 4B: replace the Codegen.scala hello-world stub with the
+   real material generation entrypoint.
 2. compile-time-scala-dsl-design.md: mark Raw/DSL routing as deferred and point
    material content/validation/rendering to material-adt-design.md.
 3. material-builder-api.md: add property-verify fixpoint behavior, EMPTY

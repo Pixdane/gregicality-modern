@@ -57,10 +57,15 @@ src/gcyDsl/scala/
   com/pixdane/gregicality/gcydsl/materials/chemistry/Polymers.scala
   com/pixdane/gregicality/gcydsl/materials/metallurgy/Alloys.scala
 
-build/generated/sources/gcyDsl/scala/main/
+build/generated/sources/materials/scala/main/
   com/pixdane/gregicality/common/data/materials/GCYMaterialsChemistryPolymers.scala
   com/pixdane/gregicality/common/data/materials/GCYMaterialsGeneratedIndex.scala
 ```
+
+The current first implementation slice constructs `MaterialSet` values directly
+in the `codegen` source set. The `gcyDsl` input source set and Raw conversion
+shown above remain deferred; they are not prerequisites for generating and
+compiling the first migrated package.
 
 Important package distinction:
 
@@ -949,6 +954,10 @@ compileSymbolgen
   -> generateGtRefs
   -> generated refs source dir
   -> compileCodegen
+compileCodegen
+  -> runCodegen
+  -> generated material source dir
+  -> compileScala
 
 ```
 
@@ -960,7 +969,10 @@ JavaParser, and Cats, but not on main, generated refs, or `codegen`. Generated
 source imports
 `com.pixdane.gregicality.core.refs`. `codegen` compiles against `core.output`
 and `generatorSupport.output` plus the generated refs source directory; it does
-not compile against `symbolgen.output`.
+not compile against `symbolgen.output`. `runCodegen` validates the directly
+authored material sets, renders the complete owned file set, and synchronizes
+`build/generated/sources/materials/scala/main`. That directory is a
+`sourceSets.main.scala` root, and `compileScala` depends on `runCodegen`.
 
 Generated refs should be available to both:
 
