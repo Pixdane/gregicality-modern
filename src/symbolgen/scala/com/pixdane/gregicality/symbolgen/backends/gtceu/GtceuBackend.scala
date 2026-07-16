@@ -7,8 +7,14 @@ import com.pixdane.gregicality.symbolgen.backends.gtceu.scan.{
   GtceuScanDiagnostic,
   GtceuScanResult,
   GtMaterialsScanSpec,
+  MaterialFlagPresetScanSpec,
+  MaterialFlagScanSpec,
   StaticFieldScanner,
   StaticFieldScanSpec
+}
+import com.pixdane.gregicality.symbolgen.backends.gtceu.scan.flags.{
+  MaterialFlagPresetScanner,
+  MaterialFlagScanner
 }
 import com.pixdane.gregicality.symbolgen.backends.gtceu.scan.materials.{
   MaterialScanInput,
@@ -17,6 +23,8 @@ import com.pixdane.gregicality.symbolgen.backends.gtceu.scan.materials.{
 import com.pixdane.gregicality.symbolgen.framework.{
   GeneratedScalaFile,
   RefOutputSpec,
+  ScannedMaterialFlagPresetRef,
+  ScannedMaterialFlagRef,
   ScannedMaterialRef,
   ScannedPathRef,
   SourceArchive,
@@ -30,11 +38,11 @@ import com.pixdane.gregicality.symbolgen.render.{
 
 /** The GTCEu symbol generator backend.
   *
-  * Owns the output package, the five symbol jobs (materials, elements, material
-  * icon sets, fluid attributes, material flags), and the aggregate `GTRefs`
-  * object that re-exports them. Externally only `generator` (the
-  * [[SymbolGenerator]] registered with the registry) is needed; everything else
-  * is private to this object.
+  * Owns the output package, the six symbol jobs (materials, elements, material
+  * icon sets, fluid attributes, material flags, flag presets), and the
+  * aggregate `GTRefs` object that re-exports them. Externally only `generator`
+  * (the [[SymbolGenerator]] registered with the registry) is needed; everything
+  * else is private to this object.
   */
 object GtceuBackend:
   private val OutputPackage =
@@ -100,16 +108,54 @@ object GtceuBackend:
       memberTypeSimpleName = "FluidAttribute"
     )
 
-  private val materialFlags =
-    staticPathOnly(
-      id = "material-flags",
-      outputObject = "MaterialFlagsRef",
-      valueType = "MaterialFlagRef",
+  private val materialFlags: SymbolJob[
+    GtceuScanDiagnostic,
+    Vector[ScannedMaterialFlagRef],
+    Vector[ScannedMaterialFlagRef]
+  ] =
+    val spec = MaterialFlagScanSpec(
       sourcePath =
         "com/gregtechceu/gtceu/api/data/chemical/material/info/MaterialFlags.java",
       ownerFqcn =
         "com.gregtechceu.gtceu.api.data.chemical.material.info.MaterialFlags",
-      memberTypeSimpleName = "MaterialFlag"
+      propertyKeyOwnerFqcn =
+        "com.gregtechceu.gtceu.api.data.chemical.material.properties.PropertyKey"
+    )
+
+    SymbolJob(
+      id = "material-flags",
+      target = RefOutputSpec(
+        outputPackage = OutputPackage,
+        outputObject = "MaterialFlagsRef",
+        valueType = "MaterialFlagRef"
+      ),
+      scan = MaterialFlagScanner.scan(spec),
+      preprocess = passThrough,
+      render = RefOutputRenderer.generateMaterialFlagFile
+    )
+
+  private val materialFlagPresets: SymbolJob[
+    GtceuScanDiagnostic,
+    Vector[ScannedMaterialFlagPresetRef],
+    Vector[ScannedMaterialFlagPresetRef]
+  ] =
+    val spec = MaterialFlagPresetScanSpec(
+      sourcePath = "com/gregtechceu/gtceu/common/data/GTMaterials.java",
+      ownerFqcn = "com.gregtechceu.gtceu.common.data.GTMaterials",
+      flagOwnerFqcn =
+        "com.gregtechceu.gtceu.api.data.chemical.material.info.MaterialFlags"
+    )
+
+    SymbolJob(
+      id = "material-flag-presets",
+      target = RefOutputSpec(
+        outputPackage = OutputPackage,
+        outputObject = "MaterialFlagPresetsRef",
+        valueType = "MaterialFlagPresetRef"
+      ),
+      scan = MaterialFlagPresetScanner.scan(spec),
+      preprocess = passThrough,
+      render = RefOutputRenderer.generateMaterialFlagPresetFile
     )
 
   private val jobs: Vector[SymbolJob[GtceuScanDiagnostic, ?, ?]] =
@@ -118,7 +164,8 @@ object GtceuBackend:
       gtElements,
       materialIconSets,
       fluidAttributes,
-      materialFlags
+      materialFlags,
+      materialFlagPresets
     )
 
   private def staticPathOnly(

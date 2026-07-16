@@ -22,3 +22,18 @@ final case class ScannedPathRef(
     name: String,
     path: ScalaSymbolPath
 ) extends ScannedRef
+
+/** A material flag plus source-scanned flag and property requirements. */
+final case class ScannedMaterialFlagRef(
+    name: String,
+    path: ScalaSymbolPath,
+    requiredFlags: Vector[ScalaSymbolPath],
+    requiredProperties: Vector[ScalaSymbolPath]
+) extends ScannedRef
+
+/** A material flag preset with its source-order flattened members. */
+final case class ScannedMaterialFlagPresetRef(
+    name: String,
+    path: ScalaSymbolPath,
+    members: Vector[ScalaSymbolPath]
+) extends ScannedRef

@@ -55,6 +55,7 @@ class RefsTest:
   def newRefsWrapPathWithNoConversion(): Unit =
     val path = ScalaSymbolPath.fromFqcn("com.example.Foo.BAR")
     assertEquals(MaterialFlagPresetRef(path), MaterialFlagPresetRef(path))
+    assertEquals(MaterialPropertyKeyRef(path), MaterialPropertyKeyRef(path))
     assertEquals(FluidStorageKeyRef(path), FluidStorageKeyRef(path))
     assertEquals(GasTierRef(path), GasTierRef(path))
     assertEquals(TagPrefixRef(path), TagPrefixRef(path))
@@ -68,6 +69,7 @@ class RefsTest:
     val a = ScalaSymbolPath.fromFqcn("com.example.A")
     val b = ScalaSymbolPath.fromFqcn("com.example.B")
     assertNotEquals(MaterialFlagPresetRef(a), MaterialFlagPresetRef(b))
+    assertNotEquals(MaterialPropertyKeyRef(a), MaterialPropertyKeyRef(b))
     assertNotEquals(FluidStorageKeyRef(a), FluidStorageKeyRef(b))
     assertNotEquals(GasTierRef(a), GasTierRef(b))
     assertNotEquals(TagPrefixRef(a), TagPrefixRef(b))
@@ -87,6 +89,22 @@ class RefsTest:
     assertNotEquals(ToolTypeRef(path), ItemTagRef(path))
     assertNotEquals(ElementRef(path), MaterialFlagPresetRef(path))
     assertNotEquals(MaterialFlagRef(path), MaterialFlagPresetRef(path))
+    assertNotEquals(MaterialFlagRef(path), MaterialPropertyKeyRef(path))
     assertNotEquals(FluidAttributeRef(path), FluidStorageKeyRef(path))
     // Sanity: same-type, same-path still equals.
     assertEquals(FluidStorageKeyRef(path), FluidStorageKeyRef(path))
+
+  @Test
+  def materialFlagRequirementsRemainPureMetadata(): Unit =
+    val path = ScalaSymbolPath.fromFqcn("com.example.Flags.GENERATE_GEAR")
+    val dustPath = ScalaSymbolPath.fromFqcn("com.example.PropertyKey.DUST")
+    val plate = MaterialFlagRef(path.append("GENERATE_PLATE"))
+    val rod = MaterialFlagRef(path.append("GENERATE_ROD"))
+    val dust = MaterialPropertyKeyRef(dustPath)
+    val requirements = MaterialFlagRequirements(
+      requiredFlags = Vector(plate, rod),
+      requiredProperties = Vector(dust)
+    )
+
+    assertEquals(Vector(plate, rod), requirements.requiredFlags)
+    assertEquals(Vector(dust), requirements.requiredProperties)

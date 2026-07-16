@@ -1,10 +1,10 @@
 # Material Registration ADT Design
 
-Status: implemented through the authored-content ADT (Phase 1); validator,
-planner, renderer, and integration remain pending. This document defines the
-material-content ADT, validation boundary, and rendering boundary. DSL syntax,
-Raw input, file routing, and source tracing are deliberately deferred. This
-document supersedes the exploratory material shapes in
+Status: implemented through authored content and Phase 2A symbol metadata;
+validator, planner, renderer, and integration remain pending. This document
+defines the material-content ADT, validation boundary, and rendering boundary.
+DSL syntax, Raw input, file routing, and source tracing are deliberately
+deferred. This document supersedes the exploratory material shapes in
 compile-time-scala-dsl-design.md and the stubs in
 src/codegen/scala/.../core/materials/{MaterialSpec,MaterialForms,MaterialVisual}.scala.
 
@@ -118,6 +118,11 @@ final case class ElementRef(path: ScalaSymbolPath)
 final case class MaterialIconRef(path: ScalaSymbolPath)
 final case class MaterialFlagRef(path: ScalaSymbolPath)
 final case class MaterialFlagPresetRef(path: ScalaSymbolPath)
+final case class MaterialPropertyKeyRef(path: ScalaSymbolPath)
+final case class MaterialFlagRequirements(
+  requiredFlags: Vector[MaterialFlagRef],
+  requiredProperties: Vector[MaterialPropertyKeyRef]
+)
 final case class FluidAttributeRef(path: ScalaSymbolPath)
 final case class FluidStorageKeyRef(path: ScalaSymbolPath)
 final case class GasTierRef(path: ScalaSymbolPath)
@@ -227,6 +232,13 @@ final case class MaterialFlagSpec(
   flags: Set[MaterialFlagRef]
 )
 ```
+
+MaterialFlagsRef keeps each ordinary flag accessor and adds a requirements
+lookup scanned from MaterialFlags.java. MaterialFlagPresetsRef is generated
+separately from the collection fields and ordered static-initializer operations
+in GTMaterials.java; its members lookup returns the flattened authored preset
+members. The refs remain path-only. Metadata lives in generated lookup tables
+and is never attached to or written back into MaterialFlagSpec.
 
 ### MaterialProperties
 

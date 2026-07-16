@@ -43,6 +43,21 @@ final case class FluidAttributeRef(path: ScalaSymbolPath)
 final case class MaterialFlagPresetRef(path: ScalaSymbolPath)
 
 /**
+ * Path-only reference to a GTCEu material property key.
+ * Pure data; must not hold a runtime GTCEu object.
+ */
+final case class MaterialPropertyKeyRef(path: ScalaSymbolPath)
+
+/**
+ * Source-scanned dependencies for one material flag. The referenced flags and
+ * properties remain pure symbol paths.
+ */
+final case class MaterialFlagRequirements(
+    requiredFlags: Vector[MaterialFlagRef],
+    requiredProperties: Vector[MaterialPropertyKeyRef]
+)
+
+/**
  * Path-only reference to a fluid storage key.
  * Pure data; must not hold a runtime GTCEu object.
  */

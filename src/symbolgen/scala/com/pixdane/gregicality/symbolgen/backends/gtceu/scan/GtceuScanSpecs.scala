@@ -10,6 +10,20 @@ final case class StaticFieldScanSpec(
     memberTypeSimpleName: String
 )
 
+/** Configuration for scanning MaterialFlag builder declarations. */
+final case class MaterialFlagScanSpec(
+    sourcePath: String,
+    ownerFqcn: String,
+    propertyKeyOwnerFqcn: String
+)
+
+/** Configuration for scanning GTMaterials material-flag preset collections. */
+final case class MaterialFlagPresetScanSpec(
+    sourcePath: String,
+    ownerFqcn: String,
+    flagOwnerFqcn: String
+)
+
 /** Configuration for the GTCEu materials scan: the declaration file, the
   * directory of builder assignment files, the owner class, the registry
   * namespace, and the id factory used to read material ids.

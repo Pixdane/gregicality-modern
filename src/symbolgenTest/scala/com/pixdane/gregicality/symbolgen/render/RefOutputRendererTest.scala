@@ -3,6 +3,8 @@ package com.pixdane.gregicality.symbolgen.render
 import com.pixdane.gregicality.symbolgen.framework.{
   GeneratedScalaFile,
   RefOutputSpec,
+  ScannedMaterialFlagPresetRef,
+  ScannedMaterialFlagRef,
   ScannedMaterialRef,
   ScannedPathRef
 }
@@ -160,3 +162,72 @@ class RefOutputRendererTest:
     assertTrue(file.content.contains("MaterialIconRef(ScalaSymbolPath(Vector("))
     assertTrue(!file.content.contains("def all:"))
     assertTrue(!file.content.contains("byIdIndex"))
+
+  @Test
+  def renderMaterialFlagsKeepsAccessorsAndAddsRequirementsLookup(): Unit =
+    val target = RefOutputSpec(
+      outputPackage = "com.pixdane.gregicality.core.refs.gtceu",
+      outputObject = "MaterialFlagsRef",
+      valueType = "MaterialFlagRef"
+    )
+    val owner = Vector("com", "example", "MaterialFlags")
+    val propertyOwner = Vector("com", "example", "PropertyKey")
+    val refs = Vector(
+      ScannedMaterialFlagRef(
+        name = "GENERATE_GEAR",
+        path = ScalaSymbolPath(owner :+ "GENERATE_GEAR"),
+        requiredFlags = Vector(
+          ScalaSymbolPath(owner :+ "GENERATE_PLATE"),
+          ScalaSymbolPath(owner :+ "GENERATE_ROD")
+        ),
+        requiredProperties = Vector(
+          ScalaSymbolPath(propertyOwner :+ "DUST")
+        )
+      )
+    )
+
+    val content =
+      RefOutputRenderer.generateMaterialFlagFile(target, refs).content
+
+    assertTrue(content.contains("def GENERATE_GEAR: MaterialFlagRef ="))
+    assertTrue(
+      content.contains(
+        "def requirements(flag: MaterialFlagRef): Option[MaterialFlagRequirements]"
+      )
+    )
+    assertTrue(content.contains("requiredFlags = Vector("))
+    assertTrue(
+      content.contains("MaterialPropertyKeyRef(ScalaSymbolPath(Vector(")
+    )
+  end renderMaterialFlagsKeepsAccessorsAndAddsRequirementsLookup
+
+  @Test
+  def renderMaterialFlagPresetsAddsFlattenedMembersLookup(): Unit =
+    val target = RefOutputSpec(
+      outputPackage = "com.pixdane.gregicality.core.refs.gtceu",
+      outputObject = "MaterialFlagPresetsRef",
+      valueType = "MaterialFlagPresetRef"
+    )
+    val refs = Vector(
+      ScannedMaterialFlagPresetRef(
+        name = "STD_METAL",
+        path =
+          ScalaSymbolPath(Vector("com", "example", "GTMaterials", "STD_METAL")),
+        members = Vector(
+          ScalaSymbolPath(
+            Vector("com", "example", "MaterialFlags", "GENERATE_PLATE")
+          )
+        )
+      )
+    )
+
+    val content =
+      RefOutputRenderer.generateMaterialFlagPresetFile(target, refs).content
+
+    assertTrue(content.contains("def STD_METAL: MaterialFlagPresetRef ="))
+    assertTrue(
+      content.contains(
+        "def members(preset: MaterialFlagPresetRef): Option[Vector[MaterialFlagRef]]"
+      )
+    )
+    assertTrue(content.contains("MaterialFlagsRef.GENERATE_PLATE"))

@@ -95,6 +95,8 @@ no GTCEu runtime imports.
 Goal: report conflicts without changing the ADT. This is the core value of the
 codegen.
 
+Status: Phase 2A symbol metadata complete on 2026-07-16; validator remains.
+
 1. MaterialValidator accumulating ValidatedNec:
    - lexical: opaque type from() checks (path format, ident, RGB, bounds)
    - semantic: fluid keys unique within a material, ingot+gem conflict,
@@ -104,8 +106,12 @@ codegen.
      non-wood pipe+gem conflicts.
    - flag dependency: for each authored flag, required flags and required
      properties must be satisfied by the effective view
-2. Extend symbolgen so flag dependency data and MaterialFlag collection presets
-   are scanned from MaterialFlags.java rather than hardcoded. Examples:
+2. Extend symbolgen so flag dependency data is scanned from MaterialFlags.java,
+   while MaterialFlag collection presets are scanned from the List<MaterialFlag>
+   fields and ordered static initializer in GTMaterials.java. Generate
+   MaterialFlagsRef.requirements(flag) and
+   MaterialFlagPresetsRef.members(preset); do not attach metadata to path-only
+   refs or hardcode dependency tables. Examples:
    GENERATE_GEAR needs GENERATE_PLATE + GENERATE_ROD + DUST;
    GENERATE_FOIL needs GENERATE_PLATE + INGOT.
 3. Tests (highest-value phase):
@@ -118,6 +124,15 @@ codegen.
    - GENERATE_GEAR without GENERATE_PLATE -> flag-dependency error
    - zero properties -> valid (EMPTY is runtime)
    - fluid with duplicate storage key -> error
+
+Phase 2A verification result: IDEA run points for
+MaterialFlagScannerTest, MaterialFlagPresetScannerTest, RefOutputRendererTest,
+GtceuBackendTest, and RefsTest all completed with exit code 0. The
+parameterized GenerateRefs main run point also completed with exit code 0
+against the GTCEu 7.5.3 sources JAR, producing MaterialFlagsRef requirements
+for all scanned flags and flattened STD_METAL/EXT_METAL/EXT2_METAL preset
+members. MaterialFlagMetadataIntegrationTest consumed those generated lookup
+tables and completed with exit code 0.
 
 Verify: run MaterialValidatorTest through IDEA MCP. Assert the returned
 NewMaterialSpec equals the input for every valid case.

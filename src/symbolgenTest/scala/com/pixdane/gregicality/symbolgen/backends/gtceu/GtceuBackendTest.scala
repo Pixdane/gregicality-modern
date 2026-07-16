@@ -13,7 +13,11 @@ class GtceuBackendTest:
         "com/gregtechceu/gtceu/common/data/GTMaterials.java" ->
           """
             |public class GTMaterials {
+            |  public static final List<MaterialFlag> STD_METAL = new ArrayList<>();
             |  public static Material Carbon;
+            |  static {
+            |    STD_METAL.add(GENERATE_PLATE);
+            |  }
             |}
             |""".stripMargin,
         "com/gregtechceu/gtceu/common/data/materials/TestMaterials.java" ->
@@ -46,7 +50,10 @@ class GtceuBackendTest:
         "com/gregtechceu/gtceu/api/data/chemical/material/info/MaterialFlags.java" ->
           """
             |public class MaterialFlags {
-            |  public static final MaterialFlag DUST = null;
+            |  public static final MaterialFlag GENERATE_PLATE =
+            |      new MaterialFlag.Builder("generate_plate")
+            |          .requireProps(PropertyKey.DUST)
+            |          .build();
             |}
             |""".stripMargin
       )
@@ -61,6 +68,7 @@ class GtceuBackendTest:
             "MaterialIconSetsRef.scala",
             "FluidAttributesRef.scala",
             "MaterialFlagsRef.scala",
+            "MaterialFlagPresetsRef.scala",
             "GTRefs.scala"
           ),
           files.map(file => file.relativePath.split('/').last)

@@ -4,6 +4,8 @@ import com.pixdane.gregicality.core.refs.{ResourceId, ScalaSymbolPath}
 import com.pixdane.gregicality.symbolgen.framework.{
   GeneratedScalaFile,
   RefOutputSpec,
+  ScannedMaterialFlagPresetRef,
+  ScannedMaterialFlagRef,
   ScannedMaterialRef,
   ScannedPathRef
 }
@@ -41,6 +43,31 @@ object RefOutputRenderer:
       suffix = ScalaCode.empty
     )
 
+  def generateMaterialFlagFile(
+      target: RefOutputSpec,
+      refs: Vector[ScannedMaterialFlagRef]
+  ): GeneratedScalaFile =
+    val sorted = refs.sortBy(_.name)
+    val namesByPath = sorted.map(ref => ref.path -> ref.name).toMap
+    generateRefFile(
+      target = target,
+      entries =
+        sorted.map(ref => renderNamedPathRef(target, ref.name, ref.path)),
+      suffix = renderFlagRequirements(sorted, namesByPath)
+    )
+
+  def generateMaterialFlagPresetFile(
+      target: RefOutputSpec,
+      refs: Vector[ScannedMaterialFlagPresetRef]
+  ): GeneratedScalaFile =
+    val sorted = refs.sortBy(_.name)
+    generateRefFile(
+      target = target,
+      entries =
+        sorted.map(ref => renderNamedPathRef(target, ref.name, ref.path)),
+      suffix = renderPresetMembers(sorted)
+    )
+
   private def generateRefFile(
       target: RefOutputSpec,
       entries: Vector[ScalaCode],
@@ -76,10 +103,91 @@ object RefOutputRenderer:
   private def renderPathRef(target: RefOutputSpec)(
       ref: ScannedPathRef
   ): ScalaCode =
+    renderNamedPathRef(target, ref.name, ref.path)
+
+  private def renderNamedPathRef(
+      target: RefOutputSpec,
+      name: String,
+      path: ScalaSymbolPath
+  ): ScalaCode =
     ScalaCode.lines(
-      s"  def ${ref.name}: ${target.valueType} =",
-      s"    ${target.valueType}(${renderScalaPath(ref.path)})"
+      s"  def $name: ${target.valueType} =",
+      s"    ${target.valueType}(${renderScalaPath(path)})"
     )
+
+  private def renderFlagRequirements(
+      refs: Vector[ScannedMaterialFlagRef],
+      namesByPath: Map[ScalaSymbolPath, String]
+  ): ScalaCode =
+    val entries = refs.map { ref =>
+      val requiredFlags = renderVector(
+        ref.requiredFlags.map(path =>
+          namesByPath.getOrElse(
+            path,
+            s"MaterialFlagRef(${renderScalaPath(path)})"
+          )
+        )
+      )
+      val requiredProperties = renderVector(
+        ref.requiredProperties.map(path =>
+          s"MaterialPropertyKeyRef(${renderScalaPath(path)})"
+        )
+      )
+
+      s"      ${ref.name} -> MaterialFlagRequirements(" +
+        s"requiredFlags = $requiredFlags, " +
+        s"requiredProperties = $requiredProperties)"
+    }
+
+    ScalaCode.lines(
+      (Vector(
+        "",
+        "  def requirements(flag: MaterialFlagRef): Option[MaterialFlagRequirements] =",
+        "    requirementsByFlag.get(flag)",
+        "",
+        "  private lazy val requirementsByFlag:",
+        "      Map[MaterialFlagRef, MaterialFlagRequirements] ="
+      ) ++ renderMap(entries))*
+    )
+
+  private def renderPresetMembers(
+      refs: Vector[ScannedMaterialFlagPresetRef]
+  ): ScalaCode =
+    val entries = refs.map { ref =>
+      val members = renderVector(
+        ref.members.map(path =>
+          path.parts.lastOption
+            .map(name => s"MaterialFlagsRef.$name")
+            .getOrElse(s"MaterialFlagRef(${renderScalaPath(path)})")
+        )
+      )
+      s"      ${ref.name} -> $members"
+    }
+
+    ScalaCode.lines(
+      (Vector(
+        "",
+        "  def members(preset: MaterialFlagPresetRef): Option[Vector[MaterialFlagRef]] =",
+        "    membersByPreset.get(preset)",
+        "",
+        "  private lazy val membersByPreset:",
+        "      Map[MaterialFlagPresetRef, Vector[MaterialFlagRef]] ="
+      ) ++ renderMap(entries))*
+    )
+
+  private def renderMap(entries: Vector[String]): Vector[String] =
+    if entries.isEmpty then Vector("    Map.empty")
+    else
+      Vector("    Map(") ++
+        entries.zipWithIndex.map { case (entry, index) =>
+          val suffix = if index == entries.size - 1 then "" else ","
+          entry + suffix
+        } ++
+        Vector("    )")
+
+  private def renderVector(entries: Vector[String]): String =
+    if entries.isEmpty then "Vector.empty"
+    else entries.mkString("Vector(", ", ", ")")
 
   private def renderLookupIndex(
       target: RefOutputSpec,
