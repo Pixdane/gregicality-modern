@@ -1,4 +1,4 @@
-package com.pixdane.gregicality.symbolgen.io
+package com.pixdane.gregicality.generator
 
 import java.io.IOException
 import java.nio.charset.StandardCharsets
@@ -9,7 +9,6 @@ import java.nio.file.attribute.FileTime
 import scala.jdk.CollectionConverters.*
 import scala.util.Using
 
-import com.pixdane.gregicality.symbolgen.framework.GeneratedScalaFile
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertSame

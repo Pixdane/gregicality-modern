@@ -3,6 +3,7 @@ package com.pixdane.gregicality.symbolgen.backends.gtceu
 import cats.data.Ior
 import cats.implicits.*
 
+import com.pixdane.gregicality.generator.GeneratedScalaFile
 import com.pixdane.gregicality.symbolgen.backends.gtceu.scan.{
   GtceuScanDiagnostic,
   GtceuScanResult,
@@ -21,7 +22,6 @@ import com.pixdane.gregicality.symbolgen.backends.gtceu.scan.materials.{
   MaterialScanner
 }
 import com.pixdane.gregicality.symbolgen.framework.{
-  GeneratedScalaFile,
   RefOutputSpec,
   ScannedMaterialFlagPresetRef,
   ScannedMaterialFlagRef,
@@ -38,11 +38,11 @@ import com.pixdane.gregicality.symbolgen.render.{
 
 /** The GTCEu symbol generator backend.
   *
-  * Owns the output package, the six symbol jobs (materials, elements, material
-  * icon sets, fluid attributes, material flags, flag presets), and the
-  * aggregate `GTRefs` object that re-exports them. Externally only `generator`
-  * (the [[SymbolGenerator]] registered with the registry) is needed; everything
-  * else is private to this object.
+  * Owns the output package, the seven symbol jobs (materials, elements,
+  * material icon sets, fluid attributes, fluid storage keys, material flags,
+  * flag presets), and the aggregate `GTRefs` object that re-exports them.
+  * Externally only `generator` (the [[SymbolGenerator]] registered with the
+  * registry) is needed; everything else is private to this object.
   */
 object GtceuBackend:
   private val OutputPackage =
@@ -108,6 +108,17 @@ object GtceuBackend:
       memberTypeSimpleName = "FluidAttribute"
     )
 
+  private val fluidStorageKeys =
+    staticPathOnly(
+      id = "fluid-storage-keys",
+      outputObject = "FluidStorageKeysRef",
+      valueType = "FluidStorageKeyRef",
+      sourcePath =
+        "com/gregtechceu/gtceu/api/fluids/store/FluidStorageKeys.java",
+      ownerFqcn = "com.gregtechceu.gtceu.api.fluids.store.FluidStorageKeys",
+      memberTypeSimpleName = "FluidStorageKey"
+    )
+
   private val materialFlags: SymbolJob[
     GtceuScanDiagnostic,
     Vector[ScannedMaterialFlagRef],
@@ -164,6 +175,7 @@ object GtceuBackend:
       gtElements,
       materialIconSets,
       fluidAttributes,
+      fluidStorageKeys,
       materialFlags,
       materialFlagPresets
     )

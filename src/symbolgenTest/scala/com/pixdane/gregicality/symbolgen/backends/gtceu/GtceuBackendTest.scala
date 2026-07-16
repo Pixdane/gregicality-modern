@@ -3,6 +3,7 @@ package com.pixdane.gregicality.symbolgen.backends.gtceu
 import cats.data.Ior
 import com.pixdane.gregicality.symbolgen.framework.SourceArchive
 import org.junit.jupiter.api.Assertions.{assertEquals, fail}
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 class GtceuBackendTest:
@@ -47,6 +48,12 @@ class GtceuBackendTest:
             |  public static final FluidAttribute ACID = null;
             |}
             |""".stripMargin,
+        "com/gregtechceu/gtceu/api/fluids/store/FluidStorageKeys.java" ->
+          """
+            |public class FluidStorageKeys {
+            |  public static final FluidStorageKey LIQUID = null;
+            |}
+            |""".stripMargin,
         "com/gregtechceu/gtceu/api/data/chemical/material/info/MaterialFlags.java" ->
           """
             |public class MaterialFlags {
@@ -67,11 +74,31 @@ class GtceuBackendTest:
             "GTElementsRef.scala",
             "MaterialIconSetsRef.scala",
             "FluidAttributesRef.scala",
+            "FluidStorageKeysRef.scala",
             "MaterialFlagsRef.scala",
             "MaterialFlagPresetsRef.scala",
             "GTRefs.scala"
           ),
           files.map(file => file.relativePath.split('/').last)
+        )
+        val fluidStorageKeys = files
+          .find(_.relativePath.endsWith("/FluidStorageKeysRef.scala"))
+          .getOrElse(fail("expected FluidStorageKeysRef.scala"))
+        assertTrue(
+          fluidStorageKeys.content.contains(
+            "def LIQUID: FluidStorageKeyRef ="
+          )
+        )
+        assertTrue(
+          fluidStorageKeys.content.contains(
+            "\"api\", \"fluids\", \"store\", \"FluidStorageKeys\", \"LIQUID\""
+          )
+        )
+        val aggregate = files
+          .find(_.relativePath.endsWith("/GTRefs.scala"))
+          .getOrElse(fail("expected GTRefs.scala"))
+        assertTrue(
+          aggregate.content.contains("export FluidStorageKeysRef.*")
         )
       case Ior.Left(diagnostics) =>
         fail(

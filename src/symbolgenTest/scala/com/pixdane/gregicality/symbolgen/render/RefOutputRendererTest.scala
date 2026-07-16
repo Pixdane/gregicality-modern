@@ -1,7 +1,7 @@
 package com.pixdane.gregicality.symbolgen.render
 
+import com.pixdane.gregicality.generator.GeneratedScalaFile
 import com.pixdane.gregicality.symbolgen.framework.{
-  GeneratedScalaFile,
   RefOutputSpec,
   ScannedMaterialFlagPresetRef,
   ScannedMaterialFlagRef,

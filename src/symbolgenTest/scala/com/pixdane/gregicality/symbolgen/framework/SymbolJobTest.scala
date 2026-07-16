@@ -1,6 +1,7 @@
 package com.pixdane.gregicality.symbolgen.framework
 
 import cats.data.{Ior, NonEmptyChain}
+import com.pixdane.gregicality.generator.GeneratedScalaFile
 import org.junit.jupiter.api.Assertions.{assertEquals, assertFalse, fail}
 import org.junit.jupiter.api.Test
 

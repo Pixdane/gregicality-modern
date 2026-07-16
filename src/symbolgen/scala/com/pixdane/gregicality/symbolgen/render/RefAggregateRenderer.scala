@@ -1,6 +1,6 @@
 package com.pixdane.gregicality.symbolgen.render
 
-import com.pixdane.gregicality.symbolgen.framework.GeneratedScalaFile
+import com.pixdane.gregicality.generator.GeneratedScalaFile
 
 /** Renders the aggregate `export` object that re-exports every individual ref
   * object produced by a backend, giving consumers a single entry point.

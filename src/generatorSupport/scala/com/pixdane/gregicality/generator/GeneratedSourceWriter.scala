@@ -1,4 +1,4 @@
-package com.pixdane.gregicality.symbolgen.io
+package com.pixdane.gregicality.generator
 
 import java.nio.charset.StandardCharsets
 import java.nio.file.AtomicMoveNotSupportedException
@@ -11,22 +11,21 @@ import java.util.UUID
 import scala.jdk.CollectionConverters.*
 import scala.util.Using
 
-import com.pixdane.gregicality.symbolgen.framework.GeneratedScalaFile
-
-/** Writes generated Scala files to the output directory as a single atomic
-  * swap.
+/** Writes generated Scala files to an owned output directory as one atomic
+  * replacement.
   *
   * Files are first written to a sibling staging directory, then the existing
   * output directory is moved aside to a backup and the staging directory is
-  * moved into its place. If the install fails and a backup exists, the backup
-  * is rolled back. When the output already matches the expected files, the
-  * write is skipped entirely.
+  * moved into its place. If installation fails and a backup exists, the backup
+  * is restored. When the output already matches the requested files, no paths
+  * are rewritten.
   */
 object GeneratedSourceWriter:
+  /** Synchronizes `outputDir` with the complete generated file set. */
   def sync(outputDir: Path, files: Vector[GeneratedScalaFile]): Unit =
     syncWithMover(outputDir, files)(moveDirectory)
 
-  private[symbolgen] def syncWithMover(
+  private[generator] def syncWithMover(
       outputDir: Path,
       files: Vector[GeneratedScalaFile]
   )(move: (Path, Path) => Unit): Unit =

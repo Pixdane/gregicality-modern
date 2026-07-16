@@ -206,13 +206,74 @@ declares that root once.
 
 Goal: generated .scala compiles as part of the mod.
 
-1. runCodegen consumes a directly constructed MaterialSet; DSL loading and Raw
-   conversion are outside this plan.
-2. Add a material source generation task that writes to
-   build/generated/sources/materials/scala/main/.
-3. Generate GCYMaterialsChemistryPolymers + GCYMaterialsGeneratedIndex; wire
-   into compileScala.
-4. Incremental check: unchanged material input does not rewrite generated
+Status: in progress on 2026-07-16.
+
+### Phase 4A - Shared generator support and fluid-key refs
+
+Goal: symbolgen and material codegen share one transactional source writer, and
+material declarations consume a generated ref for GTCEu fluid storage keys.
+
+Status: complete on 2026-07-16.
+
+1. Add a `generatorSupport` source set between `core` and the two generators:
+
+   ```text
+   core -> symbolgen
+   core -> codegen
+   generatorSupport -> symbolgen
+   generatorSupport -> codegen
+   ```
+
+   `generatorSupport` owns generator infrastructure, not domain data. It may
+   perform file I/O; `core` remains a pure ref vocabulary and must not depend on
+   it.
+2. Move `GeneratedScalaFile` and `GeneratedSourceWriter` into
+   `com.pixdane.gregicality.generator`. Both symbolgen and codegen use this
+   shared implementation; do not copy the writer.
+3. Preserve the writer's transactional replacement, rollback behavior, path
+   validation, stale-file cleanup, and unchanged-output no-op semantics. Keep
+   the fault-injection seam package-private to `generator` for tests.
+4. Add a `fluid-storage-keys` static-field job to `GtceuBackend`:
+   - source:
+     `com/gregtechceu/gtceu/api/fluids/store/FluidStorageKeys.java`
+   - owner:
+     `com.gregtechceu.gtceu.api.fluids.store.FluidStorageKeys`
+   - member type: `FluidStorageKey`
+   - output: `FluidStorageKeysRef`
+   - value type: `FluidStorageKeyRef`
+5. Regenerate refs and verify that `GTRefs` exports
+   `FluidStorageKeysRef.*`.
+
+Verify through IDEA MCP run configurations:
+`GeneratedSourceWriterTest`, `GtceuBackendTest`, `RefOutputRendererTest`,
+`RefsTest`, and the parameterized `GenerateRefs` main run point.
+
+Verification result: the IDEA run points for `GeneratedSourceWriterTest` (6
+tests), `GtceuBackendTest`, `RefOutputRendererTest` (6 tests),
+`RefAggregateRendererTest` (2 tests), `RefsTest` (10 tests), and
+`MaterialRendererTest` (3 tests) completed with exit code 0. The parameterized
+`GenerateRefs` main run point completed twice against the GTCEu 7.5.3 sources
+JAR. It generated `FluidStorageKeysRef` with GAS, LIQUID, MOLTEN, and PLASMA,
+and the real `GTRefs` output exports `FluidStorageKeysRef.*`. The second run
+left both generated files' modification times unchanged, exercising the shared
+writer's no-op path on production-sized output.
+
+### Phase 4B - Material generation and main-source wiring
+
+Goal: generate the first real migrated material and compile it as mod source.
+
+1. `runCodegen` consumes a directly constructed `MaterialSet`; DSL loading and
+   Raw conversion are outside this plan.
+2. Write owned sources to
+   `build/generated/sources/materials/scala/main/` with the shared
+   `GeneratedSourceWriter`.
+3. Generate `GCYMaterialsChemistryPolymers` containing the authored Polyimide
+   definition and `GCYMaterialsGeneratedIndex`; wire the generated directory
+   into `main` and `compileScala`.
+4. Replace the temporary hand-written material registration entry with
+   `GCYMaterialsGeneratedIndex.registerAll()` and
+   `GCYMaterialsGeneratedIndex.patchAll()`.
+5. Incremental check: unchanged material input does not rewrite generated
    sources.
 
 Verify: run the generation and compilation Gradle run configurations through

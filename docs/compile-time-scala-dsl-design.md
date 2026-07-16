@@ -855,7 +855,7 @@ job with a new intermediate type means supplying another typed scan,
 preprocess, and render combination; it does not require adding cases to shared
 dispatch code.
 
-The first jobs are:
+The current GTCEu jobs are:
 
 | Job id | Output object | Value type | Scan input |
 | --- | --- | --- | --- |
@@ -863,7 +863,9 @@ The first jobs are:
 | `gt-elements` | `GTElementsRef` | `ElementRef` | static `Element` fields in `GTElements.java` |
 | `material-icon-sets` | `MaterialIconSetsRef` | `MaterialIconRef` | static `MaterialIconSet` fields in `MaterialIconSet.java` |
 | `fluid-attributes` | `FluidAttributesRef` | `FluidAttributeRef` | static `FluidAttribute` fields in `FluidAttributes.java` |
+| `fluid-storage-keys` | `FluidStorageKeysRef` | `FluidStorageKeyRef` | static `FluidStorageKey` fields in `FluidStorageKeys.java` |
 | `material-flags` | `MaterialFlagsRef` | `MaterialFlagRef` | static `MaterialFlag` fields in `MaterialFlags.java` |
+| `material-flag-presets` | `MaterialFlagPresetsRef` | `MaterialFlagPresetRef` | static flag collections initialized in `GTMaterials.java` |
 
 For material refs, the scanner accepts assignments rooted at the exact
 `new Material.Builder(<id factory>.id("..."))` shape. The id-factory owner
@@ -918,14 +920,16 @@ neither ref completion nor path rendering requires.
 
 Flag presets such as `STD_METAL`, `EXT_METAL`, and `EXT2_METAL` live on
 `GTMaterials` and are collections of flags, not single `MaterialFlag` values.
-They are out of scope for the first generated-ref slice. Add them later as a
-separate target and render kind if the DSL needs preset completion.
+They are scanned as their own target, and the generated preset object exposes
+their flattened flag members for validator dependency checks.
 
-Only two places perform I/O:
+Only two symbol-generation boundaries perform I/O:
 
 - `SourceArchiveReader.readJar(sourcesJar)` reads the jar into `SourceArchive`.
-- `GeneratedSourceWriter.sync(outDir, files)` transactionally replaces the
-  generated refs directory through staging and rollback-safe backup paths.
+- shared `generator.GeneratedSourceWriter.sync(outDir, files)` transactionally
+  replaces an owned generated-source directory through staging and
+  rollback-safe backup paths. Symbolgen and material codegen reuse this one
+  implementation.
 
 Everything between those two boundaries should be ordinary data transformation.
 
@@ -934,30 +938,29 @@ exceptions. Archive loading and per-file parsing report a structured
 `SourceArchiveError`; directory scanning is partial-success and accumulates
 errors rather than failing whole on the first bad file.
 
-Current source-set graph:
+Current generator source-set graph:
 
 ```text
-core
-  -> compileCore
-  -> compileSymbolgen
+core ----------------> compileSymbolgen
+  \------------------> compileCodegen
+generatorSupport ----> compileSymbolgen
+  \------------------> compileCodegen
+compileSymbolgen
   -> generateGtRefs
   -> generated refs source dir
   -> compileCodegen
-  -> compileGcyDsl
-  -> generateGcyDslSources
-  -> compileScala
 
-core
-  -> compileCodegen
 ```
 
-`symbolgen` contains the framework contracts, artifact scanners, backend job
-composition, backend registry, I/O mechanisms, and renderers. It depends on
-`core`, Scala 3, JavaParser, and Cats, but not on main, generated refs, or
-`codegen`. Generated source imports
+`generatorSupport` contains the generated-file value and transactional writer.
+It depends only on Scala 3. `symbolgen` contains the framework contracts,
+artifact scanners, backend job composition, backend registry, source-archive
+reader, and renderers. It depends on `core`, `generatorSupport`, Scala 3,
+JavaParser, and Cats, but not on main, generated refs, or `codegen`. Generated
+source imports
 `com.pixdane.gregicality.core.refs`. `codegen` compiles against `core.output`
-and the generated refs source directory; it does not compile against
-`symbolgen.output`.
+and `generatorSupport.output` plus the generated refs source directory; it does
+not compile against `symbolgen.output`.
 
 Generated refs should be available to both:
 

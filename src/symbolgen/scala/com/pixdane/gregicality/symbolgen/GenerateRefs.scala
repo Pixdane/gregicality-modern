@@ -4,12 +4,10 @@ import java.nio.file.Path
 
 import cats.data.Ior
 
+import com.pixdane.gregicality.generator.GeneratedSourceWriter
 import com.pixdane.gregicality.symbolgen.backends.SymbolGenerators
 import com.pixdane.gregicality.symbolgen.framework.Diagnostic
-import com.pixdane.gregicality.symbolgen.io.{
-  GeneratedSourceWriter,
-  SourceArchiveReader
-}
+import com.pixdane.gregicality.symbolgen.io.SourceArchiveReader
 
 /** Command-line entry point for symbol generation.
   *

@@ -1,6 +1,7 @@
 package com.pixdane.gregicality.symbolgen.framework
 
 import cats.data.IorNec
+import com.pixdane.gregicality.generator.GeneratedScalaFile
 
 /** A renderable, user-facing problem surfaced from a backend's scan or
   * preprocessing stage. Implementations describe the kind of symbol pipeline

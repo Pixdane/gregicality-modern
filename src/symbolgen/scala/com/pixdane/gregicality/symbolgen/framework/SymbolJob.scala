@@ -1,6 +1,7 @@
 package com.pixdane.gregicality.symbolgen.framework
 
 import cats.data.IorNec
+import com.pixdane.gregicality.generator.GeneratedScalaFile
 
 /** A single backend pipeline stage composed of scan, preprocess, and render.
   *
