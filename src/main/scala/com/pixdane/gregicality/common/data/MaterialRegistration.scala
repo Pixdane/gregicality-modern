@@ -14,6 +14,17 @@ import com.pixdane.gregicality.materials.dsl.VoltageTier.*
   * inject `GTMaterials` only after the material registry is ready, while unit
   * tests can use null recording placeholders without initializing GTCEu's
   * global material table.
+  *
+  * @param carbon
+  *   GTCEu carbon material used in compositions
+  * @param hydrogen
+  *   GTCEu hydrogen material used in compositions
+  * @param nitrogen
+  *   GTCEu nitrogen material used in compositions and byproducts
+  * @param oxygen
+  *   GTCEu oxygen material used in compositions and ore separation
+  * @param sulfuricAcid
+  *   GTCEu sulfuric-acid material used for Hyperion ore washing
   */
 final case class MaterialRegistrationInputs(
     carbon: Material,
@@ -24,6 +35,11 @@ final case class MaterialRegistrationInputs(
 )
 
 /** Materials created by one invocation of [[MaterialRegistration.registerAll]].
+  *
+  * @param polyimide
+  *   the compact polymer migration slice
+  * @param hyperion
+  *   the broad DSL integration fixture
   */
 final case class RegisteredMaterials(
     polyimide: Material,

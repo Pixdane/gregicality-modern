@@ -148,6 +148,7 @@ private[dsl] trait MaterialBuilderAdapter:
     */
   def buildAndRegister(): Material
 
+/** Namespace for factories that create material-builder adapters. */
 object MaterialAdapterFactory:
 
   /** Default factory backed by real GTCEu `Material.Builder` instances. */

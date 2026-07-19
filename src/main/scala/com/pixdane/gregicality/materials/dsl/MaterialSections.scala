@@ -2,6 +2,7 @@ package com.pixdane.gregicality.materials.dsl
 
 /** A named, distinguishable section of the material authoring DSL. */
 trait SectionMarker:
+  /** Stable display name for this DSL section. */
   def name: String
 
 object SectionMarker:
