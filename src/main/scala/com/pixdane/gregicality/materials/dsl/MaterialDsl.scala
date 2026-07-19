@@ -59,8 +59,63 @@ def langValue(name: String)(using mc: MaterialContext): Unit =
 /** Sets the chemical formula string of the current material. */
 def formula(f: String)(using mc: MaterialContext): Unit = mc.formula(f)
 
+/** Sets the chemical formula with GTCEu's formatting switch. */
+def formula(f: String, withFormatting: Boolean)(using
+    mc: MaterialContext
+): Unit = mc.formula(f, withFormatting)
+
+/** Adds a dust property using GTCEu's no-argument overload. */
+def dust()(using mc: MaterialContext): Unit = mc.dust()
+
+/** Adds a dust property with a harvest level. */
+def dust(level: Int)(using mc: MaterialContext): Unit = mc.dust(level)
+
+/** Adds a dust property with a harvest level and burn time. */
+def dust(level: Int, burnTime: Int)(using mc: MaterialContext): Unit =
+  mc.dust(level, burnTime)
+
+/** Adds a wood property using GTCEu's no-argument overload. */
+def wood()(using mc: MaterialContext): Unit = mc.wood()
+
+/** Adds a wood property with a harvest level. */
+def wood(level: Int)(using mc: MaterialContext): Unit = mc.wood(level)
+
+/** Adds a wood property with a harvest level and burn time. */
+def wood(level: Int, burnTime: Int)(using mc: MaterialContext): Unit =
+  mc.wood(level, burnTime)
+
 /** Marks the current material as an ingot with the given harvest level. */
 def ingot(level: Int)(using mc: MaterialContext): Unit = mc.ingot(level)
+
+/** Adds an ingot property using GTCEu's no-argument overload. */
+def ingot()(using mc: MaterialContext): Unit = mc.ingot()
+
+/** Adds an ingot property with a harvest level and burn time. */
+def ingot(level: Int, burnTime: Int)(using mc: MaterialContext): Unit =
+  mc.ingot(level, burnTime)
+
+/** Adds a gem property using GTCEu's no-argument overload. */
+def gem()(using mc: MaterialContext): Unit = mc.gem()
+
+/** Adds a gem property with a harvest level. */
+def gem(level: Int)(using mc: MaterialContext): Unit = mc.gem(level)
+
+/** Adds a gem property with a harvest level and burn time. */
+def gem(level: Int, burnTime: Int)(using mc: MaterialContext): Unit =
+  mc.gem(level, burnTime)
+
+/** Adds a polymer property using GTCEu's no-argument overload. */
+def polymer()(using mc: MaterialContext): Unit = mc.polymer()
+
+/** Adds a polymer property with a harvest level. */
+def polymer(level: Int)(using mc: MaterialContext): Unit = mc.polymer(level)
+
+/** Adds a polymer property with a harvest level and burn time. */
+def polymer(level: Int, burnTime: Int)(using mc: MaterialContext): Unit =
+  mc.polymer(level, burnTime)
+
+/** Replaces the current material color with GTCEu's component average. */
+def colorAverage(using mc: MaterialContext): Unit = mc.colorAverage()
 
 /** Applies color, icon set, and optional secondary color to the current
   * material.
@@ -147,6 +202,92 @@ def armor(
     protection: Armor
 )(body: ArmorContext ?=> Unit)(using mc: MaterialContext): Unit =
   mc.armor(durability, protection)(body)
+
+/** Sets the ore-smelting target directly on the current material. */
+def oreSmeltInto(material: Material)(using mc: MaterialContext): Unit =
+  mc.oreSmeltInto(material)
+
+/** Sets the polarizing target directly on the current material. */
+def polarizesInto(material: Material)(using mc: MaterialContext): Unit =
+  mc.polarizesInto(material)
+
+/** Sets the arc-smelting target directly on the current material. */
+def arcSmeltInto(material: Material)(using mc: MaterialContext): Unit =
+  mc.arcSmeltInto(material)
+
+/** Sets the macerating target directly on the current material. */
+def macerateInto(material: Material)(using mc: MaterialContext): Unit =
+  mc.macerateInto(material)
+
+/** Sets the ingot-smelting target directly on the current material. */
+def ingotSmeltInto(material: Material)(using mc: MaterialContext): Unit =
+  mc.ingotSmeltInto(material)
+
+/** Applies turbine rotor statistics. */
+def rotor(
+    power: Int,
+    efficiency: Int,
+    damage: Double,
+    durability: Int
+)(using mc: MaterialContext): Unit =
+  mc.rotor(RotorSpec(power, efficiency, damage, durability))
+
+/** Applies cable properties without a critical-temperature override. */
+def cable(
+    voltage: NominalVoltage,
+    amperage: Int,
+    loss: Int,
+    superconducting: Boolean = false
+)(using mc: MaterialContext): Unit =
+  mc.cable(CableSpec(voltage, amperage, loss, superconducting))
+
+/** Applies cable properties with an explicit critical temperature. */
+def cable(
+    voltage: NominalVoltage,
+    amperage: Int,
+    loss: Int,
+    superconducting: Boolean,
+    criticalTemperature: Kelvin
+)(using mc: MaterialContext): Unit =
+  mc.cable(
+    CableSpec(
+      voltage,
+      amperage,
+      loss,
+      superconducting,
+      Some(criticalTemperature)
+    )
+  )
+
+/** Applies fluid-pipe properties.
+  *
+  * Named proof arguments are strongly recommended because the underlying Java
+  * method places four booleans next to each other.
+  */
+def fluidPipe(
+    maxTemperature: Kelvin,
+    throughput: Int,
+    gasProof: Boolean,
+    acidProof: Boolean = false,
+    cryoProof: Boolean = false,
+    plasmaProof: Boolean = false
+)(using mc: MaterialContext): Unit =
+  mc.fluidPipe(
+    FluidPipeSpec(
+      maxTemperature,
+      throughput,
+      gasProof,
+      acidProof,
+      cryoProof,
+      plasmaProof
+    )
+  )
+
+/** Applies item-pipe properties. */
+def itemPipe(priority: Int, stacksPerSecond: Double)(using
+    mc: MaterialContext
+): Unit =
+  mc.itemPipe(ItemPipeSpec(priority, stacksPerSecond))
 
 /** Sets ore multipliers and emissive flag. Last call wins. */
 def settings(

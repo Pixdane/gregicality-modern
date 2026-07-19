@@ -19,7 +19,13 @@ import com.pixdane.gregicality.materials.dsl.VoltageTier.*
 private enum Call:
   case LangValue(s: String)
   case Formula(s: String)
+  case FormattedFormula(s: String, withFormatting: Boolean)
+  case Dust(level: Option[Int], burnTime: Option[Int])
+  case Wood(level: Option[Int], burnTime: Option[Int])
   case Ingot(level: Int)
+  case IngotForm(level: Option[Int], burnTime: Option[Int])
+  case Gem(level: Option[Int], burnTime: Option[Int])
+  case Polymer(level: Option[Int], burnTime: Option[Int])
   case Visual(spec: VisualSpec)
   case Flags(fs: Seq[MaterialFlag])
   case AppendFlags(
@@ -32,6 +38,17 @@ private enum Call:
   case Blast(spec: BlastSpec)
   case Tool(spec: ToolSpec)
   case Armor(spec: ArmorSpec)
+  case OreSmeltInto(material: Material)
+  case PolarizesInto(material: Material)
+  case ArcSmeltInto(material: Material)
+  case MacerateInto(material: Material)
+  case IngotSmeltInto(material: Material)
+  case MaterialBurnTime(value: Int)
+  case ColorAverage
+  case Rotor(spec: RotorSpec)
+  case Cable(spec: CableSpec)
+  case FluidPipe(spec: FluidPipeSpec)
+  case ItemPipe(spec: ItemPipeSpec)
   case BuildAndRegister
 
 /** In-memory [[MaterialBuilderAdapter]] that records every call in order. */
@@ -41,7 +58,19 @@ private final class FakeAdapter(val id: ResourceLocation)
 
   def langValue(s: String): Unit = calls += Call.LangValue(s)
   def formula(s: String): Unit = calls += Call.Formula(s)
+  def formula(s: String, withFormatting: Boolean): Unit =
+    calls += Call.FormattedFormula(s, withFormatting)
+  def dust(level: Option[Int], burnTime: Option[Int]): Unit =
+    calls += Call.Dust(level, burnTime)
+  def wood(level: Option[Int], burnTime: Option[Int]): Unit =
+    calls += Call.Wood(level, burnTime)
   def ingot(level: Int): Unit = calls += Call.Ingot(level)
+  def ingotForm(level: Option[Int], burnTime: Option[Int]): Unit =
+    calls += Call.IngotForm(level, burnTime)
+  def gem(level: Option[Int], burnTime: Option[Int]): Unit =
+    calls += Call.Gem(level, burnTime)
+  def polymer(level: Option[Int], burnTime: Option[Int]): Unit =
+    calls += Call.Polymer(level, burnTime)
   def visual(spec: VisualSpec): Unit = calls += Call.Visual(spec)
   def flags(fs: Seq[MaterialFlag]): Unit = calls += Call.Flags(fs)
   def appendFlags(
@@ -55,6 +84,23 @@ private final class FakeAdapter(val id: ResourceLocation)
   def blast(spec: BlastSpec): Unit = calls += Call.Blast(spec)
   def tool(spec: ToolSpec): Unit = calls += Call.Tool(spec)
   def armor(spec: ArmorSpec): Unit = calls += Call.Armor(spec)
+  def oreSmeltInto(material: Material): Unit =
+    calls += Call.OreSmeltInto(material)
+  def polarizesInto(material: Material): Unit =
+    calls += Call.PolarizesInto(material)
+  def arcSmeltInto(material: Material): Unit =
+    calls += Call.ArcSmeltInto(material)
+  def macerateInto(material: Material): Unit =
+    calls += Call.MacerateInto(material)
+  def ingotSmeltInto(material: Material): Unit =
+    calls += Call.IngotSmeltInto(material)
+  def materialBurnTime(value: Int): Unit =
+    calls += Call.MaterialBurnTime(value)
+  def colorAverage(): Unit = calls += Call.ColorAverage
+  def rotor(spec: RotorSpec): Unit = calls += Call.Rotor(spec)
+  def cable(spec: CableSpec): Unit = calls += Call.Cable(spec)
+  def fluidPipe(spec: FluidPipeSpec): Unit = calls += Call.FluidPipe(spec)
+  def itemPipe(spec: ItemPipeSpec): Unit = calls += Call.ItemPipe(spec)
   def buildAndRegister(): Material =
     calls += Call.BuildAndRegister
     null
@@ -490,6 +536,130 @@ class MaterialContextSuite extends FunSuite:
           )
         ),
         Call.Formula("A"),
+        Call.BuildAndRegister
+      )
+    )
+
+  test("base property overloads and transformations forward in authored order"):
+    val (factory, context) = withContext
+    given RegistryContext = context
+    material("direct_calls"):
+      dust()
+      dust(3)
+      dust(4, 100)
+      wood()
+      wood(2)
+      wood(3, 200)
+      ingot()
+      ingot(4)
+      ingot(5, 300)
+      gem()
+      gem(3)
+      gem(4, 400)
+      polymer()
+      polymer(2)
+      polymer(3, 500)
+      formula("X2Y", withFormatting = true)
+      oreSmeltInto(tungsten)
+      polarizesInto(titanium)
+      arcSmeltInto(carbon)
+      macerateInto(tungsten)
+      ingotSmeltInto(titanium)
+
+    val calls = factory.lastAdapter.get.calls.toList
+    assertEquals(
+      calls,
+      List(
+        Call.Dust(None, None),
+        Call.Dust(Some(3), None),
+        Call.Dust(Some(4), Some(100)),
+        Call.Wood(None, None),
+        Call.Wood(Some(2), None),
+        Call.Wood(Some(3), Some(200)),
+        Call.IngotForm(None, None),
+        Call.Ingot(4),
+        Call.IngotForm(Some(5), Some(300)),
+        Call.Gem(None, None),
+        Call.Gem(Some(3), None),
+        Call.Gem(Some(4), Some(400)),
+        Call.Polymer(None, None),
+        Call.Polymer(Some(2), None),
+        Call.Polymer(Some(3), Some(500)),
+        Call.FormattedFormula("X2Y", withFormatting = true),
+        Call.OreSmeltInto(tungsten),
+        Call.PolarizesInto(titanium),
+        Call.ArcSmeltInto(carbon),
+        Call.MacerateInto(tungsten),
+        Call.IngotSmeltInto(titanium),
+        Call.BuildAndRegister
+      )
+    )
+
+  test("device property calls preserve named values and domain units"):
+    val (factory, context) = withContext
+    given RegistryContext = context
+    material("device_properties"):
+      burnTime(600)
+      colorAverage
+      rotor(power = 140, efficiency = 125, damage = 3.5, durability = 3200)
+      cable(voltage = V(EV), amperage = 4, loss = 2)
+      cable(
+        voltage = V(HV),
+        amperage = 8,
+        loss = 0,
+        superconducting = true,
+        criticalTemperature = 90.K
+      )
+      fluidPipe(
+        maxTemperature = 2800.K,
+        throughput = 100,
+        gasProof = true
+      )
+      fluidPipe(
+        maxTemperature = 12000.K,
+        throughput = 400,
+        gasProof = true,
+        acidProof = true,
+        cryoProof = true,
+        plasmaProof = true
+      )
+      itemPipe(priority = 2, stacksPerSecond = 4.5)
+
+    val calls = factory.lastAdapter.get.calls.toList
+    assertEquals(
+      calls,
+      List(
+        Call.MaterialBurnTime(600),
+        Call.ColorAverage,
+        Call.Rotor(RotorSpec(140, 125, 3.5, 3200)),
+        Call.Cable(CableSpec(V(EV), 4, 2)),
+        Call.Cable(
+          CableSpec(
+            voltage = V(HV),
+            amperage = 8,
+            loss = 0,
+            superconducting = true,
+            criticalTemperature = Some(90.K)
+          )
+        ),
+        Call.FluidPipe(
+          FluidPipeSpec(
+            maxTemperature = 2800.K,
+            throughput = 100,
+            gasProof = true
+          )
+        ),
+        Call.FluidPipe(
+          FluidPipeSpec(
+            maxTemperature = 12000.K,
+            throughput = 400,
+            gasProof = true,
+            acidProof = true,
+            cryoProof = true,
+            plasmaProof = true
+          )
+        ),
+        Call.ItemPipe(ItemPipeSpec(priority = 2, stacksPerSecond = 4.5)),
         Call.BuildAndRegister
       )
     )

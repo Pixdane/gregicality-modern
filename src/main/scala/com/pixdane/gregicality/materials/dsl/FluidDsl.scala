@@ -178,6 +178,10 @@ def viscosity(using fc: FluidContext): FluidViscosityAssigner =
 def burnTime(using fc: FluidContext): Assigner[Int] =
   Assigner(fc.setBurnTime)
 
+/** Sets the material-level burn time on the current material. */
+def burnTime(value: Int)(using mc: MaterialContext): Unit =
+  mc.materialBurnTime(value)
+
 /** Marks the current fluid as having a fluid block. */
 def block(using fc: FluidContext): Unit = fc.setBlock()
 

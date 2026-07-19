@@ -38,8 +38,32 @@ private[dsl] trait MaterialBuilderAdapter:
   /** Sets the chemical formula string. */
   def formula(s: String): Unit
 
+  /** Sets the chemical formula with GTCEu's formatting switch. */
+  def formula(s: String, withFormatting: Boolean): Unit
+
+  /** Applies a dust property overload. */
+  def dust(level: Option[Int], burnTime: Option[Int]): Unit
+
+  /** Applies a wood property overload. */
+  def wood(level: Option[Int], burnTime: Option[Int]): Unit
+
   /** Marks the material as an ingot with the given harvest level. */
   def ingot(level: Int): Unit
+
+  /** Applies an ingot overload not covered by the legacy level-only call. */
+  def ingotForm(level: Option[Int], burnTime: Option[Int]): Unit
+
+  /** Applies a gem property overload. */
+  def gem(level: Option[Int], burnTime: Option[Int]): Unit
+
+  /** Applies a polymer property overload. */
+  def polymer(level: Option[Int], burnTime: Option[Int]): Unit
+
+  /** Sets the material-level burn time. */
+  def materialBurnTime(value: Int): Unit
+
+  /** Replaces the material color with GTCEu's averaged color. */
+  def colorAverage(): Unit
 
   /** Applies color, icon set, and optional secondary color in one shot. */
   def visual(spec: VisualSpec): Unit
@@ -70,6 +94,33 @@ private[dsl] trait MaterialBuilderAdapter:
 
   /** Adds an armor property from an assembled armor configuration. */
   def armor(spec: ArmorSpec): Unit
+
+  /** Sets the ore-smelting target. */
+  def oreSmeltInto(material: Material): Unit
+
+  /** Sets the polarizing target. */
+  def polarizesInto(material: Material): Unit
+
+  /** Sets the arc-smelting target. */
+  def arcSmeltInto(material: Material): Unit
+
+  /** Sets the macerating target. */
+  def macerateInto(material: Material): Unit
+
+  /** Sets the ingot-smelting target. */
+  def ingotSmeltInto(material: Material): Unit
+
+  /** Applies rotor statistics. */
+  def rotor(spec: RotorSpec): Unit
+
+  /** Applies cable properties. */
+  def cable(spec: CableSpec): Unit
+
+  /** Applies fluid-pipe properties. */
+  def fluidPipe(spec: FluidPipeSpec): Unit
+
+  /** Applies item-pipe properties. */
+  def itemPipe(spec: ItemPipeSpec): Unit
 
   /** Finalizes and registers the material; returns the registered `Material`.
     */
@@ -102,8 +153,70 @@ private[dsl] final class GtceuMaterialAdapter(id: ResourceLocation)
   def formula(s: String): Unit =
     builder.formula(s)
 
+  def formula(s: String, withFormatting: Boolean): Unit =
+    builder.formula(s, withFormatting)
+
+  def dust(level: Option[Int], burnTime: Option[Int]): Unit =
+    (level, burnTime) match
+      case (None, None)              => builder.dust()
+      case (Some(harvest), None)     => builder.dust(harvest)
+      case (Some(harvest), Some(bt)) => builder.dust(harvest, bt)
+      case (None, Some(_))           =>
+        throw new IllegalArgumentException(
+          "dust burnTime requires harvest level"
+        )
+
+  def wood(level: Option[Int], burnTime: Option[Int]): Unit =
+    (level, burnTime) match
+      case (None, None)              => builder.wood()
+      case (Some(harvest), None)     => builder.wood(harvest)
+      case (Some(harvest), Some(bt)) => builder.wood(harvest, bt)
+      case (None, Some(_))           =>
+        throw new IllegalArgumentException(
+          "wood burnTime requires harvest level"
+        )
+
   def ingot(level: Int): Unit =
     builder.ingot(level)
+
+  def ingotForm(level: Option[Int], burnTime: Option[Int]): Unit =
+    (level, burnTime) match
+      case (None, None)              => builder.ingot()
+      case (Some(harvest), Some(bt)) => builder.ingot(harvest, bt)
+      case (None, Some(_))           =>
+        throw new IllegalArgumentException(
+          "ingot burnTime requires harvest level"
+        )
+      case (Some(_), None) =>
+        throw new IllegalArgumentException(
+          "use ingot(level) for a level-only call"
+        )
+
+  def gem(level: Option[Int], burnTime: Option[Int]): Unit =
+    (level, burnTime) match
+      case (None, None)              => builder.gem()
+      case (Some(harvest), None)     => builder.gem(harvest)
+      case (Some(harvest), Some(bt)) => builder.gem(harvest, bt)
+      case (None, Some(_))           =>
+        throw new IllegalArgumentException(
+          "gem burnTime requires harvest level"
+        )
+
+  def polymer(level: Option[Int], burnTime: Option[Int]): Unit =
+    (level, burnTime) match
+      case (None, None)              => builder.polymer()
+      case (Some(harvest), None)     => builder.polymer(harvest)
+      case (Some(harvest), Some(bt)) => builder.polymer(harvest, bt)
+      case (None, Some(_))           =>
+        throw new IllegalArgumentException(
+          "polymer burnTime requires harvest level"
+        )
+
+  def materialBurnTime(value: Int): Unit =
+    builder.burnTime(value)
+
+  def colorAverage(): Unit =
+    builder.colorAverage()
 
   def visual(spec: VisualSpec): Unit =
     builder.color(spec.color.value)
@@ -216,6 +329,71 @@ private[dsl] final class GtceuMaterialAdapter(id: ResourceLocation)
     if spec.dyeable then armorBuilder.dyeable(true)
     if spec.unbreakable then armorBuilder.unbreakable()
     builder.armorStats(armorBuilder.build())
+
+  def oreSmeltInto(material: Material): Unit =
+    builder.oreSmeltInto(material)
+
+  def polarizesInto(material: Material): Unit =
+    builder.polarizesInto(material)
+
+  def arcSmeltInto(material: Material): Unit =
+    builder.arcSmeltInto(material)
+
+  def macerateInto(material: Material): Unit =
+    builder.macerateInto(material)
+
+  def ingotSmeltInto(material: Material): Unit =
+    builder.ingotSmeltInto(material)
+
+  def rotor(spec: RotorSpec): Unit =
+    builder.rotorStats(
+      spec.power,
+      spec.efficiency,
+      spec.damage.toFloat,
+      spec.durability
+    )
+
+  def cable(spec: CableSpec): Unit =
+    spec.criticalTemperature match
+      case Some(criticalTemperature) =>
+        builder.cableProperties(
+          spec.voltage.value,
+          spec.amperage,
+          spec.loss,
+          spec.superconducting,
+          criticalTemperature.value
+        )
+      case None if spec.superconducting =>
+        builder.cableProperties(
+          spec.voltage.value,
+          spec.amperage,
+          spec.loss,
+          true
+        )
+      case None =>
+        builder.cableProperties(spec.voltage.value, spec.amperage, spec.loss)
+
+  def fluidPipe(spec: FluidPipeSpec): Unit =
+    val hasAdvancedProof =
+      spec.acidProof || spec.cryoProof || spec.plasmaProof
+    if hasAdvancedProof then
+      builder.fluidPipeProperties(
+        spec.maxTemperature.value,
+        spec.throughput,
+        spec.gasProof,
+        spec.acidProof,
+        spec.cryoProof,
+        spec.plasmaProof
+      )
+    else
+      builder.fluidPipeProperties(
+        spec.maxTemperature.value,
+        spec.throughput,
+        spec.gasProof
+      )
+
+  def itemPipe(spec: ItemPipeSpec): Unit =
+    builder.itemPipeProperties(spec.priority, spec.stacksPerSecond.toFloat)
 
   def buildAndRegister(): Material =
     builder.buildAndRegister()

@@ -153,11 +153,13 @@ The following remain direct calls because GTCEu exposes them directly on
 
 - base properties;
 - `langValue` and `formula`;
+- `dust`, `wood`, `ingot`, `gem`, and `polymer` overloads;
+- `burnTime` and `colorAverage`;
 - `visual`;
 - flags and components;
-- ingot transformations;
-- rotor and wire properties;
-- item/fluid pipes;
+- `oreSmeltInto`, `polarizesInto`, `arcSmeltInto`, `macerateInto`, and
+  `ingotSmeltInto`;
+- `rotor`, `cable`, `fluidPipe`, and `itemPipe` properties;
 - hazards and tags.
 
 ## Runtime Invariants

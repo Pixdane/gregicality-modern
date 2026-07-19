@@ -67,8 +67,65 @@ private[dsl] final class MaterialContext(
   /** Sets the chemical formula string. */
   def formula(f: String): Unit = adapter.formula(f)
 
+  /** Sets the chemical formula with GTCEu's formatting switch. */
+  def formula(f: String, withFormatting: Boolean): Unit =
+    adapter.formula(f, withFormatting)
+
+  /** Adds a dust property using one of GTCEu's overload shapes. */
+  def dust(): Unit = adapter.dust(None, None)
+
+  /** Adds a dust property with a harvest level. */
+  def dust(level: Int): Unit = adapter.dust(Some(level), None)
+
+  /** Adds a dust property with a harvest level and burn time. */
+  def dust(level: Int, burnTime: Int): Unit =
+    adapter.dust(Some(level), Some(burnTime))
+
+  /** Adds a wood property using one of GTCEu's overload shapes. */
+  def wood(): Unit = adapter.wood(None, None)
+
+  /** Adds a wood property with a harvest level. */
+  def wood(level: Int): Unit = adapter.wood(Some(level), None)
+
+  /** Adds a wood property with a harvest level and burn time. */
+  def wood(level: Int, burnTime: Int): Unit =
+    adapter.wood(Some(level), Some(burnTime))
+
   /** Marks the material as an ingot with the given harvest level. */
   def ingot(level: Int): Unit = adapter.ingot(level)
+
+  /** Adds an ingot property using the no-argument GTCEu overload. */
+  def ingot(): Unit = adapter.ingotForm(None, None)
+
+  /** Adds an ingot property with a harvest level and burn time. */
+  def ingot(level: Int, burnTime: Int): Unit =
+    adapter.ingotForm(Some(level), Some(burnTime))
+
+  /** Adds a gem property using one of GTCEu's overload shapes. */
+  def gem(): Unit = adapter.gem(None, None)
+
+  /** Adds a gem property with a harvest level. */
+  def gem(level: Int): Unit = adapter.gem(Some(level), None)
+
+  /** Adds a gem property with a harvest level and burn time. */
+  def gem(level: Int, burnTime: Int): Unit =
+    adapter.gem(Some(level), Some(burnTime))
+
+  /** Adds a polymer property using one of GTCEu's overload shapes. */
+  def polymer(): Unit = adapter.polymer(None, None)
+
+  /** Adds a polymer property with a harvest level. */
+  def polymer(level: Int): Unit = adapter.polymer(Some(level), None)
+
+  /** Adds a polymer property with a harvest level and burn time. */
+  def polymer(level: Int, burnTime: Int): Unit =
+    adapter.polymer(Some(level), Some(burnTime))
+
+  /** Sets the material-level burn time. */
+  def materialBurnTime(value: Int): Unit = adapter.materialBurnTime(value)
+
+  /** Replaces the material color with GTCEu's component average. */
+  def colorAverage(): Unit = adapter.colorAverage()
 
   /** Applies color, icon set, and optional secondary color. */
   def visual(spec: VisualSpec): Unit = adapter.visual(spec)
@@ -166,6 +223,34 @@ private[dsl] final class MaterialContext(
     given ArmorContext = ctx
     body(using ctx)
     adapter.armor(ctx.toSpec)
+
+  /** Sets the ore-smelting target directly on the material builder. */
+  def oreSmeltInto(material: Material): Unit = adapter.oreSmeltInto(material)
+
+  /** Sets the polarizing target directly on the material builder. */
+  def polarizesInto(material: Material): Unit = adapter.polarizesInto(material)
+
+  /** Sets the arc-smelting target directly on the material builder. */
+  def arcSmeltInto(material: Material): Unit = adapter.arcSmeltInto(material)
+
+  /** Sets the macerating target directly on the material builder. */
+  def macerateInto(material: Material): Unit = adapter.macerateInto(material)
+
+  /** Sets the ingot-smelting target directly on the material builder. */
+  def ingotSmeltInto(material: Material): Unit =
+    adapter.ingotSmeltInto(material)
+
+  /** Applies turbine rotor statistics. */
+  def rotor(spec: RotorSpec): Unit = adapter.rotor(spec)
+
+  /** Applies cable properties. */
+  def cable(spec: CableSpec): Unit = adapter.cable(spec)
+
+  /** Applies fluid-pipe properties. */
+  def fluidPipe(spec: FluidPipeSpec): Unit = adapter.fluidPipe(spec)
+
+  /** Applies item-pipe properties. */
+  def itemPipe(spec: ItemPipeSpec): Unit = adapter.itemPipe(spec)
 
   /** Runs one fluid block and submits its assembled specification once. */
   private[dsl] def configureFluid(
