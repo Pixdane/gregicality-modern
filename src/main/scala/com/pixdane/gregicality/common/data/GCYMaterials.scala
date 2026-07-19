@@ -7,26 +7,24 @@ import com.gregtechceu.gtceu.api.data.chemical.material.event.{
   PostMaterialEvent
 }
 import com.pixdane.gregicality.Gregicality
-import com.pixdane.gregicality.common.data.materials.GCYMaterialsGeneratedIndex
-import net.minecraftforge.eventbus.api.{IEventBus, SubscribeEvent}
+import net.minecraftforge.eventbus.api.IEventBus
 import org.apache.logging.log4j.Logger
 
-private class GCYMaterials(private val logger: Logger):
-  @SubscribeEvent
-  def addMaterialRegistries(event: MaterialRegistryEvent): Unit =
+object GCYMaterials:
+  def init()(using logger: Logger, modEventBus: IEventBus): Unit =
+    modEventBus.addListener(addMaterialRegistries)
+    modEventBus.addListener(addMaterials)
+    modEventBus.addListener(modifyMaterials)
+    modEventBus.addListener(registerMaterials)
+
+  private def addMaterialRegistries(event: MaterialRegistryEvent): Unit =
     GTCEuAPI.materialManager.createRegistry(Gregicality.MOD_ID)
 
-  @SubscribeEvent
-  def addMaterials(event: MaterialEvent): Unit =
-    GCYMaterials.registerMaterials(event)
+  private def addMaterials(event: MaterialEvent): Unit =
+    registerMaterials(event)
 
-  @SubscribeEvent
-  def modifyMaterials(event: PostMaterialEvent): Unit =
-    GCYMaterialsGeneratedIndex.patchAll()
-
-object GCYMaterials:
-  def init(logger: Logger, modEventBus: IEventBus): Unit =
-    modEventBus.register(new GCYMaterials(logger))
+  private def modifyMaterials(event: PostMaterialEvent): Unit =
+    ()
 
   private def registerMaterials(event: MaterialEvent): Unit =
-    GCYMaterialsGeneratedIndex.registerAll()
+    ()
