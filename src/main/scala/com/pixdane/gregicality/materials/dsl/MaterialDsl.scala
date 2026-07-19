@@ -2,7 +2,12 @@ package com.pixdane.gregicality.materials.dsl
 
 import com.gregtechceu.gtceu.api.data.chemical.material.Material
 import com.gregtechceu.gtceu.api.data.chemical.material.info.MaterialFlag
+import com.gregtechceu.gtceu.api.data.chemical.material.properties.HazardProperty.HazardTrigger
+import com.gregtechceu.gtceu.api.data.medicalcondition.MedicalCondition
+import com.gregtechceu.gtceu.api.data.tag.TagPrefix
 import net.minecraft.resources.ResourceLocation
+import net.minecraft.tags.TagKey
+import net.minecraft.world.item.Item
 
 /** Top-level material authoring DSL.
   *
@@ -288,6 +293,52 @@ def itemPipe(priority: Int, stacksPerSecond: Double)(using
     mc: MaterialContext
 ): Unit =
   mc.itemPipe(ItemPipeSpec(priority, stacksPerSecond))
+
+/** Marks tag prefixes as ignored for the current material by varargs. */
+def ignoredTagPrefixes(prefixes: TagPrefix*)(using mc: MaterialContext): Unit =
+  mc.ignoredTagPrefixes(prefixes*)
+
+/** Marks tag prefixes as ignored from any Scala collection. */
+def ignoredTagPrefixes(prefixes: Iterable[TagPrefix])(using
+    mc: MaterialContext
+): Unit =
+  mc.ignoredTagPrefixes(prefixes)
+
+/** Adds custom item tags to the current material by varargs. */
+def customTags(tags: TagKey[Item]*)(using mc: MaterialContext): Unit =
+  mc.customTags(tags*)
+
+/** Adds custom item tags from any Scala collection. */
+def customTags(tags: Iterable[TagKey[Item]])(using mc: MaterialContext): Unit =
+  mc.customTags(tags)
+
+/** Removes any hazard property from the current material. */
+def removeHazard(using mc: MaterialContext): Unit =
+  mc.removeHazard()
+
+/** Applies GTCEu's standard radioactive hazard. */
+def radioactiveHazard(multiplier: Double)(using mc: MaterialContext): Unit =
+  mc.radioactiveHazard(multiplier)
+
+/** Applies a complete hazard configuration.
+  *
+  * The named fields intentionally collapse GTCEu's several hazard overloads
+  * into one stable Scala surface.
+  */
+def hazard(
+    trigger: HazardTrigger,
+    condition: MedicalCondition,
+    progressionMultiplier: Double = 1.0,
+    applyToDerivatives: Boolean = false
+)(using mc: MaterialContext): Unit =
+  mc.hazard(
+    HazardSpec(
+      trigger,
+      condition,
+      progressionMultiplier,
+      applyToDerivatives
+    )
+  )
 
 /** Sets ore multipliers and emissive flag. Last call wins. */
 def settings(

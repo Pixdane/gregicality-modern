@@ -2,7 +2,12 @@ package com.pixdane.gregicality.materials.dsl
 
 import com.gregtechceu.gtceu.api.data.chemical.material.Material
 import com.gregtechceu.gtceu.api.data.chemical.material.info.MaterialFlag
+import com.gregtechceu.gtceu.api.data.chemical.material.properties.HazardProperty.HazardTrigger
+import com.gregtechceu.gtceu.api.data.medicalcondition.MedicalCondition
+import com.gregtechceu.gtceu.api.data.tag.TagPrefix
 import net.minecraft.resources.ResourceLocation
+import net.minecraft.tags.TagKey
+import net.minecraft.world.item.Item
 
 /** Namespace and adapter factory in scope while authoring materials.
   *
@@ -251,6 +256,34 @@ private[dsl] final class MaterialContext(
 
   /** Applies item-pipe properties. */
   def itemPipe(spec: ItemPipeSpec): Unit = adapter.itemPipe(spec)
+
+  /** Marks tag prefixes as ignored for the current material. */
+  def ignoredTagPrefixes(prefixes: TagPrefix*): Unit =
+    adapter.ignoredTagPrefixes(prefixes)
+
+  /** Marks tag prefixes as ignored from any Scala collection. */
+  def ignoredTagPrefixes(prefixes: Iterable[TagPrefix]): Unit =
+    adapter.ignoredTagPrefixes(prefixes.toSeq)
+
+  /** Adds custom item tags by varargs. */
+  def customTags(tags: TagKey[Item]*): Unit =
+    adapter.customTags(tags)
+
+  /** Adds custom item tags from any Scala collection. */
+  def customTags(tags: Iterable[TagKey[Item]]): Unit =
+    adapter.customTags(tags.toSeq)
+
+  /** Removes any hazard property from the current material. */
+  def removeHazard(): Unit =
+    adapter.removeHazard()
+
+  /** Applies GTCEu's standard radioactive hazard. */
+  def radioactiveHazard(multiplier: Double): Unit =
+    adapter.radioactiveHazard(multiplier)
+
+  /** Applies a complete hazard configuration. */
+  def hazard(spec: HazardSpec): Unit =
+    adapter.hazard(spec)
 
   /** Runs one fluid block and submits its assembled specification once. */
   private[dsl] def configureFluid(

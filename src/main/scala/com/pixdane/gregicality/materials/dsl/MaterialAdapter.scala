@@ -7,10 +7,15 @@ import com.gregtechceu.gtceu.api.data.chemical.material.properties.{
   ToolProperty
 }
 import com.gregtechceu.gtceu.api.data.chemical.material.stack.MaterialStack
+import com.gregtechceu.gtceu.api.data.chemical.material.properties.HazardProperty.HazardTrigger
+import com.gregtechceu.gtceu.api.data.medicalcondition.MedicalCondition
+import com.gregtechceu.gtceu.api.data.tag.TagPrefix
 import com.gregtechceu.gtceu.api.fluids.FluidBuilder
 import com.gregtechceu.gtceu.api.fluids.FluidState
 import com.gregtechceu.gtceu.api.fluids.store.FluidStorageKeys
 import net.minecraft.resources.ResourceLocation
+import net.minecraft.tags.TagKey
+import net.minecraft.world.item.Item
 
 /** Factory for a per-material adapter.
   *
@@ -121,6 +126,21 @@ private[dsl] trait MaterialBuilderAdapter:
 
   /** Applies item-pipe properties. */
   def itemPipe(spec: ItemPipeSpec): Unit
+
+  /** Marks tag prefixes as ignored for this material. */
+  def ignoredTagPrefixes(prefixes: Seq[TagPrefix]): Unit
+
+  /** Adds custom item tags to this material. */
+  def customTags(tags: Seq[TagKey[Item]]): Unit
+
+  /** Removes any hazard property from this material. */
+  def removeHazard(): Unit
+
+  /** Applies GTCEu's standard radioactive hazard. */
+  def radioactiveHazard(multiplier: Double): Unit
+
+  /** Applies a complete hazard configuration. */
+  def hazard(spec: HazardSpec): Unit
 
   /** Finalizes and registers the material; returns the registered `Material`.
     */
@@ -394,6 +414,26 @@ private[dsl] final class GtceuMaterialAdapter(id: ResourceLocation)
 
   def itemPipe(spec: ItemPipeSpec): Unit =
     builder.itemPipeProperties(spec.priority, spec.stacksPerSecond.toFloat)
+
+  def ignoredTagPrefixes(prefixes: Seq[TagPrefix]): Unit =
+    if prefixes.nonEmpty then builder.ignoredTagPrefixes(prefixes*)
+
+  def customTags(tags: Seq[TagKey[Item]]): Unit =
+    tags.foreach(tag => builder.customTags(tag))
+
+  def removeHazard(): Unit =
+    builder.removeHazard()
+
+  def radioactiveHazard(multiplier: Double): Unit =
+    builder.radioactiveHazard(multiplier.toFloat)
+
+  def hazard(spec: HazardSpec): Unit =
+    builder.hazard(
+      spec.trigger,
+      spec.condition,
+      spec.progressionMultiplier.toFloat,
+      spec.applyToDerivatives
+    )
 
   def buildAndRegister(): Material =
     builder.buildAndRegister()

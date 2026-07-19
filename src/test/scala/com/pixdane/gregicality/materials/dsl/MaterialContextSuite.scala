@@ -4,9 +4,14 @@ import com.gregtechceu.gtceu.api.data.chemical.material.Material
 import com.gregtechceu.gtceu.api.data.chemical.material.info.MaterialFlag
 import com.gregtechceu.gtceu.api.data.chemical.material.info.MaterialIconSet
 import com.gregtechceu.gtceu.api.data.chemical.material.properties.BlastProperty.GasTier
+import com.gregtechceu.gtceu.api.data.chemical.material.properties.HazardProperty.HazardTrigger
+import com.gregtechceu.gtceu.api.data.medicalcondition.MedicalCondition
+import com.gregtechceu.gtceu.api.data.tag.TagPrefix
 import com.gregtechceu.gtceu.api.fluids.attribute.FluidAttribute
 import com.gregtechceu.gtceu.api.item.tool.GTToolType
 import net.minecraft.resources.ResourceLocation
+import net.minecraft.tags.TagKey
+import net.minecraft.world.item.Item
 import munit.FunSuite
 
 import scala.collection.mutable.ListBuffer
@@ -49,6 +54,11 @@ private enum Call:
   case Cable(spec: CableSpec)
   case FluidPipe(spec: FluidPipeSpec)
   case ItemPipe(spec: ItemPipeSpec)
+  case IgnoredTagPrefixes(prefixes: Seq[TagPrefix])
+  case CustomTags(tags: Seq[TagKey[Item]])
+  case RemoveHazard
+  case RadioactiveHazard(multiplier: Double)
+  case Hazard(spec: HazardSpec)
   case BuildAndRegister
 
 /** In-memory [[MaterialBuilderAdapter]] that records every call in order. */
@@ -101,6 +111,14 @@ private final class FakeAdapter(val id: ResourceLocation)
   def cable(spec: CableSpec): Unit = calls += Call.Cable(spec)
   def fluidPipe(spec: FluidPipeSpec): Unit = calls += Call.FluidPipe(spec)
   def itemPipe(spec: ItemPipeSpec): Unit = calls += Call.ItemPipe(spec)
+  def ignoredTagPrefixes(prefixes: Seq[TagPrefix]): Unit =
+    calls += Call.IgnoredTagPrefixes(prefixes)
+  def customTags(tags: Seq[TagKey[Item]]): Unit =
+    calls += Call.CustomTags(tags)
+  def removeHazard(): Unit = calls += Call.RemoveHazard
+  def radioactiveHazard(multiplier: Double): Unit =
+    calls += Call.RadioactiveHazard(multiplier)
+  def hazard(spec: HazardSpec): Unit = calls += Call.Hazard(spec)
   def buildAndRegister(): Material =
     calls += Call.BuildAndRegister
     null
@@ -158,6 +176,12 @@ class MaterialContextSuite extends FunSuite:
   private val toolTypeA: GTToolType = null
   private val toolTypeB: GTToolType = null
   private val toolTypeC: GTToolType = null
+  private val prefixA: TagPrefix = null
+  private val prefixB: TagPrefix = null
+  private val itemTagA: TagKey[Item] = null
+  private val itemTagB: TagKey[Item] = null
+  private val hazardTrigger: HazardTrigger = null
+  private val medicalCondition: MedicalCondition = null
 
   test("material creates adapter with namespaced id"):
     val (factory, context) = withContext
@@ -660,6 +684,52 @@ class MaterialContextSuite extends FunSuite:
           )
         ),
         Call.ItemPipe(ItemPipeSpec(priority = 2, stacksPerSecond = 4.5)),
+        Call.BuildAndRegister
+      )
+    )
+
+  test("tag and hazard calls keep collections and named defaults"):
+    val (factory, context) = withContext
+    given RegistryContext = context
+    material("hazardous"):
+      ignoredTagPrefixes(prefixA, prefixB)
+      ignoredTagPrefixes(List(prefixB))
+      customTags(itemTagA, itemTagB)
+      customTags(List(itemTagB))
+      removeHazard
+      radioactiveHazard(2.5)
+      hazard(hazardTrigger, medicalCondition)
+      hazard(
+        hazardTrigger,
+        medicalCondition,
+        progressionMultiplier = 1.5,
+        applyToDerivatives = true
+      )
+
+    val calls = factory.lastAdapter.get.calls.toList
+    assertEquals(
+      calls,
+      List(
+        Call.IgnoredTagPrefixes(Seq(prefixA, prefixB)),
+        Call.IgnoredTagPrefixes(Seq(prefixB)),
+        Call.CustomTags(Seq(itemTagA, itemTagB)),
+        Call.CustomTags(Seq(itemTagB)),
+        Call.RemoveHazard,
+        Call.RadioactiveHazard(2.5),
+        Call.Hazard(
+          HazardSpec(
+            trigger = hazardTrigger,
+            condition = medicalCondition
+          )
+        ),
+        Call.Hazard(
+          HazardSpec(
+            trigger = hazardTrigger,
+            condition = medicalCondition,
+            progressionMultiplier = 1.5,
+            applyToDerivatives = true
+          )
+        ),
         Call.BuildAndRegister
       )
     )

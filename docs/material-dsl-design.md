@@ -73,6 +73,15 @@ material("hyperion"):
     dyeable
 
   rotor(power = 140, efficiency = 125, damage = 3.5, durability = 3200)
+
+  ignoredTagPrefixes(TagPrefix.dust, TagPrefix.dustSmall)
+  customTags(MyMaterialTags.HYPERION)
+  hazard(
+    HazardTrigger.INHALATION,
+    GTMedicalConditions.SILICOSIS,
+    progressionMultiplier = 1.5,
+    applyToDerivatives = true
+  )
 ```
 
 The syntax rules are deliberately small:
@@ -86,6 +95,7 @@ The syntax rules are deliberately small:
 | `fluid(FluidKind.Molten):` | Enter a fluid block with an explicit storage kind |
 | `tool(...):`, `armor(...):` | Enter a property builder block with required constructor values |
 | `feature` | A no-argument boolean feature |
+| `hazard(..., progressionMultiplier = ..., applyToDerivatives = ...)` | One named form for GTCEu's hazard overload family |
 | `value := x` | Set one value or replace a complete collection |
 | `values += x` | Append one collection element |
 | `Material * amount` | Construct a pure material/amount value |
@@ -160,7 +170,8 @@ The following remain direct calls because GTCEu exposes them directly on
 - `oreSmeltInto`, `polarizesInto`, `arcSmeltInto`, `macerateInto`, and
   `ingotSmeltInto`;
 - `rotor`, `cable`, `fluidPipe`, and `itemPipe` properties;
-- hazards and tags.
+- `ignoredTagPrefixes` and `customTags`;
+- `removeHazard`, `radioactiveHazard`, and `hazard`.
 
 ## Runtime Invariants
 
@@ -193,6 +204,15 @@ The following remain direct calls because GTCEu exposes them directly on
   appends after the last replacement. A replacement clears earlier appends.
 - `Armor(...)` fixes the protection order to helmet, chestplate, leggings,
   boots before the adapter creates GTCEu's required `int[]`.
+- `ignoredTagPrefixes` and `customTags` accept either short varargs or reusable
+  Scala collections. Empty collections are no-ops; non-empty values preserve
+  authoring order.
+- `hazard` represents all GTCEu hazard overloads with one `HazardSpec` shape.
+  Its named defaults match GTCEu (`1.0`, `false`), and the adapter always calls
+  the four-argument Java overload after narrowing the multiplier to `float`.
+- `removeHazard`, `radioactiveHazard`, and `hazard` retain GTCEu's
+  last-write-wins hazard-property behavior. The DSL does not reorder or reject
+  repeated hazard calls.
 - GTCEu call order is preserved as authored; the DSL does not reorder calls.
 
 ## Macro Boundary
