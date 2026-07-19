@@ -15,16 +15,15 @@ object GCYMaterials:
     modEventBus.addListener(addMaterialRegistries)
     modEventBus.addListener(addMaterials)
     modEventBus.addListener(modifyMaterials)
-    modEventBus.addListener(registerMaterials)
 
   private def addMaterialRegistries(event: MaterialRegistryEvent): Unit =
     GTCEuAPI.materialManager.createRegistry(Gregicality.MOD_ID)
 
   private def addMaterials(event: MaterialEvent): Unit =
-    registerMaterials(event)
+    registerMaterials()
 
   private def modifyMaterials(event: PostMaterialEvent): Unit =
     ()
 
-  private def registerMaterials(event: MaterialEvent): Unit =
+  private def registerMaterials(): Unit =
     ()
