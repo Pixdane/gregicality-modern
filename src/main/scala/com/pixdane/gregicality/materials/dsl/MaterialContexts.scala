@@ -135,6 +135,38 @@ private[dsl] final class MaterialContext(
     body(using ctx)
     adapter.blast(ctx.toSpec)
 
+  /** Opens a tool-property configuration block.
+    *
+    * The four entry parameters map directly to
+    * `ToolProperty.Builder.of(speed, damage, durability, level)`. Optional
+    * settings are accumulated in [[ToolContext]] and submitted once when the
+    * body returns normally.
+    */
+  def tool(
+      speed: Double,
+      damage: Double,
+      durability: Int,
+      level: Int
+  )(body: ToolContext ?=> Unit): Unit =
+    val ctx = new ToolContext(speed, damage, durability, level)
+    given ToolContext = ctx
+    body(using ctx)
+    adapter.tool(ctx.toSpec)
+
+  /** Opens an armor-property configuration block.
+    *
+    * `protection` guarantees the four values required by
+    * `ArmorProperty.Builder.of`, ordered helmet, chestplate, leggings, boots.
+    */
+  def armor(
+      durability: Int,
+      protection: Armor
+  )(body: ArmorContext ?=> Unit): Unit =
+    val ctx = new ArmorContext(durability, protection)
+    given ArmorContext = ctx
+    body(using ctx)
+    adapter.armor(ctx.toSpec)
+
   /** Runs one fluid block and submits its assembled specification once. */
   private[dsl] def configureFluid(
       kind: FluidKind,

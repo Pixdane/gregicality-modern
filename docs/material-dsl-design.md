@@ -84,6 +84,7 @@ The syntax rules are deliberately small:
 | `visual(...)` | Compact multi-value visual configuration |
 | `key:` | Enter a nested DSL context |
 | `fluid(FluidKind.Molten):` | Enter a fluid block with an explicit storage kind |
+| `tool(...):`, `armor(...):` | Enter a property builder block with required constructor values |
 | `feature` | A no-argument boolean feature |
 | `value := x` | Set one value or replace a complete collection |
 | `values += x` | Append one collection element |
@@ -120,8 +121,8 @@ Only configurations with a real nested GTCEu builder use a block:
 - `fluid(FluidKind):` when the storage kind must be explicit, including
   full liquid and molten configuration;
 - `blast` with `BlastProperty.Builder`;
-- `tool` with `ToolProperty.Builder`;
-- `armor` with `ArmorProperty.Builder`.
+- `tool(...)` with `ToolProperty.Builder`;
+- `armor(...)` with `ArmorProperty.Builder`.
 
 `FluidBuilder` is a top-level GTCEu type; there is no
 `FluidProperty.Builder`. `ToolProperty.Builder` and `ArmorProperty.Builder`
@@ -184,6 +185,12 @@ The following remain direct calls because GTCEu exposes them directly on
   block after the block completes.
 - `blast:` combines its separately-authored temperature and gas tier into the
   single `BlastProperty.Builder.temp(int, GasTier)` call required by GTCEu.
+- `tool(...)` and `armor(...)` receive the values that GTCEu requires at
+  builder construction time, then collect optional settings until block exit.
+- `types := List(...)` replaces the tool type collection; `types += value`
+  appends after the last replacement. A replacement clears earlier appends.
+- `Armor(...)` fixes the protection order to helmet, chestplate, leggings,
+  boots before the adapter creates GTCEu's required `int[]`.
 - GTCEu call order is preserved as authored; the DSL does not reorder calls.
 
 ## Macro Boundary

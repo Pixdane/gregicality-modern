@@ -2,6 +2,10 @@ package com.pixdane.gregicality.materials.dsl
 
 import com.gregtechceu.gtceu.api.data.chemical.material.Material
 import com.gregtechceu.gtceu.api.data.chemical.material.info.MaterialFlag
+import com.gregtechceu.gtceu.api.data.chemical.material.properties.{
+  ArmorProperty,
+  ToolProperty
+}
 import com.gregtechceu.gtceu.api.data.chemical.material.stack.MaterialStack
 import com.gregtechceu.gtceu.api.fluids.FluidBuilder
 import com.gregtechceu.gtceu.api.fluids.FluidState
@@ -60,6 +64,12 @@ private[dsl] trait MaterialBuilderAdapter:
 
   /** Adds a blast property from an assembled blast configuration. */
   def blast(spec: BlastSpec): Unit
+
+  /** Adds a tool property from an assembled tool configuration. */
+  def tool(spec: ToolSpec): Unit
+
+  /** Adds an armor property from an assembled armor configuration. */
+  def armor(spec: ArmorSpec): Unit
 
   /** Finalizes and registers the material; returns the registered `Material`.
     */
@@ -176,6 +186,36 @@ private[dsl] final class GtceuMaterialAdapter(id: ResourceLocation)
           blastBuilder.vacuumStats(eut.value)
 
       blastBuilder
+
+  def tool(spec: ToolSpec): Unit =
+    val toolBuilder = ToolProperty.Builder.of(
+      spec.speed.toFloat,
+      spec.damage.toFloat,
+      spec.durability,
+      spec.level
+    )
+    spec.types.foreach(toolTypes => toolBuilder.types(toolTypes*))
+    if spec.additionalTypes.nonEmpty then
+      toolBuilder.addTypes(spec.additionalTypes*)
+    spec.enchantability.foreach(toolBuilder.enchantability)
+    spec.attackSpeed.foreach(speed => toolBuilder.attackSpeed(speed.toFloat))
+    spec.durabilityMultiplier.foreach(toolBuilder.durabilityMultiplier)
+    if spec.magnetic then toolBuilder.magnetic()
+    if spec.unbreakable then toolBuilder.unbreakable()
+    if spec.ignoreCraftingTools then toolBuilder.ignoreCraftingTools()
+    builder.toolStats(toolBuilder.build())
+
+  def armor(spec: ArmorSpec): Unit =
+    val armorBuilder =
+      ArmorProperty.Builder.of(spec.durability, spec.protection.toArray)
+    spec.enchantability.foreach(armorBuilder.enchantability)
+    spec.toughness.foreach(value => armorBuilder.toughness(value.toFloat))
+    spec.knockbackResistance.foreach(value =>
+      armorBuilder.knockbackResistance(value.toFloat)
+    )
+    if spec.dyeable then armorBuilder.dyeable(true)
+    if spec.unbreakable then armorBuilder.unbreakable()
+    builder.armorStats(armorBuilder.build())
 
   def buildAndRegister(): Material =
     builder.buildAndRegister()

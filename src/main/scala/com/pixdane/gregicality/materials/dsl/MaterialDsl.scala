@@ -128,6 +128,26 @@ def plasma(body: FluidContext ?=> Unit)(using mc: MaterialContext): Unit =
 def blast(body: BlastContext ?=> Unit)(using mc: MaterialContext): Unit =
   mc.blast(body = body)
 
+/** Opens a tool-property configuration block.
+  *
+  * Speeds and damage use `Double` in authoring code so literals such as `9.0`
+  * stay natural; the real adapter narrows them to GTCEu's `float` API.
+  */
+def tool(
+    speed: Double,
+    damage: Double,
+    durability: Int,
+    level: Int
+)(body: ToolContext ?=> Unit)(using mc: MaterialContext): Unit =
+  mc.tool(speed, damage, durability, level)(body)
+
+/** Opens an armor-property configuration block. */
+def armor(
+    durability: Int,
+    protection: Armor
+)(body: ArmorContext ?=> Unit)(using mc: MaterialContext): Unit =
+  mc.armor(durability, protection)(body)
+
 /** Sets ore multipliers and emissive flag. Last call wins. */
 def settings(
     multiplier: Int = 1,

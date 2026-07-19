@@ -5,6 +5,7 @@ import com.gregtechceu.gtceu.api.data.chemical.material.info.MaterialFlag
 import com.gregtechceu.gtceu.api.data.chemical.material.info.MaterialIconSet
 import com.gregtechceu.gtceu.api.data.chemical.material.properties.BlastProperty.GasTier
 import com.gregtechceu.gtceu.api.fluids.attribute.FluidAttribute
+import com.gregtechceu.gtceu.api.item.tool.GTToolType
 import net.minecraft.resources.ResourceLocation
 import munit.FunSuite
 
@@ -29,6 +30,8 @@ private enum Call:
   case Ore(spec: OreSpec)
   case Fluid(spec: FluidSpec)
   case Blast(spec: BlastSpec)
+  case Tool(spec: ToolSpec)
+  case Armor(spec: ArmorSpec)
   case BuildAndRegister
 
 /** In-memory [[MaterialBuilderAdapter]] that records every call in order. */
@@ -50,6 +53,8 @@ private final class FakeAdapter(val id: ResourceLocation)
   def ore(spec: OreSpec): Unit = calls += Call.Ore(spec)
   def fluid(spec: FluidSpec): Unit = calls += Call.Fluid(spec)
   def blast(spec: BlastSpec): Unit = calls += Call.Blast(spec)
+  def tool(spec: ToolSpec): Unit = calls += Call.Tool(spec)
+  def armor(spec: ArmorSpec): Unit = calls += Call.Armor(spec)
   def buildAndRegister(): Material =
     calls += Call.BuildAndRegister
     null
@@ -104,6 +109,9 @@ class MaterialContextSuite extends FunSuite:
   private val flagC: MaterialFlag = null
   private val attributeA: FluidAttribute = null
   private val attributeB: FluidAttribute = null
+  private val toolTypeA: GTToolType = null
+  private val toolTypeB: GTToolType = null
+  private val toolTypeC: GTToolType = null
 
   test("material creates adapter with namespaced id"):
     val (factory, context) = withContext
@@ -405,6 +413,83 @@ class MaterialContextSuite extends FunSuite:
             vacuumStats = Some(RecipeOverride(VA(MV), None))
           )
         ),
+        Call.BuildAndRegister
+      )
+    )
+
+  test("tool block replaces and appends types before submitting once"):
+    val (factory, context) = withContext
+    given RegistryContext = context
+    material("tool_material"):
+      formula("T")
+      tool(speed = 9.0, damage = 7.0, durability = 2048, level = 4):
+        types += toolTypeA
+        types := List(toolTypeB, toolTypeC)
+        types += toolTypeA
+        enchantability := 18
+        attackSpeed := 1.2
+        durabilityMultiplier := 3
+        magnetic
+        unbreakable
+        ignoreCraftingTools
+      langValue("Tool Material")
+
+    val calls = factory.lastAdapter.get.calls.toList
+    assertEquals(
+      calls,
+      List(
+        Call.Formula("T"),
+        Call.Tool(
+          ToolSpec(
+            speed = 9.0,
+            damage = 7.0,
+            durability = 2048,
+            level = 4,
+            types = Some(List(toolTypeB, toolTypeC)),
+            additionalTypes = List(toolTypeA),
+            enchantability = Some(18),
+            attackSpeed = Some(1.2),
+            durabilityMultiplier = Some(3),
+            magnetic = true,
+            unbreakable = true,
+            ignoreCraftingTools = true
+          )
+        ),
+        Call.LangValue("Tool Material"),
+        Call.BuildAndRegister
+      )
+    )
+
+  test("armor block collects protection and feature values once"):
+    val (factory, context) = withContext
+    given RegistryContext = context
+    material("armor_material"):
+      langValue("Armor Material")
+      armor(durability = 55, protection = Armor(4, 8, 7, 4)):
+        toughness := 4.0
+        knockbackResistance := 0.3
+        enchantability := 18
+        dyeable
+        unbreakable
+      formula("A")
+
+    val calls = factory.lastAdapter.get.calls.toList
+    assertEquals(
+      calls,
+      List(
+        Call.LangValue("Armor Material"),
+        Call.Armor(
+          ArmorSpec(
+            durability = 55,
+            protection = Armor(4, 8, 7, 4),
+            toughness = Some(4.0),
+            knockbackResistance = Some(0.3),
+            enchantability = Some(18),
+            dyeable = true,
+            unbreakable = true
+          )
+        ),
+        Call.Formula("A"),
         Call.BuildAndRegister
       )
     )
