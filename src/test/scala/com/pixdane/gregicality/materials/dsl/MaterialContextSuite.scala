@@ -1,0 +1,410 @@
+package com.pixdane.gregicality.materials.dsl
+
+import com.gregtechceu.gtceu.api.data.chemical.material.Material
+import com.gregtechceu.gtceu.api.data.chemical.material.info.MaterialFlag
+import com.gregtechceu.gtceu.api.data.chemical.material.info.MaterialIconSet
+import com.gregtechceu.gtceu.api.data.chemical.material.properties.BlastProperty.GasTier
+import com.gregtechceu.gtceu.api.fluids.attribute.FluidAttribute
+import net.minecraft.resources.ResourceLocation
+import munit.FunSuite
+
+import scala.collection.mutable.ListBuffer
+
+import com.pixdane.gregicality.materials.dsl.VoltageTier.*
+
+/** Recorded adapter invocation. The suite compares lists of these to assert
+  * call order and payload without touching the Forge material registry.
+  */
+private enum Call:
+  case LangValue(s: String)
+  case Formula(s: String)
+  case Ingot(level: Int)
+  case Visual(spec: VisualSpec)
+  case Flags(fs: Seq[MaterialFlag])
+  case AppendFlags(
+      preset: java.util.Collection[MaterialFlag],
+      extras: Seq[MaterialFlag]
+  )
+  case Components(amounts: Seq[MaterialAmount])
+  case Ore(spec: OreSpec)
+  case Fluid(spec: FluidSpec)
+  case Blast(spec: BlastSpec)
+  case BuildAndRegister
+
+/** In-memory [[MaterialBuilderAdapter]] that records every call in order. */
+private final class FakeAdapter(val id: ResourceLocation)
+    extends MaterialBuilderAdapter:
+  val calls: ListBuffer[Call] = ListBuffer.empty
+
+  def langValue(s: String): Unit = calls += Call.LangValue(s)
+  def formula(s: String): Unit = calls += Call.Formula(s)
+  def ingot(level: Int): Unit = calls += Call.Ingot(level)
+  def visual(spec: VisualSpec): Unit = calls += Call.Visual(spec)
+  def flags(fs: Seq[MaterialFlag]): Unit = calls += Call.Flags(fs)
+  def appendFlags(
+      preset: java.util.Collection[MaterialFlag],
+      extras: Seq[MaterialFlag]
+  ): Unit = calls += Call.AppendFlags(preset, extras)
+  def components(amounts: Seq[MaterialAmount]): Unit =
+    calls += Call.Components(amounts)
+  def ore(spec: OreSpec): Unit = calls += Call.Ore(spec)
+  def fluid(spec: FluidSpec): Unit = calls += Call.Fluid(spec)
+  def blast(spec: BlastSpec): Unit = calls += Call.Blast(spec)
+  def buildAndRegister(): Material =
+    calls += Call.BuildAndRegister
+    null
+
+/** In-memory [[MaterialBuilderFactory]] that hands out [[FakeAdapter]] and
+  * remembers the id it was asked to create with.
+  */
+private final class FakeFactory extends MaterialBuilderFactory:
+  var createdId: Option[ResourceLocation] = None
+  var lastAdapter: Option[FakeAdapter] = None
+
+  def create(id: ResourceLocation): MaterialBuilderAdapter =
+    createdId = Some(id)
+    val adapter = new FakeAdapter(id)
+    lastAdapter = Some(adapter)
+    adapter
+
+/** Test-first contract for the runtime material DSL.
+  *
+  * These tests assume a production API consisting of:
+  *
+  *   - `private[dsl] trait MaterialBuilderFactory` with
+  *     `def create(id: ResourceLocation): MaterialBuilderAdapter`
+  *   - `private[dsl] trait MaterialBuilderAdapter` with `langValue`, `formula`,
+  *     `ingot`, `visual`, `flags`, `appendFlags`, `components`, `ore`, and
+  *     `buildAndRegister`
+  *   - `final case class RegistryContext(namespace: String, factory:
+  *     MaterialBuilderFactory)`
+  *   - Top-level contextual DSL functions `material`, `langValue`, `formula`,
+  *     `ingot`, `visual`, `flags` (three overloads), `components` (two
+  *     overloads), and `ore`
+  *   - Ore-internal contextual functions `settings`, `washedIn`,
+  *     `separatedInto`, and `byproducts`
+  *
+  * A fake factory and adapter record calls in memory, so the suite never
+  * touches the Forge material registry. `null` materials and flags are used as
+  * recording placeholders only.
+  */
+class MaterialContextSuite extends FunSuite:
+
+  private def withContext: (FakeFactory, RegistryContext) =
+    val factory = new FakeFactory
+    factory -> RegistryContext("gregicality", factory)
+
+  // Null placeholders are safe here: the fake adapter only records references.
+  private val tungsten: Material = null
+  private val titanium: Material = null
+  private val carbon: Material = null
+  private val sulfuricAcid: Material = null
+  private val flagA: MaterialFlag = null
+  private val flagB: MaterialFlag = null
+  private val flagC: MaterialFlag = null
+  private val attributeA: FluidAttribute = null
+  private val attributeB: FluidAttribute = null
+
+  test("material creates adapter with namespaced id"):
+    val (factory, context) = withContext
+    given RegistryContext = context
+    material("hyperion"):
+      langValue("Hyperion Alloy")
+    assertEquals(
+      factory.createdId,
+      Some(new ResourceLocation("gregicality", "hyperion"))
+    )
+
+  test("material body preserves call order and finalizes exactly once"):
+    val (factory, context) = withContext
+    given RegistryContext = context
+    val spec =
+      VisualSpec(rgb"6f2200", MaterialIconSet.METALLIC, Some(rgb"ffbb33"))
+    material("hyperion"):
+      langValue("Hyperion Alloy")
+      formula("C16H12N2O4")
+      ingot(4)
+      visual(spec)
+      flags(flagA, flagB)
+      components(tungsten * 2, titanium * 1)
+      ore:
+        settings(multiplier = 2, byproduct = 3, emissive = true)
+        washedIn(sulfuricAcid, 250)
+        separatedInto(tungsten, titanium)
+        byproducts(carbon, titanium)
+
+    val expected = List(
+      Call.LangValue("Hyperion Alloy"),
+      Call.Formula("C16H12N2O4"),
+      Call.Ingot(4),
+      Call.Visual(spec),
+      Call.Flags(Seq(flagA, flagB)),
+      Call.Components(
+        Seq(MaterialAmount(tungsten, 2), MaterialAmount(titanium, 1))
+      ),
+      Call.Ore(
+        OreSpec(
+          multiplier = 2,
+          byproductMultiplier = 3,
+          emissive = true,
+          washedIn = Some(WashSpec(sulfuricAcid, 250)),
+          separatedInto = List(tungsten, titanium),
+          byproducts = List(carbon, titanium)
+        )
+      ),
+      Call.BuildAndRegister
+    )
+    val calls = factory.lastAdapter.get.calls.toList
+    assertEquals(calls, expected)
+    assertEquals(calls.count(_ == Call.BuildAndRegister), 1)
+
+  test("body exception suppresses buildAndRegister"):
+    val (factory, context) = withContext
+    given RegistryContext = context
+    intercept[RuntimeException]:
+      material("boom"):
+        langValue("Boom")
+        throw new RuntimeException("boom")
+
+    val calls = factory.lastAdapter.get.calls.toList
+    assert(!calls.contains(Call.BuildAndRegister))
+
+  test("visual forwards the full VisualSpec payload"):
+    val (factory, context) = withContext
+    given RegistryContext = context
+    val spec =
+      VisualSpec(rgb"6f2200", MaterialIconSet.METALLIC, Some(rgb"ffbb33"))
+    material("v"):
+      visual(spec)
+    val calls = factory.lastAdapter.get.calls.toList
+    assertEquals(calls, List(Call.Visual(spec), Call.BuildAndRegister))
+
+  test("flags varargs and Scala collection route to the single-flags overload"):
+    val (factory, context) = withContext
+    given RegistryContext = context
+    material("f"):
+      flags(flagA, flagB)
+      flags(List(flagA, flagB))
+    val calls = factory.lastAdapter.get.calls.toList
+    assertEquals(
+      calls,
+      List(
+        Call.Flags(Seq(flagA, flagB)),
+        Call.Flags(Seq(flagA, flagB)),
+        Call.BuildAndRegister
+      )
+    )
+
+  test("flags Java preset plus extras routes to appendFlags"):
+    val (factory, context) = withContext
+    given RegistryContext = context
+    val preset = new java.util.ArrayList[MaterialFlag]()
+    preset.add(flagA)
+    preset.add(flagB)
+    material("fp"):
+      flags(preset, flagC)
+    val calls = factory.lastAdapter.get.calls.toList
+    assertEquals(
+      calls,
+      List(
+        Call.AppendFlags(preset, Seq(flagC)),
+        Call.BuildAndRegister
+      )
+    )
+
+  test("components varargs and collection produce the same adapter call"):
+    val (factory, context) = withContext
+    given RegistryContext = context
+    val amounts = List(tungsten * 2, titanium * 1)
+    material("c"):
+      components(tungsten * 2, titanium * 1)
+      components(amounts)
+    val calls = factory.lastAdapter.get.calls.toList
+    assertEquals(
+      calls,
+      List(
+        Call.Components(
+          Seq(MaterialAmount(tungsten, 2), MaterialAmount(titanium, 1))
+        ),
+        Call.Components(
+          Seq(MaterialAmount(tungsten, 2), MaterialAmount(titanium, 1))
+        ),
+        Call.BuildAndRegister
+      )
+    )
+
+  test("ore block collects one OreSpec at its position in the call order"):
+    val (factory, context) = withContext
+    given RegistryContext = context
+    material("o"):
+      langValue("Ore Material")
+      ore:
+        settings(multiplier = 2, byproduct = 3, emissive = true)
+        washedIn(sulfuricAcid, 250)
+        separatedInto(tungsten, titanium)
+        byproducts(carbon, titanium)
+      formula("X2Y")
+
+    val calls = factory.lastAdapter.get.calls.toList
+    val expectedOre = Call.Ore(
+      OreSpec(
+        multiplier = 2,
+        byproductMultiplier = 3,
+        emissive = true,
+        washedIn = Some(WashSpec(sulfuricAcid, 250)),
+        separatedInto = List(tungsten, titanium),
+        byproducts = List(carbon, titanium)
+      )
+    )
+    assertEquals(
+      calls,
+      List(
+        Call.LangValue("Ore Material"),
+        expectedOre,
+        Call.Formula("X2Y"),
+        Call.BuildAndRegister
+      )
+    )
+
+  test("fluid blocks collect settings and submit once in authored order"):
+    val (factory, context) = withContext
+    given RegistryContext = context
+    material("fluids"):
+      langValue("Fluid Material")
+      gas:
+        temperature := 450.K
+        color := rgb"7f8fa0"
+        density := 0.8
+        luminosity := 7
+        viscosity := 3500
+        burnTime := 200
+        block
+        disableBucket
+        disableColor
+        customStill
+        attributes(attributeA, attributeB)
+      plasma:
+        textures(customStill = false, customFlowing = true)
+        attributes(List(attributeB))
+      fluid(FluidKind.Molten):
+        temperature := 1800.K
+      formula("F")
+
+    val calls = factory.lastAdapter.get.calls.toList
+    assertEquals(
+      calls,
+      List(
+        Call.LangValue("Fluid Material"),
+        Call.Fluid(
+          FluidSpec(
+            kind = FluidKind.Gas,
+            temperature = Some(450.K),
+            color = Some(rgb"7f8fa0"),
+            density = Some(FluidDensity.GramsPerCubicCentimeter(0.8)),
+            luminosity = Some(7),
+            viscosity = Some(FluidViscosity.Minecraft(3500)),
+            burnTime = Some(200),
+            attributes = List(attributeA, attributeB),
+            textures = Some(FluidTextures(customStill = true)),
+            hasBlock = true,
+            hasBucket = false,
+            colorEnabled = false
+          )
+        ),
+        Call.Fluid(
+          FluidSpec(
+            kind = FluidKind.Plasma,
+            attributes = List(attributeB),
+            textures = Some(FluidTextures(customFlowing = true)),
+            colorEnabled = false
+          )
+        ),
+        Call.Fluid(
+          FluidSpec(
+            kind = FluidKind.Molten,
+            temperature = Some(1800.K)
+          )
+        ),
+        Call.Formula("F"),
+        Call.BuildAndRegister
+      )
+    )
+
+  test("fluid direct forms preserve standard storage keys and temperatures"):
+    val (factory, context) = withContext
+    given RegistryContext = context
+    material("direct_fluids"):
+      liquid()
+      liquid(2800.K)
+
+    val calls = factory.lastAdapter.get.calls.toList
+    assertEquals(
+      calls,
+      List(
+        Call.Fluid(FluidSpec(FluidKind.Liquid)),
+        Call.Fluid(
+          FluidSpec(
+            FluidKind.Liquid,
+            temperature = Some(2800.K)
+          )
+        ),
+        Call.BuildAndRegister
+      )
+    )
+
+  test("blast block combines characteristic values into one section payload"):
+    val (factory, context) = withContext
+    given RegistryContext = context
+    val ebf = VA(EV) * 2000.ticks
+    val vacuum = VA(HV) * 600.ticks
+    material("blast_material"):
+      formula("B")
+      blast:
+        temperature := 3900.K
+        gasTier := GasTier.HIGH
+        blastStats := ebf
+        vacuumStats := vacuum
+      langValue("Blast Material")
+
+    val calls = factory.lastAdapter.get.calls.toList
+    assertEquals(
+      calls,
+      List(
+        Call.Formula("B"),
+        Call.Blast(
+          BlastSpec(
+            temperature = Some(3900.K),
+            gasTier = Some(GasTier.HIGH),
+            blastStats = Some(RecipeOverride(ebf.eut, Some(ebf.duration))),
+            vacuumStats =
+              Some(RecipeOverride(vacuum.eut, Some(vacuum.duration)))
+          )
+        ),
+        Call.LangValue("Blast Material"),
+        Call.BuildAndRegister
+      )
+    )
+
+  test("blast recipe overrides accept EUt without a duration"):
+    val (factory, context) = withContext
+    given RegistryContext = context
+    material("blast_eut_only"):
+      blast:
+        temperature := 1800.K
+        blastStats := VA(HV)
+        vacuumStats := VA(MV)
+
+    val calls = factory.lastAdapter.get.calls.toList
+    assertEquals(
+      calls,
+      List(
+        Call.Blast(
+          BlastSpec(
+            temperature = Some(1800.K),
+            blastStats = Some(RecipeOverride(VA(HV), None)),
+            vacuumStats = Some(RecipeOverride(VA(MV), None))
+          )
+        ),
+        Call.BuildAndRegister
+      )
+    )

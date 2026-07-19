@@ -21,6 +21,8 @@ dependencies {
     if (enableJUnit) {
         testImplementation(platform(libs.junit.bom))
         testImplementation(libs.junit.jupiter)
+        testImplementation(libs.munit)
         testRuntimeOnly(libs.junit.platform.launcher)
+        testRuntimeOnly(libs.junit.vintage.engine)
     }
 }

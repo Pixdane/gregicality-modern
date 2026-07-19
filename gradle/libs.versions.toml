@@ -8,6 +8,7 @@ buildconfig = "6.0.10"
 
 # Test platform
 junit = "6.1.1"
+munit = "1.1.0"
 
 lwjgl = "3.3.2"
 forge = "47.3.0"
@@ -35,3 +36,5 @@ mixinExtras = { module = "io.github.llamalad7:mixinextras-forge", version.ref = 
 junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
+munit = { module = "org.scalameta:munit_3", version.ref = "munit" }
+junit-vintage-engine = { module = "org.junit.vintage:junit-vintage-engine" }
