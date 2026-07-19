@@ -173,6 +173,33 @@ The following remain direct calls because GTCEu exposes them directly on
 - `ignoredTagPrefixes` and `customTags`;
 - `removeHazard`, `radioactiveHazard`, and `hazard`.
 
+## Registration Boundary
+
+Forge event wiring stays in `GCYMaterials`. The material definitions themselves
+live in `MaterialRegistration.registerAll`, which receives the GTCEu base
+materials needed for composition and runs under a `RegistryContext`.
+
+This split has two purposes:
+
+- the production entry point injects the real `GTMaterials` values only after
+  GTCEu's material registry event is ready;
+- unit tests can inject null placeholder materials into the same definitions and
+  use the recording adapter without initializing Forge or the global GTCEu
+  material table.
+
+The first runtime slice contains:
+
+- `polyimide`: a compact real migration slice using polymer, fluid, visual,
+  flags, components, formula, and blast settings;
+- `hyperion`: a deliberately broad stress material exercising direct calls,
+  fluid and blast sections, ore grouping, tool and armor sections, and device
+  properties in one authored order.
+
+The stress material is an integration fixture for the DSL surface, not a claim
+that its illustrative composition is a completed gameplay balance decision.
+It uses a fluid-pipe property and deliberately omits `itemPipe`, because GTCEu
+rejects a material that contains both pipe properties during verification.
+
 ## Runtime Invariants
 
 - `material` is the only operation that creates and finalizes a material.

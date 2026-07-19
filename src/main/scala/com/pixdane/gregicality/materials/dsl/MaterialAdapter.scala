@@ -1,5 +1,6 @@
 package com.pixdane.gregicality.materials.dsl
 
+import com.gregtechceu.gtceu.api.data.chemical.Element
 import com.gregtechceu.gtceu.api.data.chemical.material.Material
 import com.gregtechceu.gtceu.api.data.chemical.material.info.MaterialFlag
 import com.gregtechceu.gtceu.api.data.chemical.material.properties.{
@@ -7,8 +8,6 @@ import com.gregtechceu.gtceu.api.data.chemical.material.properties.{
   ToolProperty
 }
 import com.gregtechceu.gtceu.api.data.chemical.material.stack.MaterialStack
-import com.gregtechceu.gtceu.api.data.chemical.material.properties.HazardProperty.HazardTrigger
-import com.gregtechceu.gtceu.api.data.medicalcondition.MedicalCondition
 import com.gregtechceu.gtceu.api.data.tag.TagPrefix
 import com.gregtechceu.gtceu.api.fluids.FluidBuilder
 import com.gregtechceu.gtceu.api.fluids.FluidState
@@ -45,6 +44,9 @@ private[dsl] trait MaterialBuilderAdapter:
 
   /** Sets the chemical formula with GTCEu's formatting switch. */
   def formula(s: String, withFormatting: Boolean): Unit
+
+  /** Associates the material with a GTCEu chemical element. */
+  def element(value: Element): Unit
 
   /** Applies a dust property overload. */
   def dust(level: Option[Int], burnTime: Option[Int]): Unit
@@ -239,9 +241,14 @@ private[dsl] final class GtceuMaterialAdapter(id: ResourceLocation)
     builder.colorAverage()
 
   def visual(spec: VisualSpec): Unit =
-    builder.color(spec.color.value)
+    spec.hasFluidColor match
+      case Some(hasFluidColor) => builder.color(spec.color.value, hasFluidColor)
+      case None                 => builder.color(spec.color.value)
     builder.iconSet(spec.iconSet)
     spec.secondary.foreach(c => builder.secondaryColor(c.value))
+
+  def element(value: Element): Unit =
+    builder.element(value)
 
   def flags(fs: Seq[MaterialFlag]): Unit =
     builder.flags(fs*)

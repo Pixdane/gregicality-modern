@@ -1,9 +1,9 @@
 package com.pixdane.gregicality.materials.dsl
 
+import com.gregtechceu.gtceu.api.data.chemical.Element
 import com.gregtechceu.gtceu.api.data.chemical.material.Material
 import com.gregtechceu.gtceu.api.data.chemical.material.info.MaterialFlag
-import com.gregtechceu.gtceu.api.data.chemical.material.properties.HazardProperty.HazardTrigger
-import com.gregtechceu.gtceu.api.data.medicalcondition.MedicalCondition
+import com.gregtechceu.gtceu.api.data.chemical.material.info.MaterialIconSet
 import com.gregtechceu.gtceu.api.data.tag.TagPrefix
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.tags.TagKey
@@ -76,6 +76,9 @@ private[dsl] final class MaterialContext(
   def formula(f: String, withFormatting: Boolean): Unit =
     adapter.formula(f, withFormatting)
 
+  /** Associates the current material with a GTCEu chemical element. */
+  def element(value: Element): Unit = adapter.element(value)
+
   /** Adds a dust property using one of GTCEu's overload shapes. */
   def dust(): Unit = adapter.dust(None, None)
 
@@ -134,6 +137,26 @@ private[dsl] final class MaterialContext(
 
   /** Applies color, icon set, and optional secondary color. */
   def visual(spec: VisualSpec): Unit = adapter.visual(spec)
+
+  /** Applies a compact visual configuration with named optional values.
+    *
+    * `hasFluidColor = false` selects GTCEu's two-argument color overload;
+    * leaving it at its default preserves GTCEu's normal fluid-color behavior.
+    */
+  def visual(
+      color: HexColor,
+      iconSet: MaterialIconSet,
+      secondary: Option[HexColor] = None,
+      hasFluidColor: Boolean = true
+  ): Unit =
+    adapter.visual(
+      VisualSpec(
+        color = color,
+        iconSet = iconSet,
+        secondary = secondary,
+        hasFluidColor = Some(hasFluidColor)
+      )
+    )
 
   /** Adds flags by varargs. */
   def flags(fs: MaterialFlag*): Unit = adapter.flags(fs)

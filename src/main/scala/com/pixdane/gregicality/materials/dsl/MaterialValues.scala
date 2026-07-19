@@ -89,11 +89,17 @@ final case class MaterialAmount(material: Material, amount: Int):
 final case class RecipeStats(eut: RecipeEUt, duration: Ticks):
   override def toString: String = s"$eut for $duration"
 
-/** Compact visual configuration for one material. */
+/** Compact visual configuration for one material.
+  *
+  * `hasFluidColor` is optional because the one-argument GTCEu color overload
+  * keeps its native default when the author does not mention fluid coloring.
+  * Supplying `Some(false)` selects GTCEu's `color(int, false)` overload.
+  */
 final case class VisualSpec(
     color: HexColor,
     iconSet: MaterialIconSet,
-    secondary: Option[HexColor] = None
+    secondary: Option[HexColor] = None,
+    hasFluidColor: Option[Boolean] = None
 )
 
 /** A washing step: a washing fluid and an amount. */

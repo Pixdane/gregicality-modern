@@ -1,5 +1,6 @@
 package com.pixdane.gregicality.materials.dsl
 
+import com.gregtechceu.gtceu.api.data.chemical.Element
 import com.gregtechceu.gtceu.api.data.chemical.material.Material
 import com.gregtechceu.gtceu.api.data.chemical.material.info.MaterialFlag
 import com.gregtechceu.gtceu.api.data.chemical.material.info.MaterialIconSet
@@ -21,7 +22,7 @@ import com.pixdane.gregicality.materials.dsl.VoltageTier.*
 /** Recorded adapter invocation. The suite compares lists of these to assert
   * call order and payload without touching the Forge material registry.
   */
-private enum Call:
+enum Call:
   case LangValue(s: String)
   case Formula(s: String)
   case FormattedFormula(s: String, withFormatting: Boolean)
@@ -54,6 +55,7 @@ private enum Call:
   case Cable(spec: CableSpec)
   case FluidPipe(spec: FluidPipeSpec)
   case ItemPipe(spec: ItemPipeSpec)
+  case ChemicalElement(value: Element)
   case IgnoredTagPrefixes(prefixes: Seq[TagPrefix])
   case CustomTags(tags: Seq[TagKey[Item]])
   case RemoveHazard
@@ -62,7 +64,7 @@ private enum Call:
   case BuildAndRegister
 
 /** In-memory [[MaterialBuilderAdapter]] that records every call in order. */
-private final class FakeAdapter(val id: ResourceLocation)
+final class FakeAdapter(val id: ResourceLocation)
     extends MaterialBuilderAdapter:
   val calls: ListBuffer[Call] = ListBuffer.empty
 
@@ -111,6 +113,7 @@ private final class FakeAdapter(val id: ResourceLocation)
   def cable(spec: CableSpec): Unit = calls += Call.Cable(spec)
   def fluidPipe(spec: FluidPipeSpec): Unit = calls += Call.FluidPipe(spec)
   def itemPipe(spec: ItemPipeSpec): Unit = calls += Call.ItemPipe(spec)
+  def element(value: Element): Unit = calls += Call.ChemicalElement(value)
   def ignoredTagPrefixes(prefixes: Seq[TagPrefix]): Unit =
     calls += Call.IgnoredTagPrefixes(prefixes)
   def customTags(tags: Seq[TagKey[Item]]): Unit =
@@ -126,14 +129,16 @@ private final class FakeAdapter(val id: ResourceLocation)
 /** In-memory [[MaterialBuilderFactory]] that hands out [[FakeAdapter]] and
   * remembers the id it was asked to create with.
   */
-private final class FakeFactory extends MaterialBuilderFactory:
+final class FakeFactory extends MaterialBuilderFactory:
   var createdId: Option[ResourceLocation] = None
   var lastAdapter: Option[FakeAdapter] = None
+  val adapters: ListBuffer[FakeAdapter] = ListBuffer.empty
 
   def create(id: ResourceLocation): MaterialBuilderAdapter =
     createdId = Some(id)
     val adapter = new FakeAdapter(id)
     lastAdapter = Some(adapter)
+    adapters += adapter
     adapter
 
 /** Test-first contract for the runtime material DSL.
@@ -182,6 +187,7 @@ class MaterialContextSuite extends FunSuite:
   private val itemTagB: TagKey[Item] = null
   private val hazardTrigger: HazardTrigger = null
   private val medicalCondition: MedicalCondition = null
+  private val elementValue: Element = null
 
   test("material creates adapter with namespaced id"):
     val (factory, context) = withContext
@@ -730,6 +736,35 @@ class MaterialContextSuite extends FunSuite:
             applyToDerivatives = true
           )
         ),
+        Call.BuildAndRegister
+      )
+    )
+
+  test("element and multi-argument visual calls preserve builder metadata"):
+    val (factory, context) = withContext
+    given RegistryContext = context
+    material("metadata"):
+      visual(
+        rgb"123456",
+        MaterialIconSet.DULL,
+        secondary = Some(rgb"abcdef"),
+        hasFluidColor = false
+      )
+      element(elementValue)
+
+    val calls = factory.lastAdapter.get.calls.toList
+    assertEquals(
+      calls,
+      List(
+        Call.Visual(
+          VisualSpec(
+            color = rgb"123456",
+            iconSet = MaterialIconSet.DULL,
+            secondary = Some(rgb"abcdef"),
+            hasFluidColor = Some(false)
+          )
+        ),
+        Call.ChemicalElement(elementValue),
         Call.BuildAndRegister
       )
     )
