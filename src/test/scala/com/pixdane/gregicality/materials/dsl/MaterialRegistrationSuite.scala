@@ -32,7 +32,10 @@ class MaterialRegistrationSuite extends FunSuite:
     assertEquals(
       factory.adapters.map(_.id).toList,
       List(
-        new net.minecraft.resources.ResourceLocation("gregicality", "polyimide"),
+        new net.minecraft.resources.ResourceLocation(
+          "gregicality",
+          "polyimide"
+        ),
         new net.minecraft.resources.ResourceLocation("gregicality", "hyperion")
       )
     )
@@ -54,7 +57,9 @@ class MaterialRegistrationSuite extends FunSuite:
             hasFluidColor = Some(false)
           )
         ),
-        Call.Flags(Seq(MaterialFlags.GENERATE_FOIL, MaterialFlags.GENERATE_PLATE)),
+        Call.Flags(
+          Seq(MaterialFlags.GENERATE_FOIL, MaterialFlags.GENERATE_PLATE)
+        ),
         Call.Components(
           Seq(
             MaterialAmount(null, 22),
@@ -78,7 +83,9 @@ class MaterialRegistrationSuite extends FunSuite:
         Call.Blast(
           BlastSpec(
             temperature = Some(3900.K),
-            gasTier = Some(com.gregtechceu.gtceu.api.data.chemical.material.properties.BlastProperty.GasTier.HIGH),
+            gasTier = Some(
+              com.gregtechceu.gtceu.api.data.chemical.material.properties.BlastProperty.GasTier.HIGH
+            ),
             blastStats = Some(RecipeOverride(VA(EV), Some(1000.ticks))),
             vacuumStats = Some(RecipeOverride(VA(HV), Some(300.ticks)))
           )

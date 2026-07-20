@@ -53,7 +53,10 @@ object HexColor:
   def fromHex(hex: String): HexColor =
     require(hex != null && hex.nonEmpty, "hex color string must be non-empty")
     val cleaned = hex.trim.toLowerCase.stripPrefix("#").stripPrefix("0x")
-    require(cleaned.matches("[0-9a-f]{6}"), s"hex color must be 6 hex digits, got '$hex'")
+    require(
+      cleaned.matches("[0-9a-f]{6}"),
+      s"hex color must be 6 hex digits, got '$hex'"
+    )
     HexColor(Integer.parseInt(cleaned, 16))
 
 /** GTCEu voltage-tier indices in the same order as `GTValues.V` and

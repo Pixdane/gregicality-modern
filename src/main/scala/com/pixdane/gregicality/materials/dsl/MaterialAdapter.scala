@@ -240,7 +240,7 @@ private[dsl] final class GtceuMaterialAdapter(id: ResourceLocation)
   def visual(spec: VisualSpec): Unit =
     spec.hasFluidColor match
       case Some(hasFluidColor) => builder.color(spec.color.value, hasFluidColor)
-      case None                 => builder.color(spec.color.value)
+      case None                => builder.color(spec.color.value)
     builder.iconSet(spec.iconSet)
     spec.secondary.foreach(c => builder.secondaryColor(c.value))
 

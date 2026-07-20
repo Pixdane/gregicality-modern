@@ -8,7 +8,14 @@ trait SectionMarker:
 object SectionMarker:
   /** All sections defined by this batch, in declaration order. */
   val all: List[SectionMarker] =
-    List(MaterialSection, FluidSection, BlastSection, ToolSection, ArmorSection, OreSection)
+    List(
+      MaterialSection,
+      FluidSection,
+      BlastSection,
+      ToolSection,
+      ArmorSection,
+      OreSection
+    )
 
 /** Top-level material authoring context. */
 object MaterialSection extends SectionMarker:

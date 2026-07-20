@@ -66,10 +66,10 @@ final case class FluidTextures(
 
 /** Immutable snapshot of one fluid section's accumulated configuration.
   *
-  * Produced by [[FluidContext.toSpec]] at the end of a
-  * `fluid(FluidKind):`, `gas:`, or `plasma:` block and forwarded to the
-  * material adapter as a single `fluid` call. Every field except `kind` is
-  * optional: `None` means "leave GTCEu's inference default in place".
+  * Produced by [[FluidContext.toSpec]] at the end of a `fluid(FluidKind):`,
+  * `gas:`, or `plasma:` block and forwarded to the material adapter as a single
+  * `fluid` call. Every field except `kind` is optional: `None` means "leave
+  * GTCEu's inference default in place".
   *
   * `textures` and the bare commands `customStill`, `block`, `disableBucket`,
   * and `disableColor` are folded into this case class instead of being separate
