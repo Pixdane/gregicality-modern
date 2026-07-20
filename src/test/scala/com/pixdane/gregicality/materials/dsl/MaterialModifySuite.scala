@@ -101,6 +101,10 @@ class MaterialModifySuite extends FunSuite:
     val factory = new FakeModifyFactory
     factory -> ModificationRegistryContext(factory)
 
+  test("modification registry context rejects a null factory"):
+    intercept[IllegalArgumentException]:
+      ModificationRegistryContext(null.asInstanceOf[MaterialModifyFactory])
+
   test("modify preserves top-level and ore-patch authoring order"):
     val (factory, context) = withContext
     given ModificationRegistryContext = context

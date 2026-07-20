@@ -194,6 +194,31 @@ class MaterialContextSuite extends FunSuite:
     new Supplier[Ingredient]:
       override def get(): Ingredient = Ingredient.EMPTY
 
+  test("registry context validates namespace and factory"):
+    intercept[IllegalArgumentException]:
+      RegistryContext("")
+    intercept[IllegalArgumentException]:
+      RegistryContext(null)
+    intercept[IllegalArgumentException]:
+      RegistryContext(
+        "gregicality",
+        null.asInstanceOf[MaterialBuilderFactory]
+      )
+
+  test("ore settings reject non-positive multipliers"):
+    val context = new OreContext
+
+    intercept[IllegalArgumentException]:
+      context.settings(multiplier = 0)
+    intercept[IllegalArgumentException]:
+      context.settings(multiplier = -1)
+    intercept[IllegalArgumentException]:
+      context.settings(byproduct = 0)
+    intercept[IllegalArgumentException]:
+      context.settings(byproduct = -1)
+
+    assertEquals(context.toSpec, OreSpec())
+
   test("material creates adapter with namespaced id"):
     val (factory, context) = withContext
     given RegistryContext = context
