@@ -79,6 +79,8 @@ private[dsl] final class FluidContext(val kind: FluidKind)
   private var luminosity: Option[Int] = None
   private var viscosity: Option[FluidViscosity] = None
   private var burnTime: Option[Int] = None
+  private var name: Option[String] = None
+  private var translation: Option[String] = None
   private val attributes: scala.collection.mutable.ListBuffer[FluidAttribute] =
     scala.collection.mutable.ListBuffer.empty
   private var textures: Option[FluidTextures] = None
@@ -103,6 +105,12 @@ private[dsl] final class FluidContext(val kind: FluidKind)
 
   /** Records an explicit burn time. Last call wins. */
   private[dsl] def setBurnTime(v: Int): Unit = burnTime = Some(v)
+
+  /** Records an explicit fluid name. Last call wins. */
+  private[dsl] def setName(v: String): Unit = name = Some(v)
+
+  /** Records an explicit fluid translation key or value. Last call wins. */
+  private[dsl] def setTranslation(v: String): Unit = translation = Some(v)
 
   /** Appends `attrs` to the attribute list in order. */
   private[dsl] def addAttributes(attrs: IterableOnce[FluidAttribute]): Unit =
@@ -132,6 +140,8 @@ private[dsl] final class FluidContext(val kind: FluidKind)
       luminosity = luminosity,
       viscosity = viscosity,
       burnTime = burnTime,
+      name = name,
+      translation = translation,
       attributes = attributes.toList,
       textures = textures,
       hasBlock = hasBlock,
@@ -177,6 +187,14 @@ def viscosity(using fc: FluidContext): FluidViscosityAssigner =
 /** Returns the assigner for the fluid's burn time in ticks. */
 def burnTime(using fc: FluidContext): Assigner[Int] =
   Assigner(fc.setBurnTime)
+
+/** Returns the assigner for the fluid's explicit registration name. */
+def name(using fc: FluidContext): Assigner[String] =
+  Assigner(fc.setName)
+
+/** Returns the assigner for the fluid's explicit translation key or value. */
+def translation(using fc: FluidContext): Assigner[String] =
+  Assigner(fc.setTranslation)
 
 /** Sets the material-level burn time on the current material. */
 def burnTime(value: Int)(using mc: MaterialContext): Unit =

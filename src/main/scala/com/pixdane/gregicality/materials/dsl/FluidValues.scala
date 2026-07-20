@@ -94,6 +94,11 @@ final case class FluidTextures(
   *   explicit viscosity in either unit, or `None` to let GTCEu infer
   * @param burnTime
   *   explicit burn time in ticks, or `None` to let GTCEu infer (default `-1`)
+  * @param name
+  *   optional explicit fluid registration name passed to `FluidBuilder.name`
+  * @param translation
+  *   optional explicit translation key or value passed to
+  *   `FluidBuilder.translation`
   * @param attributes
   *   fluid attributes appended in authoring order; empty by default
   * @param textures
@@ -114,6 +119,8 @@ final case class FluidSpec(
     luminosity: Option[Int] = None,
     viscosity: Option[FluidViscosity] = None,
     burnTime: Option[Int] = None,
+    name: Option[String] = None,
+    translation: Option[String] = None,
     attributes: List[FluidAttribute] = List.empty,
     textures: Option[FluidTextures] = None,
     hasBlock: Boolean = false,

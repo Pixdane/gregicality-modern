@@ -287,6 +287,8 @@ private[dsl] final class GtceuMaterialAdapter(id: ResourceLocation)
       case FluidViscosity.Minecraft(value) => fluidBuilder.viscosity(value)
       case FluidViscosity.Poise(value)     => fluidBuilder.viscosity(value)
     spec.burnTime.foreach(fluidBuilder.burnTime)
+    spec.name.foreach(fluidBuilder.name)
+    spec.translation.foreach(fluidBuilder.translation)
     if spec.attributes.nonEmpty then fluidBuilder.attributes(spec.attributes*)
     spec.textures.foreach(t =>
       fluidBuilder.textures(t.customStill, t.customFlowing)
@@ -335,6 +337,9 @@ private[dsl] final class GtceuMaterialAdapter(id: ResourceLocation)
     if spec.additionalTypes.nonEmpty then
       toolBuilder.addTypes(spec.additionalTypes*)
     spec.enchantability.foreach(toolBuilder.enchantability)
+    spec.enchantments.foreach((enchantment, level) =>
+      toolBuilder.enchantment(enchantment, level)
+    )
     spec.attackSpeed.foreach(speed => toolBuilder.attackSpeed(speed.toFloat))
     spec.durabilityMultiplier.foreach(toolBuilder.durabilityMultiplier)
     if spec.magnetic then toolBuilder.magnetic()
@@ -350,6 +355,13 @@ private[dsl] final class GtceuMaterialAdapter(id: ResourceLocation)
     spec.knockbackResistance.foreach(value =>
       armorBuilder.knockbackResistance(value.toFloat)
     )
+    spec.repairIngredient.foreach(armorBuilder.repairIngredient)
+    if spec.noRepair then
+      armorBuilder.repairIngredient(
+        null.asInstanceOf[java.util.function.Supplier[
+          net.minecraft.world.item.crafting.Ingredient
+        ]]
+      )
     if spec.dyeable then armorBuilder.dyeable(true)
     if spec.unbreakable then armorBuilder.unbreakable()
     builder.armorStats(armorBuilder.build())

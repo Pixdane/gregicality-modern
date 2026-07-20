@@ -13,8 +13,11 @@ import com.gregtechceu.gtceu.api.item.tool.GTToolType
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.tags.TagKey
 import net.minecraft.world.item.Item
+import net.minecraft.world.item.crafting.Ingredient
+import net.minecraft.world.item.enchantment.Enchantment
 import munit.FunSuite
 
+import java.util.function.Supplier
 import scala.collection.mutable.ListBuffer
 
 import com.pixdane.gregicality.materials.dsl.VoltageTier.*
@@ -179,6 +182,7 @@ class MaterialContextSuite extends FunSuite:
   private val toolTypeA: GTToolType = null
   private val toolTypeB: GTToolType = null
   private val toolTypeC: GTToolType = null
+  private val toolEnchantment: Enchantment = null
   private val prefixA: TagPrefix = null
   private val prefixB: TagPrefix = null
   private val itemTagA: TagKey[Item] = null
@@ -186,6 +190,9 @@ class MaterialContextSuite extends FunSuite:
   private val hazardTrigger: HazardTrigger = null
   private val medicalCondition: MedicalCondition = null
   private val elementValue: Element = null
+  private val repairSupplier: Supplier[Ingredient] =
+    new Supplier[Ingredient]:
+      override def get(): Ingredient = Ingredient.EMPTY
 
   test("material creates adapter with namespaced id"):
     val (factory, context) = withContext
@@ -434,6 +441,29 @@ class MaterialContextSuite extends FunSuite:
       )
     )
 
+  test("fluid blocks preserve custom names and translations"):
+    val (factory, context) = withContext
+    given RegistryContext = context
+    material("named_fluid"):
+      fluid(FluidKind.Liquid):
+        name := "custom_liquid"
+        translation := "fluid.gregicality.custom_liquid"
+
+    val calls = factory.lastAdapter.get.calls.toList
+    assertEquals(
+      calls,
+      List(
+        Call.Fluid(
+          FluidSpec(
+            kind = FluidKind.Liquid,
+            name = Some("custom_liquid"),
+            translation = Some("fluid.gregicality.custom_liquid")
+          )
+        ),
+        Call.BuildAndRegister
+      )
+    )
+
   test("gasFluid and plasmaFluid preserve storage kinds and temperatures"):
     val (factory, context) = withContext
     given RegistryContext = context
@@ -604,6 +634,30 @@ class MaterialContextSuite extends FunSuite:
       )
     )
 
+  test("tool blocks preserve default enchantments"):
+    val (factory, context) = withContext
+    given RegistryContext = context
+    material("enchanted_tool"):
+      tool(speed = 8.0, damage = 5.0, durability = 1024, level = 3):
+        enchantment(toolEnchantment, 2)
+
+    val calls = factory.lastAdapter.get.calls.toList
+    assertEquals(
+      calls,
+      List(
+        Call.Tool(
+          ToolSpec(
+            speed = 8.0,
+            damage = 5.0,
+            durability = 1024,
+            level = 3,
+            enchantments = List(toolEnchantment -> 2)
+          )
+        ),
+        Call.BuildAndRegister
+      )
+    )
+
   test("armor block collects protection and feature values once"):
     val (factory, context) = withContext
     given RegistryContext = context
@@ -634,6 +688,40 @@ class MaterialContextSuite extends FunSuite:
           )
         ),
         Call.Formula("A"),
+        Call.BuildAndRegister
+      )
+    )
+
+  test("armor blocks support no-repair and custom repair ingredients"):
+    val (factory, context) = withContext
+    given RegistryContext = context
+    material("repairable_armor"):
+      armor(durability = 40, protection = Armor(3, 6, 5, 3)):
+        repairIngredient(repairSupplier)
+
+    material("unrepairable_armor"):
+      armor(durability = 40, protection = Armor(3, 6, 5, 3)):
+        noRepair
+
+    val calls = factory.adapters.flatMap(_.calls).toList
+    assertEquals(
+      calls,
+      List(
+        Call.Armor(
+          ArmorSpec(
+            durability = 40,
+            protection = Armor(3, 6, 5, 3),
+            repairIngredient = Some(repairSupplier)
+          )
+        ),
+        Call.BuildAndRegister,
+        Call.Armor(
+          ArmorSpec(
+            durability = 40,
+            protection = Armor(3, 6, 5, 3),
+            noRepair = true
+          )
+        ),
         Call.BuildAndRegister
       )
     )

@@ -1,6 +1,10 @@
 package com.pixdane.gregicality.materials.dsl
 
 import com.gregtechceu.gtceu.api.item.tool.GTToolType
+import net.minecraft.world.item.crafting.Ingredient
+import net.minecraft.world.item.enchantment.Enchantment
+
+import java.util.function.Supplier
 
 /** Capability shared by sections that expose `enchantability := Int`.
   *
@@ -30,10 +34,10 @@ private[dsl] trait UnbreakableTarget:
   * placed in `given` scope for the block body. The four constructor parameters
   * are mandatory because GTCEu's `ToolProperty.Builder.of(float, float, int,
   * int)` has no setters for them. Inside the body, the top-level `types`,
-  * `enchantability`, `attackSpeed`, `durabilityMultiplier`, `magnetic`,
-  * `unbreakable`, and `ignoreCraftingTools` symbols write to this accumulator;
-  * on block exit, [[toSpec]] produces the immutable [[ToolSpec]] that the
-  * adapter receives as one `tool` call.
+  * `enchantability`, `enchantment`, `attackSpeed`, `durabilityMultiplier`,
+  * `magnetic`, `unbreakable`, and `ignoreCraftingTools` symbols write to this
+  * accumulator; on block exit, [[toSpec]] produces the immutable [[ToolSpec]]
+  * that the adapter receives as one `tool` call.
   *
   * `types :=` replaces the base `types` list and clears any `additionalTypes`
   * accumulated before that call, so a later `types +=` starts fresh. This
@@ -53,6 +57,9 @@ private[dsl] final class ToolContext(
 
   private var types: Option[List[GTToolType]] = None
   private val additionalTypes: scala.collection.mutable.ListBuffer[GTToolType] =
+    scala.collection.mutable.ListBuffer.empty
+  private val enchantments
+      : scala.collection.mutable.ListBuffer[(Enchantment, Int)] =
     scala.collection.mutable.ListBuffer.empty
   private var enchantability: Option[Int] = None
   private var attackSpeed: Option[Double] = None
@@ -75,6 +82,12 @@ private[dsl] final class ToolContext(
   /** Records the enchantability value. Last call wins. */
   def setEnchantability(value: Int): Unit =
     enchantability = Some(value)
+
+  /** Appends a default tool enchantment in authoring order. */
+  private[dsl] def addEnchantment(
+      enchantment: Enchantment,
+      level: Int
+  ): Unit = enchantments += ((enchantment, level))
 
   /** Records the attack speed. Last call wins. */
   private[dsl] def setAttackSpeed(value: Double): Unit =
@@ -103,6 +116,7 @@ private[dsl] final class ToolContext(
       types = types,
       additionalTypes = additionalTypes.toList,
       enchantability = enchantability,
+      enchantments = enchantments.toList,
       attackSpeed = attackSpeed,
       durabilityMultiplier = durabilityMultiplier,
       magnetic = magnetic,
@@ -117,9 +131,10 @@ private[dsl] final class ToolContext(
   * `protection` parameters are mandatory because GTCEu's
   * `ArmorProperty.Builder.of(int, int[])` requires them at construction. Inside
   * the body, the top-level `toughness`, `knockbackResistance`,
-  * `enchantability`, `dyeable`, and `unbreakable` symbols write to this
-  * accumulator; on block exit, [[toSpec]] produces the immutable [[ArmorSpec]]
-  * that the adapter receives as one `armor` call.
+  * `enchantability`, `repairIngredient`, `noRepair`, `dyeable`, and
+  * `unbreakable` symbols write to this accumulator; on block exit, [[toSpec]]
+  * produces the immutable [[ArmorSpec]] that the adapter receives as one
+  * `armor` call.
   *
   * Scalar fields take the last value written. The bare-command booleans flip to
   * `true` and stay there.
@@ -133,6 +148,8 @@ private[dsl] final class ArmorContext(
   private var toughness: Option[Double] = None
   private var knockbackResistance: Option[Double] = None
   private var enchantability: Option[Int] = None
+  private var repairIngredient: Option[Supplier[Ingredient]] = None
+  private var noRepair: Boolean = false
   private var dyeable: Boolean = false
   private var unbreakable: Boolean = false
 
@@ -148,6 +165,18 @@ private[dsl] final class ArmorContext(
   def setEnchantability(value: Int): Unit =
     enchantability = Some(value)
 
+  /** Sets a custom repair ingredient and clears an earlier no-repair choice. */
+  private[dsl] def setRepairIngredient(
+      value: Supplier[Ingredient]
+  ): Unit =
+    repairIngredient = Some(value)
+    noRepair = false
+
+  /** Disables armor repair and clears an earlier custom ingredient. */
+  private[dsl] def setNoRepair(): Unit =
+    repairIngredient = None
+    noRepair = true
+
   /** Marks the armor as dyeable. Idempotent. */
   private[dsl] def setDyeable(): Unit = dyeable = true
 
@@ -162,6 +191,8 @@ private[dsl] final class ArmorContext(
       toughness = toughness,
       knockbackResistance = knockbackResistance,
       enchantability = enchantability,
+      repairIngredient = repairIngredient,
+      noRepair = noRepair,
       dyeable = dyeable,
       unbreakable = unbreakable
     )
@@ -183,12 +214,12 @@ private[dsl] final class ToolTypesAssigner(private val ctx: ToolContext):
 
 // Top-level equipment-section DSL. These definitions live at package scope so
 // authors (and tests in the same package) can call `types := ...`,
-// `types += ...`, `enchantability := ...`, `attackSpeed := ...`,
+// `types += ...`, `enchantability := ...`, `enchantment(...)`, `attackSpeed := ...`,
 // `durabilityMultiplier := ...`, `toughness := ...`, `knockbackResistance :=`,
-// and the bare `magnetic`, `unbreakable`, `ignoreCraftingTools`, and `dyeable`
-// commands inside any tool or armor section without an explicit import. The
-// matching context must be in `given` scope; the outer material entry point
-// supplies it.
+// and the bare `magnetic`, `unbreakable`, `ignoreCraftingTools`, `noRepair`, and
+// `dyeable` commands inside any tool or armor section without an explicit
+// import. The matching context must be in `given` scope; the outer material
+// entry point supplies it.
 
 /** Returns the assigner for the current tool section's types.
   *
@@ -207,6 +238,11 @@ def types(using tc: ToolContext): ToolTypesAssigner =
   */
 def enchantability(using target: EnchantabilityTarget): Assigner[Int] =
   Assigner(target.setEnchantability)
+
+/** Adds a default enchantment to tools in the current tool section. */
+def enchantment(enchantment: Enchantment, level: Int)(using
+    tc: ToolContext
+): Unit = tc.addEnchantment(enchantment, level)
 
 /** Returns the assigner for the current tool section's attack speed. */
 def attackSpeed(using tc: ToolContext): Assigner[Double] =
@@ -240,6 +276,14 @@ def toughness(using ac: ArmorContext): Assigner[Double] =
   */
 def knockbackResistance(using ac: ArmorContext): Assigner[Double] =
   Assigner(ac.setKnockbackResistance)
+
+/** Sets the ingredient used to repair armor in an anvil. */
+def repairIngredient(ingredient: Supplier[Ingredient])(using
+    ac: ArmorContext
+): Unit = ac.setRepairIngredient(ingredient)
+
+/** Disables repair for armor made from the current material. */
+def noRepair(using ac: ArmorContext): Unit = ac.setNoRepair()
 
 /** Marks the current armor section as dyeable. */
 def dyeable(using ac: ArmorContext): Unit = ac.setDyeable()

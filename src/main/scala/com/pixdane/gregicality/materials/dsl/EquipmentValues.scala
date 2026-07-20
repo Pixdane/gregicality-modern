@@ -1,6 +1,10 @@
 package com.pixdane.gregicality.materials.dsl
 
 import com.gregtechceu.gtceu.api.item.tool.GTToolType
+import net.minecraft.world.item.crafting.Ingredient
+import net.minecraft.world.item.enchantment.Enchantment
+
+import java.util.function.Supplier
 
 /** Four-slot armor protection values, ordered helmet, chestplate, leggings,
   * boots.
@@ -37,11 +41,12 @@ final case class Armor(
 
 /** Immutable snapshot of one tool section's accumulated configuration.
   *
-  * Produced by [[EquipmentDsl.ToolContext#toSpec]] at the end of a `tool(...)`
-  * block and forwarded to the material adapter as a single `tool` call. The
-  * four constructor parameters (`speed`, `damage`, `durability`, `level`) are
-  * mandatory because GTCEu's `ToolProperty.Builder.of(float, float, int, int)`
-  * has no setters for them; every other field is optional.
+  * Produced by the package-private `ToolContext.toSpec` method at the end of a
+  * `tool(...)` block and forwarded to the material adapter as a single `tool`
+  * call. The four constructor parameters (`speed`, `damage`, `durability`,
+  * `level`) are mandatory because GTCEu's
+  * `ToolProperty.Builder.of(float, float, int, int)` has no setters for them;
+  * every other field is optional.
   *
   * `types` and `additionalTypes` model the replace-then-append semantics of the
   * `types :=` / `types +=` DSL pair. A `types := List(...)` call replaces the
@@ -75,6 +80,8 @@ final case class Armor(
   *   tool types appended via `types +=` after the last `types :=`
   * @param enchantability
   *   the enchantability value, if set
+  * @param enchantments
+  *   default tool enchantments in authoring order
   * @param attackSpeed
   *   the attack speed, if set; narrowed to `float` by the adapter
   * @param durabilityMultiplier
@@ -94,6 +101,7 @@ final case class ToolSpec(
     types: Option[List[GTToolType]] = None,
     additionalTypes: List[GTToolType] = Nil,
     enchantability: Option[Int] = None,
+    enchantments: List[(Enchantment, Int)] = Nil,
     attackSpeed: Option[Double] = None,
     durabilityMultiplier: Option[Int] = None,
     magnetic: Boolean = false,
@@ -103,10 +111,10 @@ final case class ToolSpec(
 
 /** Immutable snapshot of one armor section's accumulated configuration.
   *
-  * Produced by [[EquipmentDsl.ArmorContext#toSpec]] at the end of an
-  * `armor(...)` block and forwarded to the material adapter as a single `armor`
-  * call. The `durability` and `protection` parameters are mandatory because
-  * GTCEu's `ArmorProperty.Builder.of(int, int[])` requires them at
+  * Produced by the package-private `ArmorContext.toSpec` method at the end of
+  * an `armor(...)` block and forwarded to the material adapter as a single
+  * `armor` call. The `durability` and `protection` parameters are mandatory
+  * because GTCEu's `ArmorProperty.Builder.of(int, int[])` requires them at
   * construction; every other field is optional.
   *
   * The bare-command fields (`dyeable`, `unbreakable`) are booleans that flip to
@@ -128,6 +136,10 @@ final case class ToolSpec(
   *   the knockback resistance, if set; narrowed to `float` by the adapter
   * @param enchantability
   *   the enchantability value, if set
+  * @param repairIngredient
+  *   an explicit armor repair ingredient supplier, if set
+  * @param noRepair
+  *   whether the armor explicitly disables repair
   * @param dyeable
   *   whether the bare `dyeable` command was issued
   * @param unbreakable
@@ -139,6 +151,8 @@ final case class ArmorSpec(
     toughness: Option[Double] = None,
     knockbackResistance: Option[Double] = None,
     enchantability: Option[Int] = None,
+    repairIngredient: Option[Supplier[Ingredient]] = None,
+    noRepair: Boolean = false,
     dyeable: Boolean = false,
     unbreakable: Boolean = false
 )

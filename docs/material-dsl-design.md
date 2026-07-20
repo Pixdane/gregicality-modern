@@ -50,6 +50,8 @@ material("hyperion"):
   gas:
     temperature := 450.K
     density := 0.8
+    name := "hyperion_gas"
+    translation := "fluid.gregicality.hyperion_gas"
     disableBucket
 
   fluid(FluidKind.Molten):
@@ -65,6 +67,7 @@ material("hyperion"):
   tool(speed = 9.0, damage = 7.0, durability = 2048, level = 4):
     types := List(PICKAXE, SWORD, WRENCH)
     enchantability := 18
+    enchantment(Enchantments.SHARPNESS, 3)
     magnetic
 
   armor(durability = 55, protection = Armor(4, 8, 7, 4)):
@@ -96,6 +99,9 @@ The syntax rules are deliberately small:
 | `fluid(FluidKind.Molten):` | Enter a fluid block with an explicit storage kind |
 | `tool(...):`, `armor(...):` | Enter a property builder block with required constructor values |
 | `feature` | A no-argument boolean feature |
+| `name := "..."`, `translation := "..."` | Override fluid builder metadata inside a fluid block |
+| `enchantment(enchantment, level)` | Add a default tool enchantment |
+| `repairIngredient(supplier)`, `noRepair` | Configure armor repair behavior |
 | `hazard(..., progressionMultiplier = ..., applyToDerivatives = ...)` | One named form for GTCEu's hazard overload family |
 | `value := x` | Set one value or replace a complete collection |
 | `values += x` | Append one collection element |
@@ -169,6 +175,11 @@ These direct forms submit the same immutable `OreSpec`, `FluidSpec`, or
 reserved for section-internal boolean features such as `block`,
 `disableBucket`, `disableColor`, and `customStill`.
 
+Fluid `name` and `translation` are scalar fields and therefore use
+last-write-wins semantics. Tool enchantments append in authoring order. Armor
+`repairIngredient(...)` and `noRepair` are mutually exclusive section features;
+the last one authored wins.
+
 `ore:` is a deliberate DSL grouping even though GTCEu exposes ore operations
 as methods on `Material.Builder`, not as an `OreProperty.Builder`. Its context
 keeps ore settings and follow-up processing calls together without changing
@@ -187,6 +198,7 @@ The following remain direct calls because GTCEu exposes them directly on
 - `oreSmeltInto`, `polarizesInto`, `arcSmeltInto`, `macerateInto`, and
   `ingotSmeltInto`;
 - `rotor`, `cable`, `fluidPipe`, and `itemPipe` properties;
+- fluid name/translation, tool enchantments, and armor repair settings;
 - `ignoredTagPrefixes` and `customTags`;
 - `removeHazard`, `radioactiveHazard`, and `hazard`.
 
