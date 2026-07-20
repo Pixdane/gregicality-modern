@@ -54,10 +54,12 @@ private[dsl] trait MaterialBuilderAdapter:
   /** Applies a wood property overload. */
   def wood(level: Option[Int], burnTime: Option[Int]): Unit
 
-  /** Marks the material as an ingot with the given harvest level. */
-  def ingot(level: Int): Unit
-
-  /** Applies an ingot overload not covered by the legacy level-only call. */
+  /** Applies an ingot property overload.
+    *
+    * The three valid shapes map to GTCEu's no-argument, level-only, and
+    * level-with-burn-time overloads. `None, Some(burnTime)` is invalid because
+    * GTCEu has no burn-time-only overload.
+    */
   def ingotForm(level: Option[Int], burnTime: Option[Int]): Unit
 
   /** Applies a gem property overload. */
@@ -199,20 +201,14 @@ private[dsl] final class GtceuMaterialAdapter(id: ResourceLocation)
           "wood burnTime requires harvest level"
         )
 
-  def ingot(level: Int): Unit =
-    builder.ingot(level)
-
   def ingotForm(level: Option[Int], burnTime: Option[Int]): Unit =
     (level, burnTime) match
       case (None, None)              => builder.ingot()
+      case (Some(harvest), None)     => builder.ingot(harvest)
       case (Some(harvest), Some(bt)) => builder.ingot(harvest, bt)
       case (None, Some(_))           =>
         throw new IllegalArgumentException(
           "ingot burnTime requires harvest level"
-        )
-      case (Some(_), None) =>
-        throw new IllegalArgumentException(
-          "use ingot(level) for a level-only call"
         )
 
   def gem(level: Option[Int], burnTime: Option[Int]): Unit =

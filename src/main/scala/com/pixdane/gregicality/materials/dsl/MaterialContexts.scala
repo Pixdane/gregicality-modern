@@ -100,7 +100,7 @@ private[dsl] final class MaterialContext(
     adapter.wood(Some(level), Some(burnTime))
 
   /** Marks the material as an ingot with the given harvest level. */
-  def ingot(level: Int): Unit = adapter.ingot(level)
+  def ingot(level: Int): Unit = adapter.ingotForm(Some(level), None)
 
   /** Adds an ingot property using the no-argument GTCEu overload. */
   def ingot(): Unit = adapter.ingotForm(None, None)

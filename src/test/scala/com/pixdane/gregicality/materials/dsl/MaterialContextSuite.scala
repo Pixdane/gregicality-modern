@@ -28,7 +28,6 @@ enum Call:
   case FormattedFormula(s: String, withFormatting: Boolean)
   case Dust(level: Option[Int], burnTime: Option[Int])
   case Wood(level: Option[Int], burnTime: Option[Int])
-  case Ingot(level: Int)
   case IngotForm(level: Option[Int], burnTime: Option[Int])
   case Gem(level: Option[Int], burnTime: Option[Int])
   case Polymer(level: Option[Int], burnTime: Option[Int])
@@ -76,7 +75,6 @@ final class FakeAdapter(val id: ResourceLocation)
     calls += Call.Dust(level, burnTime)
   def wood(level: Option[Int], burnTime: Option[Int]): Unit =
     calls += Call.Wood(level, burnTime)
-  def ingot(level: Int): Unit = calls += Call.Ingot(level)
   def ingotForm(level: Option[Int], burnTime: Option[Int]): Unit =
     calls += Call.IngotForm(level, burnTime)
   def gem(level: Option[Int], burnTime: Option[Int]): Unit =
@@ -220,7 +218,7 @@ class MaterialContextSuite extends FunSuite:
     val expected = List(
       Call.LangValue("Hyperion Alloy"),
       Call.Formula("C16H12N2O4"),
-      Call.Ingot(4),
+      Call.IngotForm(Some(4), None),
       Call.Visual(spec),
       Call.Flags(Seq(flagA, flagB)),
       Call.Components(
@@ -607,7 +605,7 @@ class MaterialContextSuite extends FunSuite:
         Call.Wood(Some(2), None),
         Call.Wood(Some(3), Some(200)),
         Call.IngotForm(None, None),
-        Call.Ingot(4),
+        Call.IngotForm(Some(4), None),
         Call.IngotForm(Some(5), Some(300)),
         Call.Gem(None, None),
         Call.Gem(Some(3), None),
