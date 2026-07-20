@@ -216,6 +216,46 @@ This split has two purposes:
   use the recording adapter without initializing Forge or the global GTCEu
   material table.
 
+## Modification Boundary
+
+Existing GTCEu materials are modified only during `PostMaterialEvent`, after
+all material builders have run and before GTCEu freezes the material table:
+
+```scala
+given ModificationRegistryContext = ModificationRegistryContext.real
+
+modify(Copper):
+  addFlags(GENERATE_FOIL)
+  orePatch:
+    setByproducts(Cobalt, Gold, Nickel)
+    addByproducts(Silver)
+    modifyWashedIn(Mercury, 100)
+    setOreMultiplier(2)
+  setCable(voltage = V(EV), amperage = 4, loss = 2)
+
+modify(Xenon):
+  addFluid(FluidSpec(FluidKind.Liquid))
+  addFluid(FluidSpec(FluidKind.Plasma))
+```
+
+Modification names are deliberately distinct from registration names when
+Scala 3 cannot place same-package top-level overloads in separate source files.
+For example, modification code uses `setCable`, `modifyHazard`, and
+`modifyOreSmeltInto` rather than overloading the registration DSL's `cable`,
+`hazard`, and `oreSmeltInto` functions.
+
+`orePatch:` preserves authored operation order. `setByproducts` clears and
+replaces the current list, while `addByproducts` appends. GTCEu's
+`OreProperty.setSeparatedInto` itself appends despite its name, so the DSL calls
+that behavior `modifySeparatedInto`. A patch requires the target property to
+already exist; missing properties produce a descriptive exception instead of
+being silently inserted. Cable and pipe setters are the exception: they update
+an existing property or insert a new typed property through `Material.setProperty`.
+
+The modification DSL does not expose flag removal because GTCEu 7.5.3 has no
+public flag-removal API. It also never calls `buildAndRegister()` and cannot
+create a new material during `PostMaterialEvent`.
+
 The first runtime slice contains:
 
 - `polyimide`: a compact real migration slice using polymer, fluid, visual,
@@ -270,6 +310,12 @@ rejects a material that contains both pipe properties during verification.
   last-write-wins hazard-property behavior. The DSL does not reorder or reject
   repeated hazard calls.
 - GTCEu call order is preserved as authored; the DSL does not reorder calls.
+- `modify` creates no terminal operation; each top-level modification reaches
+  its adapter immediately, while `orePatch:` commits its ordered operation list
+  only after the patch body returns normally.
+- `addFluid` enqueues a new storage key before GTCEu's fluid registration pass.
+  Existing primary storage remains unchanged because `FluidProperty` only sets
+  its primary key when the first storage entry is queued.
 
 ## Macro Boundary
 

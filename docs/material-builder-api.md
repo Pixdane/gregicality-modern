@@ -347,9 +347,26 @@ Important setter semantics from the property sources:
   `FluidProperty.setPrimaryKey` replace one stored target.
 
 `getProperty(key)` may return null. A patch must target a material that already
-has the required property; the first material patch ADT deliberately models
-typed setter calls, not arbitrary `setProperty` insertion. Builder-time
-registration and post-registration mutation are separate lifecycles.
+has the required property. The Scala modification DSL deliberately models typed
+setter calls rather than arbitrary property-map access:
+
+```scala
+modify(Iron):
+  orePatch:
+    setByproducts(Nickel, Tin, Gold)
+    modifyWashedIn(SodiumPersulfate, 100)
+  blastTemperature(1811.K)
+```
+
+Builder-time registration and post-registration mutation are separate
+lifecycles. The modification DSL throws a descriptive error for a missing
+required property. `setCable`, `setFluidPipe`, and `setItemPipe` may insert a
+new typed property because their GTCEu property constructors are public and
+`Material.setProperty` re-runs property verification.
+
+The modification DSL does not expose flag removal: GTCEu 7.5.3 only provides
+`Material.addFlags`, and restoring the old reflection/XOR behavior would bypass
+the modern flag-verification contract.
 
 ## GCY Migration Rules of Thumb
 

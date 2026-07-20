@@ -8,7 +8,10 @@ import com.gregtechceu.gtceu.api.data.chemical.material.event.{
 }
 import com.gregtechceu.gtceu.common.data.GTMaterials
 import com.pixdane.gregicality.Gregicality
-import com.pixdane.gregicality.materials.dsl.RegistryContext
+import com.pixdane.gregicality.materials.dsl.{
+  ModificationRegistryContext,
+  RegistryContext
+}
 import net.minecraftforge.eventbus.api.IEventBus
 import org.apache.logging.log4j.Logger
 
@@ -30,7 +33,14 @@ object GCYMaterials:
     registerMaterials()
 
   private def modifyMaterials(event: PostMaterialEvent): Unit =
-    ()
+    given ModificationRegistryContext = ModificationRegistryContext.real
+    MaterialModification.modifyAll(
+      MaterialModificationInputs(
+        xenon = GTMaterials.Xenon,
+        neon = GTMaterials.Neon,
+        krypton = GTMaterials.Krypton
+      )
+    )
 
   private def registerMaterials(): Unit =
     given RegistryContext = RegistryContext(Gregicality.MOD_ID)
