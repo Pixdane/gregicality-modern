@@ -90,6 +90,7 @@ The syntax rules are deliberately small:
 | --- | --- |
 | `langValue("...")`, `formula("...")` | Direct builder call |
 | `ingot(4)`, `oreSmeltInto(Steel)` | Direct parameter call |
+| `oreProperty()`, `gasFluid(450.K)`, `blastTemp(3900.K)` | Compact direct property call |
 | `visual(...)` | Compact multi-value visual configuration |
 | `key:` | Enter a nested DSL context |
 | `fluid(FluidKind.Molten):` | Enter a fluid block with an explicit storage kind |
@@ -149,9 +150,24 @@ liquid(2800.K)
 Scala 3 does not reliably resolve one package-level name as both a direct
 overload and a `name:` context-function block. The DSL therefore keeps
 `liquid(...)` for compact direct calls and uses `fluid(FluidKind.Liquid):`
-for a fully configured liquid. Bare no-argument words remain reserved for
-section-internal boolean features such as `block`, `disableBucket`,
-`disableColor`, and `customStill`.
+for a fully configured liquid. Names that already own context blocks use an
+explicit suffix for their compact forms:
+
+```scala
+oreProperty()
+oreProperty(emissive = true)
+gasFluid()
+gasFluid(450.K)
+plasmaFluid()
+plasmaFluid(12000.K)
+blastTemp(1800.K)
+blastTemp(3900.K, HIGH)
+```
+
+These direct forms submit the same immutable `OreSpec`, `FluidSpec`, or
+`BlastSpec` payload as their block counterparts. Bare no-argument words remain
+reserved for section-internal boolean features such as `block`,
+`disableBucket`, `disableColor`, and `customStill`.
 
 `ore:` is a deliberate DSL grouping even though GTCEu exposes ore operations
 as methods on `Material.Builder`, not as an `OreProperty.Builder`. Its context
@@ -162,6 +178,7 @@ The following remain direct calls because GTCEu exposes them directly on
 `Material.Builder` and named arguments provide enough readability:
 
 - base properties;
+- compact `oreProperty`, `gasFluid`, `plasmaFluid`, and `blastTemp` forms;
 - `langValue` and `formula`;
 - `dust`, `wood`, `ingot`, `gem`, and `polymer` overloads;
 - `burnTime` and `colorAverage`;

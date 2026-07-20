@@ -4,6 +4,7 @@ import com.gregtechceu.gtceu.api.data.chemical.Element
 import com.gregtechceu.gtceu.api.data.chemical.material.Material
 import com.gregtechceu.gtceu.api.data.chemical.material.info.MaterialFlag
 import com.gregtechceu.gtceu.api.data.chemical.material.info.MaterialIconSet
+import com.gregtechceu.gtceu.api.data.chemical.material.properties.BlastProperty.GasTier
 import com.gregtechceu.gtceu.api.data.chemical.material.properties.HazardProperty.HazardTrigger
 import com.gregtechceu.gtceu.api.data.medicalcondition.MedicalCondition
 import com.gregtechceu.gtceu.api.data.tag.TagPrefix
@@ -177,6 +178,14 @@ def components(amounts: Iterable[MaterialAmount])(using
 def ore(body: OreContext ?=> Unit)(using mc: MaterialContext): Unit =
   mc.ore(body)
 
+/** Adds an ore property with GTCEu's default multipliers and texture mode. */
+def oreProperty()(using mc: MaterialContext): Unit =
+  mc.submitOre(OreSpec())
+
+/** Adds an ore property with default multipliers and explicit emissive mode. */
+def oreProperty(emissive: Boolean)(using mc: MaterialContext): Unit =
+  mc.submitOre(OreSpec(emissive = emissive))
+
 /** Opens a fluid configuration block for an explicit standard storage kind.
   *
   * This form covers full liquid, gas, plasma, and molten configuration without
@@ -198,13 +207,45 @@ def liquid(temperature: Kelvin)(using mc: MaterialContext): Unit =
 def gas(body: FluidContext ?=> Unit)(using mc: MaterialContext): Unit =
   mc.configureFluid(FluidKind.Gas, body)
 
+/** Adds a gas with inferred GTCEu settings without opening a fluid block. */
+def gasFluid()(using mc: MaterialContext): Unit =
+  mc.addGas()
+
+/** Adds a gas with an explicit temperature without opening a fluid block. */
+def gasFluid(temperature: Kelvin)(using mc: MaterialContext): Unit =
+  mc.addGas(temperature)
+
 /** Opens a plasma configuration block. */
 def plasma(body: FluidContext ?=> Unit)(using mc: MaterialContext): Unit =
   mc.configureFluid(FluidKind.Plasma, body)
 
+/** Adds a plasma with inferred GTCEu settings without opening a fluid block. */
+def plasmaFluid()(using mc: MaterialContext): Unit =
+  mc.addPlasma()
+
+/** Adds a plasma with an explicit temperature without opening a fluid block. */
+def plasmaFluid(temperature: Kelvin)(using mc: MaterialContext): Unit =
+  mc.addPlasma(temperature)
+
 /** Opens a blast-property configuration block. */
 def blast(body: BlastContext ?=> Unit)(using mc: MaterialContext): Unit =
   mc.blast(body = body)
+
+/** Adds a blast property with an explicit temperature without opening a block.
+  */
+def blastTemp(temperature: Kelvin)(using mc: MaterialContext): Unit =
+  mc.submitBlast(BlastSpec(temperature = Some(temperature)))
+
+/** Adds a blast property with an explicit temperature and gas tier. */
+def blastTemp(temperature: Kelvin, gasTier: GasTier)(using
+    mc: MaterialContext
+): Unit =
+  mc.submitBlast(
+    BlastSpec(
+      temperature = Some(temperature),
+      gasTier = Some(gasTier)
+    )
+  )
 
 /** Opens a tool-property configuration block.
   *

@@ -190,6 +190,10 @@ private[dsl] final class MaterialContext(
     body(using ctx)
     adapter.ore(ctx.toSpec)
 
+  /** Applies an already-assembled ore configuration directly. */
+  private[dsl] def submitOre(spec: OreSpec): Unit =
+    adapter.ore(spec)
+
   /** Adds a liquid storage entry with inferred GTCEu settings. */
   def liquid(): Unit =
     adapter.fluid(FluidSpec(FluidKind.Liquid))
@@ -200,9 +204,27 @@ private[dsl] final class MaterialContext(
       FluidSpec(FluidKind.Liquid, temperature = Some(temperature))
     )
 
+  /** Adds a gas storage entry with inferred GTCEu settings. */
+  private[dsl] def addGas(): Unit =
+    adapter.fluid(FluidSpec(FluidKind.Gas))
+
+  /** Adds a gas storage entry with an explicit temperature. */
+  private[dsl] def addGas(temperature: Kelvin): Unit =
+    adapter.fluid(FluidSpec(FluidKind.Gas, temperature = Some(temperature)))
+
   /** Opens a gas configuration block. */
   def gas(body: FluidContext ?=> Unit): Unit =
     configureFluid(FluidKind.Gas, body)
+
+  /** Adds a plasma storage entry with inferred GTCEu settings. */
+  private[dsl] def addPlasma(): Unit =
+    adapter.fluid(FluidSpec(FluidKind.Plasma))
+
+  /** Adds a plasma storage entry with an explicit temperature. */
+  private[dsl] def addPlasma(temperature: Kelvin): Unit =
+    adapter.fluid(
+      FluidSpec(FluidKind.Plasma, temperature = Some(temperature))
+    )
 
   /** Opens a plasma configuration block. */
   def plasma(body: FluidContext ?=> Unit): Unit =
@@ -219,6 +241,10 @@ private[dsl] final class MaterialContext(
     given BlastContext = ctx
     body(using ctx)
     adapter.blast(ctx.toSpec)
+
+  /** Applies an already-assembled blast configuration directly. */
+  private[dsl] def submitBlast(spec: BlastSpec): Unit =
+    adapter.blast(spec)
 
   /** Opens a tool-property configuration block.
     *

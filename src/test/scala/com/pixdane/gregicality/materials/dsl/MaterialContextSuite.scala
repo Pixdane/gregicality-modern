@@ -434,6 +434,54 @@ class MaterialContextSuite extends FunSuite:
       )
     )
 
+  test("gasFluid and plasmaFluid preserve storage kinds and temperatures"):
+    val (factory, context) = withContext
+    given RegistryContext = context
+    material("direct_gas_and_plasma"):
+      gasFluid()
+      gasFluid(450.K)
+      plasmaFluid()
+      plasmaFluid(12000.K)
+
+    val calls = factory.lastAdapter.get.calls.toList
+    assertEquals(
+      calls,
+      List(
+        Call.Fluid(FluidSpec(FluidKind.Gas)),
+        Call.Fluid(
+          FluidSpec(
+            FluidKind.Gas,
+            temperature = Some(450.K)
+          )
+        ),
+        Call.Fluid(FluidSpec(FluidKind.Plasma)),
+        Call.Fluid(
+          FluidSpec(
+            FluidKind.Plasma,
+            temperature = Some(12000.K)
+          )
+        ),
+        Call.BuildAndRegister
+      )
+    )
+
+  test("oreProperty preserves default multipliers"):
+    val (factory, context) = withContext
+    given RegistryContext = context
+    material("direct_ores"):
+      oreProperty()
+      oreProperty(emissive = true)
+
+    val calls = factory.lastAdapter.get.calls.toList
+    assertEquals(
+      calls,
+      List(
+        Call.Ore(OreSpec()),
+        Call.Ore(OreSpec(emissive = true)),
+        Call.BuildAndRegister
+      )
+    )
+
   test("blast block combines characteristic values into one section payload"):
     val (factory, context) = withContext
     given RegistryContext = context
@@ -485,6 +533,28 @@ class MaterialContextSuite extends FunSuite:
             temperature = Some(1800.K),
             blastStats = Some(RecipeOverride(VA(HV), None)),
             vacuumStats = Some(RecipeOverride(VA(MV), None))
+          )
+        ),
+        Call.BuildAndRegister
+      )
+    )
+
+  test("blastTemp preserves temperature and optional gas tier"):
+    val (factory, context) = withContext
+    given RegistryContext = context
+    material("direct_blast"):
+      blastTemp(1800.K)
+      blastTemp(3900.K, GasTier.HIGH)
+
+    val calls = factory.lastAdapter.get.calls.toList
+    assertEquals(
+      calls,
+      List(
+        Call.Blast(BlastSpec(temperature = Some(1800.K))),
+        Call.Blast(
+          BlastSpec(
+            temperature = Some(3900.K),
+            gasTier = Some(GasTier.HIGH)
           )
         ),
         Call.BuildAndRegister
