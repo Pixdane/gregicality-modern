@@ -13,14 +13,11 @@ runs:
   steps:
     # JDK 25: matches the project's Gradle toolchain (build-logic/.../jvm.gradle.kts) and the
     # version Gradle 9.6.1 from setup-gradle runs on.
-    # Pinned to 25.0.3: 25.0.4 tightened signed-JAR verification, which breaks compileScala on
-    # Forge class files with stale signatures produced by moddev-legacyforge (binary-patch path).
-    # See JDK-8341551 / NFRT signature-stripping gap. Unpin once upstream fixes signature stripping.
     - name: Set up JDK 25
       uses: actions/setup-java@v5
       with:
         distribution: zulu
-        java-version: 25.0.3
+        java-version: 25
 
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v5

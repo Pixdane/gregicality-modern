@@ -23,7 +23,15 @@ sourceSets.main {
 
 legacyForge {
 
-    version = "${libs.versions.minecraft.get()}-${libs.versions.forge.get()}"
+    // Force the decompile+recompile pipeline instead of the binaryPatch path.
+    // MDG 2.0.136+ defaults to disableRecompilation=true when CI=true (GitHub Actions sets it),
+    // but the binaryPatch path leaves stale JAR signatures in the Forge artifact, which breaks
+    // compileScala (Zinc verifies signatures via URLClassLoader->JarFile, unlike javac->ZipFile).
+    // The recompile path strips signatures (NFRT StripManifestDigestContentFilter).
+    enable {
+        forgeVersion = "${libs.versions.minecraft.get()}-${libs.versions.forge.get()}"
+        setDisableRecompilation(false)
+    }
 
     parchment {
         minecraftVersion = libs.versions.minecraft.get()
