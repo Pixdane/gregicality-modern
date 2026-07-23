@@ -1,7 +1,7 @@
-package com.pixdane.gregicality.materials.dsl
+package com.pixdane.gregicality.dsl.materials
 
 import com.gregtechceu.gtceu.api.data.chemical.material.Material
-import com.pixdane.gregicality.materials.dsl.VoltageTier.*
+import VoltageTier.*
 import munit.FunSuite
 
 class MaterialValuesSuite extends FunSuite:

@@ -1,4 +1,4 @@
-package com.pixdane.gregicality.materials.dsl
+package com.pixdane.gregicality.dsl.materials
 
 import com.gregtechceu.gtceu.api.item.tool.GTToolType
 import net.minecraft.world.item.crafting.Ingredient

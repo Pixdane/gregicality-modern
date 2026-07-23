@@ -1,4 +1,4 @@
-package com.pixdane.gregicality.materials.dsl
+package com.pixdane.gregicality.dsl.materials
 
 import com.gregtechceu.gtceu.api.data.chemical.Element
 import com.gregtechceu.gtceu.api.data.chemical.material.Material
@@ -20,7 +20,7 @@ import munit.FunSuite
 import java.util.function.Supplier
 import scala.collection.mutable.ListBuffer
 
-import com.pixdane.gregicality.materials.dsl.VoltageTier.*
+import VoltageTier.*
 
 /** Recorded adapter invocation. The suite compares lists of these to assert
   * call order and payload without touching the Forge material registry.

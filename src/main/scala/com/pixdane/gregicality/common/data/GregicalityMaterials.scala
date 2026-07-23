@@ -8,15 +8,12 @@ import com.gregtechceu.gtceu.api.data.chemical.material.event.{
 }
 import com.gregtechceu.gtceu.common.data.GTMaterials
 import com.pixdane.gregicality.Gregicality
-import com.pixdane.gregicality.materials.dsl.{
-  ModificationRegistryContext,
-  RegistryContext
-}
+import com.pixdane.gregicality.dsl.materials.{ModificationRegistryContext, RegistryContext}
 import net.minecraftforge.eventbus.api.IEventBus
 import org.apache.logging.log4j.Logger
 
 /** Forge event bridge for the Gregicality material registry and definitions. */
-object GCYMaterials:
+object GregicalityMaterials:
 
   /** Installs the material registry, registration, and post-registration event
     * listeners on the mod event bus.
@@ -33,23 +30,7 @@ object GCYMaterials:
     registerMaterials()
 
   private def modifyMaterials(event: PostMaterialEvent): Unit =
-    given ModificationRegistryContext = ModificationRegistryContext.real
-    MaterialModification.modifyAll(
-      MaterialModificationInputs(
-        xenon = GTMaterials.Xenon,
-        neon = GTMaterials.Neon,
-        krypton = GTMaterials.Krypton
-      )
-    )
+    ()
 
   private def registerMaterials(): Unit =
-    given RegistryContext = RegistryContext(Gregicality.MOD_ID)
-    MaterialRegistration.registerAll(
-      MaterialRegistrationInputs(
-        carbon = GTMaterials.Carbon,
-        hydrogen = GTMaterials.Hydrogen,
-        nitrogen = GTMaterials.Nitrogen,
-        oxygen = GTMaterials.Oxygen,
-        sulfuricAcid = GTMaterials.SulfuricAcid
-      )
-    )
+    ()

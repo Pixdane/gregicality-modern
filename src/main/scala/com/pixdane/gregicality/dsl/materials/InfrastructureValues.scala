@@ -1,4 +1,4 @@
-package com.pixdane.gregicality.materials.dsl
+package com.pixdane.gregicality.dsl.materials
 
 /** Rotor statistics forwarded to `Material.Builder.rotorStats`.
   *

@@ -1,4 +1,4 @@
-package com.pixdane.gregicality.materials.dsl
+package com.pixdane.gregicality.dsl.materials
 
 /** A named, distinguishable section of the material authoring DSL. */
 trait SectionMarker:

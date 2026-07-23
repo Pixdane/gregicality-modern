@@ -1,4 +1,4 @@
-package com.pixdane.gregicality.materials.dsl
+package com.pixdane.gregicality.dsl.materials
 
 import com.gregtechceu.gtceu.api.data.chemical.material.properties.HazardProperty.HazardTrigger
 import com.gregtechceu.gtceu.api.data.medicalcondition.MedicalCondition
