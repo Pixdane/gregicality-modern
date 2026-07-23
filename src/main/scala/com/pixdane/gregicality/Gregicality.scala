@@ -26,7 +26,6 @@ object Gregicality:
   init()
 
   private def init(): Unit =
-
     given Logger = LogManager.getLogger(MOD_ID)
     given modEventBus: IEventBus = FMLJavaModLoadingContext.get().getModEventBus
 
