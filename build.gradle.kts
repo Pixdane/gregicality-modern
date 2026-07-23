@@ -1,7 +1,6 @@
 plugins {
     alias(conventions.plugins.scala.project)
     alias(conventions.plugins.scalafmt)
-    alias(conventions.plugins.codegen)
     alias(conventions.plugins.repositories)
     alias(conventions.plugins.minecraft)
     alias(conventions.plugins.publish)
@@ -22,13 +21,13 @@ dependencies {
 
     modCompileOnly(deps.registrate)
 
+    modImplementation(deps.gtceu)
+
     modRuntimeOnly(variantOf(deps.scalablecatsforce) {
         classifier("with-library")
     }) {
         isTransitive = false
     }
-    // JEI for dev testing
-    modRuntimeOnly(deps.bundles.jei)
 
-    modImplementation(deps.gtceu)
+    modRuntimeOnly(deps.bundles.jei)
 }

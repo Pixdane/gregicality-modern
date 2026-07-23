@@ -19,11 +19,3 @@ Current documents are useful for:
 When a later implementation contradicts these notes, update the relevant
 document with the verified behavior instead of treating this snapshot as
 authoritative.
-
-Design notes:
-
-- [`compile-time-scala-dsl-design.md`](compile-time-scala-dsl-design.md):
-  proposed typed Scala DSL, pure ADT/codegen pipeline, macro boundaries, and
-  Gradle source generation strategy for registration code.
-- [`symbolgen-redesign-plan.md`](symbolgen-redesign-plan.md):
-  completed symbolgen refactor plan, execution record, and verification notes.

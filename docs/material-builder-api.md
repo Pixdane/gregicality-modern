@@ -42,6 +42,32 @@ materials whose canonical id already exists in GTCEu Modern.
 - `register()`: delegates to `buildAndRegister()`.
 - `langValue(name)`: override the generated English display name.
 
+## Property Verification and EMPTY
+
+`MaterialProperties.verify()` is a property-induction fixpoint, not a
+single pass:
+
+1. snapshot the current property values;
+2. call `verifyProperty(this)` on every value in that snapshot;
+3. repeat while the property-map size changes.
+
+Property implementations use `ensureSet` during verification, so newly induced
+properties are verified on a later pass. `ensureSet(key, true)` also triggers
+verification immediately. This is why builder calls such as polymer, blast,
+ore, and ingot can safely induce additional base properties without codegen
+emitting duplicate setters.
+
+The base-property set is FLUID, DUST, INGOT, GEM, and EMPTY. After the fixpoint:
+
+- an entirely property-less material receives `PropertyKey.EMPTY`;
+- a material with only non-base properties fails verification;
+- setting a real property removes EMPTY;
+- removing the final real property restores EMPTY.
+
+EMPTY is an internal no-op placeholder declared by `PropertyKey`; there is no
+builder call to author it. A material ADT with zero authored properties is
+therefore valid, and the renderer should emit no synthetic property call.
+
 ## Base Material Properties
 
 - `dust()`
@@ -61,9 +87,14 @@ materials whose canonical id already exists in GTCEu Modern.
 - `polymer(harvestLevel, burnTime)`
 - `burnTime(ticks)`
 
-`ingot`, `gem`, and `polymer` ensure a dust property. `gem` and `ingot` are
+`ingot`, `gem`, and `polymer` ensure a dust property. `polymer` also ensures an
+ingot property and adds `FLAMMABLE`, `NO_SMASHING`, and
+`DISABLE_DECOMPOSITION` during property verification. `gem` and `ingot` are
 mutually exclusive. `burnTime` also ensures a dust property if one does not
 exist.
+
+The old Gregicality flag `SMELT_INTO_FLUID` does not exist in GTCEu 7.5.3's
+`MaterialFlags`; do not invent a modern ref for it.
 
 ## Fluid Properties
 
@@ -289,6 +320,54 @@ component hazard should not apply to the derived material.
 Use `ignoredTagPrefixes` when a material has a broad property but must not
 generate a particular form.
 
+## Post-Registration Patches
+
+Post-registration changes operate on already-built runtime materials. They do
+not rebuild or re-register the material:
+
+```scala
+val ore = Iron.getProperty(PropertyKey.ORE)
+ore.setOreByProducts(Nickel, Tin, Gold)
+ore.setWashedIn(SodiumPersulfate)
+```
+
+GTCEu's `MaterialFlagAddition.register()` uses this pattern extensively.
+Addon-owned changes belong in `PostMaterialEvent`, after all registrations are
+available.
+
+Important setter semantics from the property sources:
+
+- `OreProperty.setOreByProducts(...)` clears the current list, then adds the
+  supplied values.
+- `OreProperty.addOreByProducts(...)` appends.
+- `OreProperty.setSeparatedInto(...)` also appends despite its `set` name.
+- `setWashedIn(material)` preserves the existing/default 100 mB amount;
+  `setWashedIn(material, amount)` replaces both values.
+- `setDirectSmeltResult`, `setMagneticMaterial`, `setArcSmeltingInto`, and
+  `FluidProperty.setPrimaryKey` replace one stored target.
+
+`getProperty(key)` may return null. A patch must target a material that already
+has the required property. The Scala modification DSL deliberately models typed
+setter calls rather than arbitrary property-map access:
+
+```scala
+modify(Iron):
+  orePatch:
+    setByproducts(Nickel, Tin, Gold)
+    modifyWashedIn(SodiumPersulfate, 100)
+  blastTemperature(1811.K)
+```
+
+Builder-time registration and post-registration mutation are separate
+lifecycles. The modification DSL throws a descriptive error for a missing
+required property. `setCable`, `setFluidPipe`, and `setItemPipe` may insert a
+new typed property because their GTCEu property constructors are public and
+`Material.setProperty` re-runs property verification.
+
+The modification DSL does not expose flag removal: GTCEu 7.5.3 only provides
+`Material.addFlags`, and restoring the old reflection/XOR behavior would bypass
+the modern flag-verification contract.
+
 ## GCY Migration Rules of Thumb
 
 - Old `SimpleDustMaterial`: usually `.dust().color(...).iconSet(...)`, plus
@@ -299,6 +378,8 @@ generate a particular form.
   flags.
 - Old `IngotMaterial`: `.ingot(level).fluid()`, then `STD_METAL` and explicit
   `GENERATE_*` flags as needed.
+- Old polymer-like `IngotMaterial`: prefer `.polymer(level)` plus its authored
+  fluid and only the modern flags not already added by PolymerProperty.
 - Old `GemMaterial`: `.gem()`, never `.ingot()` unless the material is being
   deliberately reclassified.
 - Old marker/tier materials: do not blindly register normal materials. Map to

@@ -10,29 +10,28 @@ import com.pixdane.gregicality.client.GregicalityClient
 import com.pixdane.gregicality.common.data.GCYMaterials
 import net.minecraft.resources.ResourceLocation
 import net.minecraftforge.api.distmarker.Dist
-import net.minecraftforge.eventbus.api.SubscribeEvent
+import net.minecraftforge.eventbus.api.IEventBus
 import net.minecraftforge.fml.DistExecutor
 import net.minecraftforge.fml.common.Mod
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext
-import org.apache.logging.log4j.LogManager
+import org.apache.logging.log4j.{LogManager, Logger}
 
 @Mod(Gregicality.MOD_ID)
 object Gregicality:
   inline val MOD_ID = "gregicality"
-
-  private val LOGGER = LogManager.getLogger(MOD_ID)
 
   val REGISTRATE: GTRegistrate = GTRegistrate.create(MOD_ID)
 
   init()
 
   private def init(): Unit =
-    val modEventBus = FMLJavaModLoadingContext.get().getModEventBus
+    given Logger = LogManager.getLogger(MOD_ID)
+    given modEventBus: IEventBus = FMLJavaModLoadingContext.get().getModEventBus
 
-    modEventBus.register(this)
+    modEventBus.addListener(onCommonSetup)
 
-    GCYMaterials.init(LOGGER, modEventBus)
+    GCYMaterials.init()
 
     modEventBus.addGenericListener(classOf[GTRecipeType], registerRecipeTypes)
     modEventBus.addGenericListener(classOf[MachineDefinition], registerMachines)
@@ -42,14 +41,15 @@ object Gregicality:
 
     DistExecutor.unsafeRunWhenOn(
       Dist.CLIENT,
-      () => () => GregicalityClient.init(LOGGER, modEventBus)
+      () => () => GregicalityClient.init()
     )
 
   def id(path: String) = ResourceLocation(MOD_ID, path)
 
-  @SubscribeEvent
-  def onCommonSetup(event: FMLCommonSetupEvent): Unit = {
-    event.enqueueWork[Unit](() => LOGGER.info("HELLO from common setup"))
+  private def onCommonSetup(
+      event: FMLCommonSetupEvent
+  )(using logger: Logger): Unit = {
+    event.enqueueWork[Unit](() => logger.info("HELLO from common setup"))
   }
 
   private def registerRecipeTypes(
