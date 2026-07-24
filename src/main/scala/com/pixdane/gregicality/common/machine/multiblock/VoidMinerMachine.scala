@@ -10,7 +10,7 @@ import com.gregtechceu.gtceu.api.machine.feature.ITieredMachine
 import com.gregtechceu.gtceu.api.machine.multiblock.WorkableElectricMultiblockMachine
 import com.gregtechceu.gtceu.api.registry.registrate.MultiblockMachineBuilder
 import com.gregtechceu.gtceu.common.data.machines.GTMachineUtils.registerTieredMultis
-import com.pixdane.gregicality.dsl.materials.machine.multiblock.MachineBuilderDsl.*
+import com.pixdane.gregicality.dsl.machine.multiblock.MachineBuilderDsl.*
 import com.pixdane.gregicality.Gregicality.REGISTRATE
 
 class VoidMinerMachine(holder: IMachineBlockEntity, tier: Int)

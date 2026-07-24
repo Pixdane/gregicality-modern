@@ -1,4 +1,4 @@
-package com.pixdane.gregicality.dsl.materials.machine.multiblock
+package com.pixdane.gregicality.dsl.machine.multiblock
 
 import com.gregtechceu.gtceu.api.data.RotationState
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition
