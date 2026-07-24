@@ -23,6 +23,10 @@ dependencies {
 
     modImplementation(deps.gtceu)
 
+    // ldlib is jar-in-jar'd inside gtceu; extract it so the Scala compiler can resolve
+    // RecipeLogic's parent type chain (IEnhancedManaged etc.).
+    compileOnly(fileTree("libs") { include("*.jar") })
+
     modRuntimeOnly(variantOf(deps.scalablecatsforce) {
         classifier("with-library")
     }) {
