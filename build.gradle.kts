@@ -25,10 +25,8 @@ dependencies {
 
     // ldlib is jar-in-jar'd inside gtceu; expose it as a compileOnly Maven
     // dependency so the Scala compiler can resolve ldlib types (BlockInfo,
-    // IEnhancedManaged, etc.). The gitignored libs/ jar stays as a local
-    // fallback for IDE sync when offline.
+    // IEnhancedManaged, etc.).
     compileOnly(deps.ldlib)
-    compileOnly(fileTree("libs") { include("*.jar") })
 
     modRuntimeOnly(variantOf(deps.scalablecatsforce) {
         classifier("with-library")
