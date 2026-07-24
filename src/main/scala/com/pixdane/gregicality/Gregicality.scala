@@ -7,7 +7,8 @@ import com.gregtechceu.gtceu.api.recipe.GTRecipeType
 import com.gregtechceu.gtceu.api.registry.registrate.GTRegistrate
 import com.gregtechceu.gtceu.api.sound.SoundEntry
 import com.pixdane.gregicality.client.GregicalityClient
-import com.pixdane.gregicality.common.data.GCYMaterials
+import com.pixdane.gregicality.common.data.GregicalityMaterials
+import com.pixdane.gregicality.common.data.machines.GregicalityMultiMachines
 import net.minecraft.resources.ResourceLocation
 import net.minecraftforge.api.distmarker.Dist
 import net.minecraftforge.eventbus.api.IEventBus
@@ -31,7 +32,7 @@ object Gregicality:
 
     modEventBus.addListener(onCommonSetup)
 
-    GCYMaterials.init()
+    GregicalityMaterials.init()
 
     modEventBus.addGenericListener(classOf[GTRecipeType], registerRecipeTypes)
     modEventBus.addGenericListener(classOf[MachineDefinition], registerMachines)
@@ -58,7 +59,8 @@ object Gregicality:
 
   private def registerMachines(
       event: RegisterEvent[ResourceLocation, MachineDefinition]
-  ): Unit = ()
+  ): Unit =
+    GregicalityMultiMachines.init()
 
   private def registerSounds(
       event: RegisterEvent[ResourceLocation, SoundEntry]
