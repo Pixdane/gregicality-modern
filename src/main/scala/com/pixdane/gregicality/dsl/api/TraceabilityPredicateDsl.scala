@@ -2,135 +2,220 @@ package com.pixdane.gregicality.dsl.api
 
 import com.gregtechceu.gtceu.api.block.IMachineBlock
 import com.gregtechceu.gtceu.api.capability.recipe.IO
+import com.gregtechceu.gtceu.api.data.chemical.material.Material
+import com.gregtechceu.gtceu.api.machine.MachineDefinition
 import com.gregtechceu.gtceu.api.machine.multiblock.PartAbility
 import com.gregtechceu.gtceu.api.pattern.{
   MultiblockState,
-  Predicates,
+  Predicates as GtPredicates,
   TraceabilityPredicate
 }
 import com.gregtechceu.gtceu.api.recipe.GTRecipeType
+import com.gregtechceu.gtceu.common.block.LampBlock
 import com.lowdragmc.lowdraglib.utils.BlockInfo
+import net.minecraft.tags.TagKey
+import net.minecraft.world.item.DyeColor
 import net.minecraft.world.level.block.Block
+import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.world.level.material.Fluid
+import com.tterrag.registrate.util.entry.BlockEntry
 
 import scala.annotation.targetName
 import scala.jdk.FunctionConverters.*
 
 object TraceabilityPredicateDsl:
 
-  @targetName("blocksFromBlocks")
-  def blocks(blocks: Block*): TraceabilityPredicate =
-    Predicates.blocks(blocks*)
+  /** Public predicate constructors. Each factory mirrors a static method on
+    * GTCEu's [[com.gregtechceu.gtceu.api.pattern.Predicates]] and is offered in
+    * two forms: a plain form returning the predicate, and a context-function
+    * form that gives callers a [[TraceabilityPredicate]] in scope so modifiers
+    * like [[setMinGlobalLimited]] can be chained inline.
+    */
+  object Predicates:
 
-  @targetName("blocksFromBlocks")
-  def blocks(blocks: Block*)(
-      proc: TraceabilityPredicate ?=> Unit
-  ): TraceabilityPredicate =
-    given predicate: TraceabilityPredicate = Predicates.blocks(blocks*)
-    proc
-    predicate
+    @targetName("blocksFromBlocks")
+    def blocks(blocks: Block*): TraceabilityPredicate =
+      GtPredicates.blocks(blocks*)
 
-  @targetName("blocksFromMachineBlocks")
-  def blocks(blocks: IMachineBlock*): TraceabilityPredicate =
-    Predicates.blocks(blocks*)
+    @targetName("blocksFromBlocks")
+    def blocks(blocks: Block*)(
+        proc: TraceabilityPredicate ?=> Unit
+    ): TraceabilityPredicate =
+      given predicate: TraceabilityPredicate = GtPredicates.blocks(blocks*)
+      proc
+      predicate
 
-  @targetName("blocksFromMachineBlocks")
-  def blocks(blocks: IMachineBlock*)(
-      proc: TraceabilityPredicate ?=> Unit
-  ): TraceabilityPredicate =
-    given predicate: TraceabilityPredicate = Predicates.blocks(blocks*)
-    proc
-    predicate
+    @targetName("blocksFromMachineBlocks")
+    def blocks(blocks: IMachineBlock*): TraceabilityPredicate =
+      GtPredicates.blocks(blocks*)
 
-  def controller(block: IMachineBlock): TraceabilityPredicate =
-    Predicates.controller(Predicates.blocks(block))
+    @targetName("blocksFromMachineBlocks")
+    def blocks(blocks: IMachineBlock*)(
+        proc: TraceabilityPredicate ?=> Unit
+    ): TraceabilityPredicate =
+      given predicate: TraceabilityPredicate = GtPredicates.blocks(blocks*)
+      proc
+      predicate
 
-  def controller(block: IMachineBlock)(
-      proc: TraceabilityPredicate ?=> Unit
-  ): TraceabilityPredicate =
-    given predicate: TraceabilityPredicate =
-      Predicates.controller(Predicates.blocks(block))
-    proc
-    predicate
+    def states(states: BlockState*): TraceabilityPredicate =
+      GtPredicates.states(states*)
 
-  def air: TraceabilityPredicate = Predicates.air()
+    def states(states: BlockState*)(
+        proc: TraceabilityPredicate ?=> Unit
+    ): TraceabilityPredicate =
+      given predicate: TraceabilityPredicate = GtPredicates.states(states*)
+      proc
+      predicate
 
-  def air(
-      proc: TraceabilityPredicate ?=> Unit
-  ): TraceabilityPredicate =
-    given predicate: TraceabilityPredicate = Predicates.air()
-    proc
-    predicate
+    def machines(definitions: MachineDefinition*): TraceabilityPredicate =
+      GtPredicates.machines(definitions*)
 
-  def any: TraceabilityPredicate = Predicates.any()
+    def machines(definitions: MachineDefinition*)(
+        proc: TraceabilityPredicate ?=> Unit
+    ): TraceabilityPredicate =
+      given predicate: TraceabilityPredicate =
+        GtPredicates.machines(definitions*)
+      proc
+      predicate
 
-  def any(
-      proc: TraceabilityPredicate ?=> Unit
-  ): TraceabilityPredicate =
-    given predicate: TraceabilityPredicate = Predicates.any()
-    proc
-    predicate
+    def blockTag(tag: TagKey[Block]): TraceabilityPredicate =
+      GtPredicates.blockTag(tag)
 
-  def heatingCoils: TraceabilityPredicate = Predicates.heatingCoils()
+    def blockTag(tag: TagKey[Block])(
+        proc: TraceabilityPredicate ?=> Unit
+    ): TraceabilityPredicate =
+      given predicate: TraceabilityPredicate = GtPredicates.blockTag(tag)
+      proc
+      predicate
 
-  def heatingCoils(
-      proc: TraceabilityPredicate ?=> Unit
-  ): TraceabilityPredicate =
-    given predicate: TraceabilityPredicate = Predicates.heatingCoils()
-    proc
-    predicate
+    def fluids(fluids: Fluid*): TraceabilityPredicate =
+      GtPredicates.fluids(fluids*)
 
-  def ability(ability: PartAbility, tiers: Int*): TraceabilityPredicate =
-    Predicates.ability(ability, tiers*)
+    def fluids(fluids: Fluid*)(
+        proc: TraceabilityPredicate ?=> Unit
+    ): TraceabilityPredicate =
+      given predicate: TraceabilityPredicate = GtPredicates.fluids(fluids*)
+      proc
+      predicate
 
-  def ability(ability: PartAbility, tiers: Int*)(
-      proc: TraceabilityPredicate ?=> Unit
-  ): TraceabilityPredicate =
-    given predicate: TraceabilityPredicate = Predicates.ability(ability, tiers*)
-    proc
-    predicate
+    def fluidTag(tag: TagKey[Fluid]): TraceabilityPredicate =
+      GtPredicates.fluidTag(tag)
 
-  def abilities(abilities: PartAbility*): TraceabilityPredicate =
-    Predicates.abilities(abilities*)
+    def fluidTag(tag: TagKey[Fluid])(
+        proc: TraceabilityPredicate ?=> Unit
+    ): TraceabilityPredicate =
+      given predicate: TraceabilityPredicate = GtPredicates.fluidTag(tag)
+      proc
+      predicate
 
-  def abilities(abilities: PartAbility*)(
-      proc: TraceabilityPredicate ?=> Unit
-  ): TraceabilityPredicate =
-    given predicate: TraceabilityPredicate = Predicates.abilities(abilities*)
-    proc
-    predicate
+    def controller(block: IMachineBlock): TraceabilityPredicate =
+      GtPredicates.controller(GtPredicates.blocks(block))
 
-  def autoAbilities(
-      recipeType: Array[GTRecipeType],
-      checkEnergyIn: Boolean,
-      checkEnergyOut: Boolean,
-      checkItemIn: Boolean,
-      checkItemOut: Boolean,
-      checkFluidIn: Boolean,
-      checkFluidOut: Boolean
-  ): TraceabilityPredicate =
-    Predicates.autoAbilities(
-      recipeType,
-      checkEnergyIn,
-      checkEnergyOut,
-      checkItemIn,
-      checkItemOut,
-      checkFluidIn,
-      checkFluidOut
-    )
+    def controller(block: IMachineBlock)(
+        proc: TraceabilityPredicate ?=> Unit
+    ): TraceabilityPredicate =
+      given predicate: TraceabilityPredicate =
+        GtPredicates.controller(GtPredicates.blocks(block))
+      proc
+      predicate
 
-  def autoAbilities(
-      recipeType: Array[GTRecipeType],
-      checkEnergyIn: Boolean,
-      checkEnergyOut: Boolean,
-      checkItemIn: Boolean,
-      checkItemOut: Boolean,
-      checkFluidIn: Boolean,
-      checkFluidOut: Boolean
-  )(
-      proc: TraceabilityPredicate ?=> Unit
-  ): TraceabilityPredicate =
-    given predicate: TraceabilityPredicate =
-      Predicates.autoAbilities(
+    def air: TraceabilityPredicate = GtPredicates.air()
+
+    def any: TraceabilityPredicate = GtPredicates.any()
+
+    def lamps(lamps: BlockEntry[LampBlock]*): TraceabilityPredicate =
+      GtPredicates.lamps(lamps*)
+
+    def lamps(lamps: BlockEntry[LampBlock]*)(
+        proc: TraceabilityPredicate ?=> Unit
+    ): TraceabilityPredicate =
+      given predicate: TraceabilityPredicate = GtPredicates.lamps(lamps*)
+      proc
+      predicate
+
+    def anyLamp: TraceabilityPredicate = GtPredicates.anyLamp()
+
+    def anyLamp(proc: TraceabilityPredicate ?=> Unit): TraceabilityPredicate =
+      given predicate: TraceabilityPredicate = GtPredicates.anyLamp()
+      proc
+      predicate
+
+    def lampsByColor(color: DyeColor): TraceabilityPredicate =
+      GtPredicates.lampsByColor(color)
+
+    def heatingCoils: TraceabilityPredicate = GtPredicates.heatingCoils()
+
+    def heatingCoils(
+        proc: TraceabilityPredicate ?=> Unit
+    ): TraceabilityPredicate =
+      given predicate: TraceabilityPredicate = GtPredicates.heatingCoils()
+      proc
+      predicate
+
+    def cleanroomFilters: TraceabilityPredicate =
+      GtPredicates.cleanroomFilters()
+
+    def cleanroomFilters(
+        proc: TraceabilityPredicate ?=> Unit
+    ): TraceabilityPredicate =
+      given predicate: TraceabilityPredicate = GtPredicates.cleanroomFilters()
+      proc
+      predicate
+
+    def powerSubstationBatteries: TraceabilityPredicate =
+      GtPredicates.powerSubstationBatteries()
+
+    def powerSubstationBatteries(
+        proc: TraceabilityPredicate ?=> Unit
+    ): TraceabilityPredicate =
+      given predicate: TraceabilityPredicate =
+        GtPredicates.powerSubstationBatteries()
+      proc
+      predicate
+
+    def ability(ability: PartAbility, tiers: Int*): TraceabilityPredicate =
+      GtPredicates.ability(ability, tiers*)
+
+    def ability(ability: PartAbility, tiers: Int*)(
+        proc: TraceabilityPredicate ?=> Unit
+    ): TraceabilityPredicate =
+      given predicate: TraceabilityPredicate =
+        GtPredicates.ability(ability, tiers*)
+      proc
+      predicate
+
+    def abilities(abilities: PartAbility*): TraceabilityPredicate =
+      GtPredicates.abilities(abilities*)
+
+    def abilities(abilities: PartAbility*)(
+        proc: TraceabilityPredicate ?=> Unit
+    ): TraceabilityPredicate =
+      given predicate: TraceabilityPredicate =
+        GtPredicates.abilities(abilities*)
+      proc
+      predicate
+
+    def autoAbilities(recipeType: GTRecipeType*): TraceabilityPredicate =
+      GtPredicates.autoAbilities(recipeType*)
+
+    def autoAbilities(recipeType: GTRecipeType*)(
+        proc: TraceabilityPredicate ?=> Unit
+    ): TraceabilityPredicate =
+      given predicate: TraceabilityPredicate =
+        GtPredicates.autoAbilities(recipeType*)
+      proc
+      predicate
+
+    def autoAbilities(
+        recipeType: Array[GTRecipeType],
+        checkEnergyIn: Boolean,
+        checkEnergyOut: Boolean,
+        checkItemIn: Boolean,
+        checkItemOut: Boolean,
+        checkFluidIn: Boolean,
+        checkFluidOut: Boolean
+    ): TraceabilityPredicate =
+      GtPredicates.autoAbilities(
         recipeType,
         checkEnergyIn,
         checkEnergyOut,
@@ -139,109 +224,202 @@ object TraceabilityPredicateDsl:
         checkFluidIn,
         checkFluidOut
       )
-    proc
-    predicate
 
-  def custom(
-      predicate: MultiblockState => Boolean,
-      candidates: () => Array[BlockInfo]
-  ): TraceabilityPredicate =
-    Predicates.custom(predicate.asJava, candidates.asJava)
+    def autoAbilities(
+        recipeType: Array[GTRecipeType],
+        checkEnergyIn: Boolean,
+        checkEnergyOut: Boolean,
+        checkItemIn: Boolean,
+        checkItemOut: Boolean,
+        checkFluidIn: Boolean,
+        checkFluidOut: Boolean
+    )(
+        proc: TraceabilityPredicate ?=> Unit
+    ): TraceabilityPredicate =
+      given predicate: TraceabilityPredicate =
+        GtPredicates.autoAbilities(
+          recipeType,
+          checkEnergyIn,
+          checkEnergyOut,
+          checkItemIn,
+          checkItemOut,
+          checkFluidIn,
+          checkFluidOut
+        )
+      proc
+      predicate
 
-  def custom(
-      _predicate: MultiblockState => Boolean,
-      candidates: () => Array[BlockInfo]
-  )(
-      proc: TraceabilityPredicate ?=> Unit
-  ): TraceabilityPredicate =
-    given predicate: TraceabilityPredicate =
-      Predicates.custom(_predicate.asJava, candidates.asJava)
-    proc
-    predicate
+    def autoAbilities(
+        checkMaintenance: Boolean,
+        checkMuffler: Boolean,
+        checkParallel: Boolean
+    ): TraceabilityPredicate =
+      GtPredicates.autoAbilities(checkMaintenance, checkMuffler, checkParallel)
 
-  // ---- or 链运算符 ----
+    def autoAbilities(
+        checkMaintenance: Boolean,
+        checkMuffler: Boolean,
+        checkParallel: Boolean
+    )(
+        proc: TraceabilityPredicate ?=> Unit
+    ): TraceabilityPredicate =
+      given predicate: TraceabilityPredicate =
+        GtPredicates.autoAbilities(
+          checkMaintenance,
+          checkMuffler,
+          checkParallel
+        )
+      proc
+      predicate
 
-  /** 追加一个分支到 or 链。返回新实例，不修改原 predicate。 */
+    def dataHatchPredicate(
+        defaultPredicate: TraceabilityPredicate
+    ): TraceabilityPredicate =
+      GtPredicates.dataHatchPredicate(defaultPredicate)
+
+    def frames(frameMaterials: Material*): TraceabilityPredicate =
+      GtPredicates.frames(frameMaterials*)
+
+    def frames(frameMaterials: Material*)(
+        proc: TraceabilityPredicate ?=> Unit
+    ): TraceabilityPredicate =
+      given predicate: TraceabilityPredicate =
+        GtPredicates.frames(frameMaterials*)
+      proc
+      predicate
+
+    def custom(
+        predicate: MultiblockState => Boolean,
+        candidates: () => Array[BlockInfo]
+    ): TraceabilityPredicate =
+      GtPredicates.custom(predicate.asJava, candidates.asJava)
+
+    def custom(
+        _predicate: MultiblockState => Boolean,
+        candidates: () => Array[BlockInfo]
+    )(
+        proc: TraceabilityPredicate ?=> Unit
+    ): TraceabilityPredicate =
+      given predicate: TraceabilityPredicate =
+        GtPredicates.custom(_predicate.asJava, candidates.asJava)
+      proc
+      predicate
+  end Predicates
+
   extension (self: TraceabilityPredicate)
     def |(other: TraceabilityPredicate): TraceabilityPredicate =
       self.or(other)
 
-  // ---- 限量与配置方法 (given TraceabilityPredicate) ----
-
-  /** 全局最少数量 */
   def setMinGlobalLimited(min: Int)(using
       predicate: TraceabilityPredicate
   ): Unit =
     predicate.setMinGlobalLimited(min)
 
-  /** 全局最少数量 + JEI 预览数 */
   def setMinGlobalLimited(min: Int, previewCount: Int)(using
       predicate: TraceabilityPredicate
   ): Unit =
     predicate.setMinGlobalLimited(min, previewCount)
 
-  /** 全局最多数量 */
   def setMaxGlobalLimited(max: Int)(using
       predicate: TraceabilityPredicate
   ): Unit =
     predicate.setMaxGlobalLimited(max)
 
-  /** 全局最多数量 + JEI 预览数 */
   def setMaxGlobalLimited(max: Int, previewCount: Int)(using
       predicate: TraceabilityPredicate
   ): Unit =
     predicate.setMaxGlobalLimited(max, previewCount)
 
-  /** 每层最少数量 */
   def setMinLayerLimited(min: Int)(using
       predicate: TraceabilityPredicate
   ): Unit =
     predicate.setMinLayerLimited(min)
 
-  /** 每层最少数量 + JEI 预览数 */
   def setMinLayerLimited(min: Int, previewCount: Int)(using
       predicate: TraceabilityPredicate
   ): Unit =
     predicate.setMinLayerLimited(min, previewCount)
 
-  /** 每层最多数量 */
   def setMaxLayerLimited(max: Int)(using
       predicate: TraceabilityPredicate
   ): Unit =
     predicate.setMaxLayerLimited(max)
 
-  /** 每层最多数量 + JEI 预览数 */
   def setMaxLayerLimited(max: Int, previewCount: Int)(using
       predicate: TraceabilityPredicate
   ): Unit =
     predicate.setMaxLayerLimited(max, previewCount)
 
-  /** 最少与最多都等于 limit */
   def setExactLimit(limit: Int)(using predicate: TraceabilityPredicate): Unit =
     predicate.setExactLimit(limit)
 
-  /** JEI 预览中出现的数量 */
   def setPreviewCount(count: Int)(using
       predicate: TraceabilityPredicate
   ): Unit =
     predicate.setPreviewCount(count)
 
-  /** 禁止渲染成型结构 */
   def disableRenderFormed()(using predicate: TraceabilityPredicate): Unit =
     predicate.disableRenderFormed()
 
-  /** 设置 IO 方向 */
   def setIO(io: IO)(using predicate: TraceabilityPredicate): Unit =
     predicate.setIO(io)
 
-  /** 设置 NBT 解析器 */
   def setNBTParser(nbtParser: String)(using
       predicate: TraceabilityPredicate
   ): Unit =
     predicate.setNBTParser(nbtParser)
 
-  /** 设置槽位名 */
   def setSlotName(slotName: String)(using
       predicate: TraceabilityPredicate
   ): Unit =
     predicate.setSlotName(slotName)
+
+  /** Attribute `:=` value syntax for the `set*` modifiers above. Each attribute
+    * is a singleton object whose `:=` method delegates to the corresponding
+    * setter, resolving the target [[TraceabilityPredicate]] from context
+    * (supplied by a predicate's `proc` block). The two-Int attributes accept
+    * either a single limit or a `(limit, previewCount)` tuple.
+    */
+  object minGlobalLimited:
+    def :=(value: Int)(using predicate: TraceabilityPredicate): Unit =
+      predicate.setMinGlobalLimited(value)
+    def :=(value: (Int, Int))(using predicate: TraceabilityPredicate): Unit =
+      predicate.setMinGlobalLimited(value._1, value._2)
+
+  object maxGlobalLimited:
+    def :=(value: Int)(using predicate: TraceabilityPredicate): Unit =
+      predicate.setMaxGlobalLimited(value)
+    def :=(value: (Int, Int))(using predicate: TraceabilityPredicate): Unit =
+      predicate.setMaxGlobalLimited(value._1, value._2)
+
+  object minLayerLimited:
+    def :=(value: Int)(using predicate: TraceabilityPredicate): Unit =
+      predicate.setMinLayerLimited(value)
+    def :=(value: (Int, Int))(using predicate: TraceabilityPredicate): Unit =
+      predicate.setMinLayerLimited(value._1, value._2)
+
+  object maxLayerLimited:
+    def :=(value: Int)(using predicate: TraceabilityPredicate): Unit =
+      predicate.setMaxLayerLimited(value)
+    def :=(value: (Int, Int))(using predicate: TraceabilityPredicate): Unit =
+      predicate.setMaxLayerLimited(value._1, value._2)
+
+  object exactLimit:
+    def :=(value: Int)(using predicate: TraceabilityPredicate): Unit =
+      predicate.setExactLimit(value)
+
+  object previewCount:
+    def :=(value: Int)(using predicate: TraceabilityPredicate): Unit =
+      predicate.setPreviewCount(value)
+
+  object io:
+    def :=(value: IO)(using predicate: TraceabilityPredicate): Unit =
+      predicate.setIO(value)
+
+  object nbtParser:
+    def :=(value: String)(using predicate: TraceabilityPredicate): Unit =
+      predicate.setNBTParser(value)
+
+  object slotName:
+    def :=(value: String)(using predicate: TraceabilityPredicate): Unit =
+      predicate.setSlotName(value)
