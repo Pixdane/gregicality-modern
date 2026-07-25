@@ -14,8 +14,8 @@ object ComponentDsl:
   ): Unit =
     components += Component.translatable(key, args)
 
-  /** Auto-generate `count` translatable components from a base key,
-    * numbered `.0` through `.<count-1>`. Mirrors CEU's `multiLang` key scheme.
+  /** Auto-generate `count` translatable components from a base key, numbered
+    * `.0` through `.<count-1>`. Mirrors CEU's `multiLang` key scheme.
     */
   def multiTranslatable(baseKey: String, count: Int)(using
       components: ArrayBuffer[Component]

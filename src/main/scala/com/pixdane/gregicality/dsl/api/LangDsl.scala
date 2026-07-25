@@ -6,9 +6,9 @@ import scala.collection.mutable.ArrayBuffer
 
 /** DSL for collecting English lang entries during datagen.
   *
-  * Mirrors the `tooltips`/`ComponentDsl` pattern: a block scopes an accumulator,
-  * `en` appends `(key, value)` pairs, and the block is flushed onto the
-  * `RegistrateLangProvider` at the end.
+  * Mirrors the `tooltips`/`ComponentDsl` pattern: a block scopes an
+  * accumulator, `en` appends `(key, value)` pairs, and the block is flushed
+  * onto the `RegistrateLangProvider` at the end.
   *
   * {{{
   * translations:
@@ -23,16 +23,18 @@ object LangDsl:
   ): Unit =
     entries += (key -> value)
 
-  /** Append a numbered tooltip entry under `gregicality.machine.<name>.tooltip.<n>`,
-    * numbered `.0` through `.<count-1>` (CEU convention).
+  /** Append a numbered tooltip entry under
+    * `gregicality.machine.<name>.tooltip.<n>`, numbered `.0` through
+    * `.<count-1>` (CEU convention).
     */
   def tooltip(machine: String, index: Int, value: String)(using
       entries: ArrayBuffer[(String, String)]
   ): Unit =
     entries += (s"gregicality.machine.$machine.tooltip.$index" -> value)
 
-  /** Append multiple tooltip entries under `gregicality.machine.<name>.tooltip`,
-    * numbered `.0` through `.<lines.length-1>`. Mirrors CEU's `multiLang`.
+  /** Append multiple tooltip entries under
+    * `gregicality.machine.<name>.tooltip`, numbered `.0` through
+    * `.<lines.length-1>`. Mirrors CEU's `multiLang`.
     */
   def machineTooltip(machine: String, lines: String*)(using
       entries: ArrayBuffer[(String, String)]

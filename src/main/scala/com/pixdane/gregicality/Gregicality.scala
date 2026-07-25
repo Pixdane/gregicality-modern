@@ -7,8 +7,12 @@ import com.gregtechceu.gtceu.api.recipe.GTRecipeType
 import com.gregtechceu.gtceu.api.registry.registrate.GTRegistrate
 import com.gregtechceu.gtceu.api.sound.SoundEntry
 import com.pixdane.gregicality.client.GregicalityClient
-import com.pixdane.gregicality.common.data.{GregicalityLangHandler, GregicalityMaterials}
+import com.pixdane.gregicality.common.data.{
+  GregicalityLangHandler,
+  GregicalityMaterials
+}
 import com.pixdane.gregicality.common.data.machines.GregicalityMultiMachines
+import com.pixdane.gregicality.config.GregicalityConfig
 import com.tterrag.registrate.providers.{ProviderType, RegistrateLangProvider}
 import net.minecraft.resources.ResourceLocation
 import net.minecraftforge.api.distmarker.Dist
@@ -28,6 +32,9 @@ object Gregicality:
   init()
 
   private def init(): Unit =
+    // Must run before anything reads a config value.
+    GregicalityConfig.init()
+
     given Logger = LogManager.getLogger(MOD_ID)
     given modEventBus: IEventBus = FMLJavaModLoadingContext.get().getModEventBus
 

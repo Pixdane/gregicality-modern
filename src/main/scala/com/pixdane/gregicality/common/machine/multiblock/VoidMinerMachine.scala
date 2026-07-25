@@ -21,30 +21,47 @@ import com.gregtechceu.gtceu.common.data.GTRecipeTypes.DUMMY_RECIPES
 import com.gregtechceu.gtceu.common.data.machines.GTMachineUtils.registerTieredMultis
 import com.pixdane.gregicality.Gregicality
 import com.tterrag.registrate.providers.RegistrateLangProvider
-import com.pixdane.gregicality.dsl.machine.MachineBuilderDsl.{abilities => _, *}
+import com.pixdane.gregicality.dsl.machine.MachineBuilderDsl.{abilities as _, *}
 import com.pixdane.gregicality.dsl.machine.MultiblockMachineBuilderDsl.*
 import com.pixdane.gregicality.Gregicality.REGISTRATE
 import com.pixdane.gregicality.dsl.api.ComponentDsl.*
+import com.pixdane.gregicality.dsl.api.FactoryBlockPatternDsl.*
 import com.pixdane.gregicality.dsl.api.LangDsl.*
 import com.pixdane.gregicality.dsl.api.TraceabilityPredicateDsl.*
 import com.pixdane.gregicality.dsl.api.TraceabilityPredicateDsl.Predicates.*
-import com.pixdane.gregicality.dsl.pattern.FactoryBlockPatternDsl.*
 import net.minecraft.network.chat.Component
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.level.block.Block
 
-// TODO: VoidMinerMachine has the real 9x10x10 structure from TJFork but still
-// uses DUMMY_RECIPES and placeholder casings/frames. Real void-mining
-// RecipeLogic, ore production, and the temperature/fluid system are not
-// implemented. Materials (Seaborgium/Bohrium) and fluids (Pyrotheum/
-// Cryotheum/DrillingMud) use GT built-in placeholders.
+// TODO: VoidMinerMachine migration status (skeleton only; runtime logic missing).
+//
+// [x] Structure pattern (9x10x10, matches TJFork)
+// [x] Abilities + maintenance hatch declared
+// [x] Lang/tooltips + generated assets
+// [x] Config (maxTemp, fluids, ore blacklist/whitelist, oreVariants, oreProcStep)
+// [ ] Consume config
+// [ ] Custom materials — Seaborgium, Bohrium (IngotMaterial + GENERATE_FRAME).
+// [ ] Custom fluids — Pyrotheum, Cryotheum, DrillingMud, UsedDrillingMud.
+// [ ] Custom casings — MetalCasing1 (Hastelloy-N/Incoloy-813/Hastelloy-X78),
+//     MetalCasing2 (Staballoy/Tritanium/Quantum); replace GT placeholders.
+// [ ] Custom frames — Seaborgium/Bohrium frames; replace BedrockOreMiner borrow.
+// [ ] VoidMinerHandler — ore collection via OrePrefix, ORES/ORES_2/ORES_3 lists.
+// [ ] updateFormedValid — temperature system (Pyrotheum up / Cryotheum down),
+//     overheat, fluid consumption (DrillingMud -> UsedDrillingMud), ore output.
+// [ ] NBT persistence — temperature, overheat flag, drilling fluid state.
+// [ ] RecipeType — decide: keep DUMMY_RECIPES (TJFork has no recipe map) or
+//     model temp/fluid as a GTRecipeType.
+// [ ] Assembly-line recipes — 3 tiers (Mk I needs Large Miner prerequisites).
+// [ ] JEI shapeInfo — concrete-block preview layout (pattern uses predicates,
+//     shapeInfo uses specific blocks/tier hatches; chars can differ).
+// [ ] Large Miner prerequisites — Basic/Large/Advanced miners (recipe inputs).
 class VoidMinerMachine(holder: IMachineBlockEntity, tier: Int)
     extends WorkableElectricMultiblockMachine(holder)
     with ITieredMachine
 
 object VoidMinerMachine:
 
-  inline val ID = "void_miner"
+  private inline val ID = "void_miner"
 
   def register(): Array[MultiblockMachineDefinition] =
     registerTieredMultis(
@@ -96,15 +113,25 @@ object VoidMinerMachine:
 
           'S' := controller(definition.get)
 
-          'C' := blocks(getCasingState(tier))
-            | abilities(PartAbility.EXPORT_ITEMS, PartAbility.EXPORT_FLUIDS)
-            | abilities(PartAbility.IMPORT_FLUIDS) {
-              minGlobalLimited := 1
-            }
-            | abilities(PartAbility.INPUT_ENERGY) {
-              minGlobalLimited := 1
-            }
-            | abilities(PartAbility.MAINTENANCE)
+          'C' := blocks(getCasingState(tier)) {
+            minGlobalLimited := 3
+          } | abilities(PartAbility.EXPORT_ITEMS) {
+            exactLimit := 1
+            previewCount := 1
+          } | abilities(PartAbility.EXPORT_FLUIDS) {
+            exactLimit := 1
+            previewCount := 1
+          } | abilities(PartAbility.IMPORT_FLUIDS) {
+            exactLimit := 1
+            previewCount := 1
+          } | abilities(PartAbility.INPUT_ENERGY) {
+            minGlobalLimited := 1
+            maxGlobalLimited := 2
+            previewCount := 1
+          } | abilities(PartAbility.MAINTENANCE) {
+            exactLimit := 1
+            previewCount := 1
+          }
 
           'D' := blocks(getSecondaryCasingState(tier))
 

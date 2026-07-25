@@ -1,4 +1,4 @@
-package com.pixdane.gregicality.dsl.pattern
+package com.pixdane.gregicality.dsl.api
 
 import com.gregtechceu.gtceu.api.pattern.{
   FactoryBlockPattern,

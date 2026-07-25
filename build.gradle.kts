@@ -28,6 +28,12 @@ dependencies {
     // IEnhancedManaged, etc.).
     compileOnly(deps.ldlib)
 
+    // Toma Configuration is likewise jar-in-jar'd inside gtceu (and declared
+    // mandatory + embedded in its mods.toml), so it is guaranteed at runtime.
+    // compileOnly is enough for the Scala compiler to resolve @Config /
+    // @Configurable; no jarJar of our own copy is needed.
+    compileOnly(deps.configuration)
+
     modRuntimeOnly(variantOf(deps.scalablecatsforce) {
         classifier("with-library")
     }) {
