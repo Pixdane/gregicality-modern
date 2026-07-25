@@ -1,0 +1,11 @@
+{
+  "block.gregicality.uv_void_miner": "§3虚空采矿场§r",
+  "block.gregicality.uhv_void_miner": "§4次世代虚空采矿机§r",
+  "block.gregicality.uev_void_miner": "§a终焉虚空采矿机§r",
+  "gregicality.machine.void_miner.tooltip.0": "虚空采矿场会从虚空之力中提取出成吨的矿石。",
+  "gregicality.machine.void_miner.tooltip.1": "它每秒都会交替消耗烈焰之炽焱和极寒之凛冰。",
+  "gregicality.machine.void_miner.tooltip.2": "如果只有烈焰之炽焱温度会升高，只有极寒之凛冰则温度会降低。",
+  "gregicality.machine.void_miner.tooltip.3": "首先先只供应烈焰之炽焱来升温，当温度差不多高时再慢慢加入极寒之凛冰。",
+  "gregicality.machine.void_miner.tooltip.4": "如果温度高于最大温度，虚空采矿场会停机降温。",
+  "gregicality.machine.void_miner.tooltip.5": "每秒以消耗烈焰之炽焱的同样速度消耗钻井泥浆。"
+}

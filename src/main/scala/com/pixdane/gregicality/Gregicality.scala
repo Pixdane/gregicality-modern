@@ -7,8 +7,9 @@ import com.gregtechceu.gtceu.api.recipe.GTRecipeType
 import com.gregtechceu.gtceu.api.registry.registrate.GTRegistrate
 import com.gregtechceu.gtceu.api.sound.SoundEntry
 import com.pixdane.gregicality.client.GregicalityClient
-import com.pixdane.gregicality.common.data.GregicalityMaterials
+import com.pixdane.gregicality.common.data.{GregicalityLangHandler, GregicalityMaterials}
 import com.pixdane.gregicality.common.data.machines.GregicalityMultiMachines
+import com.tterrag.registrate.providers.{ProviderType, RegistrateLangProvider}
 import net.minecraft.resources.ResourceLocation
 import net.minecraftforge.api.distmarker.Dist
 import net.minecraftforge.eventbus.api.IEventBus
@@ -37,6 +38,12 @@ object Gregicality:
     modEventBus.addGenericListener(classOf[GTRecipeType], registerRecipeTypes)
     modEventBus.addGenericListener(classOf[MachineDefinition], registerMachines)
     modEventBus.addGenericListener(classOf[SoundEntry], registerSounds)
+
+    REGISTRATE.addDataGenerator(
+      ProviderType.LANG,
+      (provider: RegistrateLangProvider) =>
+        GregicalityLangHandler.init(provider)
+    )
 
     REGISTRATE.registerRegistrate()
 

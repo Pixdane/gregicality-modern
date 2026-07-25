@@ -1,3 +1,11 @@
 {
-  "material.gregicality.test_material": "Test Material"
+  "block.gregicality.uev_void_miner": "§aEpic Void Ore Miner II§r",
+  "block.gregicality.uhv_void_miner": "§4Epic Void Ore Miner §r",
+  "block.gregicality.uv_void_miner": "§3Ultimate Void Ore Miner §r",
+  "gregicality.machine.void_miner.tooltip.0": "The Void Ore Miner will produce tons of ores.",
+  "gregicality.machine.void_miner.tooltip.1": "It will consume Pyrotheum and Cryotheum alternating each second.",
+  "gregicality.machine.void_miner.tooltip.2": "Temperature will increase if there is only Pyrotheum and will decrease if there is only Cryotheum.",
+  "gregicality.machine.void_miner.tooltip.3": "The First step will be to only feed with Pyrotheum and when the temperature is at the perfect spot, slowly add Cryotheum.",
+  "gregicality.machine.void_miner.tooltip.4": "If temperature is above the max temperature the Void Ore Miner will stop working and slowly cool down.",
+  "gregicality.machine.void_miner.tooltip.5": "Consumes Drilling Mud and outputs Used Drilling Mud every second at the same rate as Pyrotheum."
 }

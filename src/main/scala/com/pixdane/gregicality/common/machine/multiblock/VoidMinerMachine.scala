@@ -20,10 +20,12 @@ import com.gregtechceu.gtceu.common.data.{GTBlocks, GTMaterials}
 import com.gregtechceu.gtceu.common.data.GTRecipeTypes.DUMMY_RECIPES
 import com.gregtechceu.gtceu.common.data.machines.GTMachineUtils.registerTieredMultis
 import com.pixdane.gregicality.Gregicality
+import com.tterrag.registrate.providers.RegistrateLangProvider
 import com.pixdane.gregicality.dsl.machine.MachineBuilderDsl.{abilities => _, *}
 import com.pixdane.gregicality.dsl.machine.MultiblockMachineBuilderDsl.*
 import com.pixdane.gregicality.Gregicality.REGISTRATE
 import com.pixdane.gregicality.dsl.api.ComponentDsl.*
+import com.pixdane.gregicality.dsl.api.LangDsl.*
 import com.pixdane.gregicality.dsl.api.TraceabilityPredicateDsl.*
 import com.pixdane.gregicality.dsl.api.TraceabilityPredicateDsl.Predicates.*
 import com.pixdane.gregicality.dsl.pattern.FactoryBlockPatternDsl.*
@@ -42,10 +44,12 @@ class VoidMinerMachine(holder: IMachineBlockEntity, tier: Int)
 
 object VoidMinerMachine:
 
+  inline val ID = "void_miner"
+
   def register(): Array[MultiblockMachineDefinition] =
     registerTieredMultis(
       REGISTRATE,
-      "void_miner",
+      ID,
       VoidMinerMachine(_, _),
       build(_)(using _),
       UV,
@@ -64,8 +68,7 @@ object VoidMinerMachine:
       recipeType(DUMMY_RECIPES)
 
       tooltips:
-        literal("text")
-        translatable("gregicality.machine.void_miner.description")
+        multiTranslatable(s"gregicality.machine.$ID.tooltip", 6)
 
       appearanceBlock := (() => getCasingState(tier))
 
@@ -146,3 +149,16 @@ object VoidMinerMachine:
         GTCEu.id("block/casings/solid/machine_casing_robust_tungstensteel")
       case _ =>
         GTCEu.id("block/casings/solid/machine_casing_solid_steel")
+
+  def langEntries(provider: RegistrateLangProvider): Unit =
+    given RegistrateLangProvider = provider
+    translations:
+      machineTooltip(
+        ID,
+        "The Void Ore Miner will produce tons of ores.",
+        "It will consume Pyrotheum and Cryotheum alternating each second.",
+        "Temperature will increase if there is only Pyrotheum and will decrease if there is only Cryotheum.",
+        "The First step will be to only feed with Pyrotheum and when the temperature is at the perfect spot, slowly add Cryotheum.",
+        "If temperature is above the max temperature the Void Ore Miner will stop working and slowly cool down.",
+        "Consumes Drilling Mud and outputs Used Drilling Mud every second at the same rate as Pyrotheum."
+      )
