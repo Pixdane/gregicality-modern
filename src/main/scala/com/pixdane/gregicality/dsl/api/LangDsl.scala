@@ -12,7 +12,7 @@ import scala.collection.mutable.ArrayBuffer
   *
   * {{{
   * translations:
-  *   en("gregicality.machine.void_miner.tooltip.0", "The Void Ore Miner will produce tons of ores.")
+  *   "gregicality.machine.void_miner.tooltip.0" := "The Void Ore Miner will produce tons of ores."
   * }}}
   */
 object LangDsl:
@@ -22,6 +22,11 @@ object LangDsl:
       entries: ArrayBuffer[(String, String)]
   ): Unit =
     entries += (key -> value)
+
+  extension (key: String)
+    def :=(value: String)(using
+        entries: ArrayBuffer[(String, String)]
+    ): Unit = en(key, value)
 
   /** Append a numbered tooltip entry under
     * `gregicality.machine.<name>.tooltip.<n>`, numbered `.0` through
