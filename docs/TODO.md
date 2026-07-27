@@ -19,8 +19,8 @@
 
 ## 1. GTCEu Modern Addon 接入
 
-- [ ] 创建 Gregicality 的 GTCEu addon 入口。
-- [ ] 接入 GTCEu 的材料注册生命周期。
+- [x] 创建 Gregicality 的 GTCEu addon 入口。
+- [x] 接入 GTCEu 的材料注册生命周期。
 - [ ] 接入 GTCEu 的机器注册生命周期。
 - [ ] 接入 GTCEu 的 recipe type 和配方生成生命周期。
 - [ ] 接入 datagen 入口，用于生成资源和数据。
@@ -146,6 +146,8 @@
 
 ## 12. 核工业系统
 
+暂缓：准备使用 Supercritical 作为核电系统
+
 - [ ] 迁移核反应堆。
 - [ ] 迁移核增殖反应堆。
 - [ ] 迁移气体离心机。
@@ -200,6 +202,13 @@
 
 ## 17. 配置系统
 
+- [x] 建立 Fzzy Config 0.7.6 + Scala holder、TOML 和自动 GUI。
+- [x] 迁移 Void Miner 配置定义（独立 `VoidMinerConfig` section 文件）。
+- [x] 为 Void Miner 配置声明服务端同步与重启要求（`RegisterType.BOTH`）。
+- [x] 完成独立服务端到客户端的实际同步联调。
+- [x] 通过 `GregicalityConfig.instance` 直接读取 Fzzy 运行时实例，弃用 `cache`/`snapshot` 中间层。
+- [x] 黑/白名单重构为层级 `ConfigSection`（`blacklist`/`whitelist`），内按电压 UV/UHV/UEV 分字段；全部使用无约束 `ValidatedIdentifier` 仅校验 ResourceLocation 语法，存在性由 Void Miner 消费时解析。
+- [ ] 在 Void Miner 运行时逻辑中通过 `GregicalityConfig.instance.voidMiner` 消费配置。
 - [ ] 迁移客户端配置。
 - [ ] 迁移能源转换配置。
 - [ ] 迁移 GT5U / GT6 风格功能开关。
@@ -207,7 +216,7 @@
 - [ ] 迁移多方块维护配置。
 - [ ] 迁移矿物处理、UU-Matter、钨处理、拆解机等玩法开关。
 - [ ] 迁移跨模组集成开关。
-- [ ] 迁移配置热同步或重启要求说明。
+- [ ] 迁移其余配置的热同步或重启要求说明。
 
 ## 18. 网络、能力与持久化
 

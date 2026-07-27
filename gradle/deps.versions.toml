@@ -16,6 +16,13 @@ registrate = "MC1.20-1.3.11"
 # Scala compiler can resolve ldlib types (BlockInfo, IEnhancedManaged, etc.)
 # on CI without the gitignored libs/ jar.
 ldlib = "1.0.40.b"
+# Fzzy Config — standalone configuration screen library.
+# Not bundled by gtceu; modImplementation exposes its API at compile time.
+fzzyConfig = "0.7.6+1.20.1+forge"
+kotlinStdlib = "2.0.20"
+kotlinForForge = "4.11.0"
+tomlkt = "0.3.7"
+jankson = "1.2.3"
 
 [libraries]
 annotations = { module = "org.jetbrains:annotations", version.ref = "annotations" }
@@ -36,6 +43,11 @@ scalablecatsforce = { module = "com.kotori316:scalablecatsforce", version.ref = 
 gtceu = { module = "com.gregtechceu.gtceu:gtceu-1.20.1", version.ref = "gtceu" }
 registrate = { module = "com.tterrag.registrate:Registrate", version.ref = "registrate" }
 ldlib = { module = "com.lowdragmc.ldlib:ldlib-forge-1.20.1", version.ref = "ldlib" }
+fzzyConfig = { module = "me.fzzyhmstrs:fzzy_config", version.ref = "fzzyConfig" }
+kotlinStdlib = { module = "org.jetbrains.kotlin:kotlin-stdlib", version.ref = "kotlinStdlib" }
+kotlinForForge = { module = "thedarkcolour:kotlinforforge", version.ref = "kotlinForForge" }
+tomlkt = { module = "net.peanuuutz.tomlkt:tomlkt-jvm", version.ref = "tomlkt" }
+jankson = { module = "blue.endless:jankson", version.ref = "jankson" }
 
 [bundles]
 jei = ["jei-common-api", "jei-forge-api", "jei-forge-impl"]

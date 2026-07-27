@@ -6,12 +6,7 @@ import com.gregtechceu.gtceu.api.data.chemical.material.event.{
   MaterialRegistryEvent,
   PostMaterialEvent
 }
-import com.gregtechceu.gtceu.common.data.GTMaterials
 import com.pixdane.gregicality.Gregicality
-import com.pixdane.gregicality.dsl.materials.{
-  ModificationRegistryContext,
-  RegistryContext
-}
 import net.minecraftforge.eventbus.api.IEventBus
 import org.apache.logging.log4j.Logger
 

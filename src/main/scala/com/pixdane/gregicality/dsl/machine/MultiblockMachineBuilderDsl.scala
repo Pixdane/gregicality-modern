@@ -117,22 +117,6 @@ object MultiblockMachineBuilderDsl:
   ): Unit =
     builder.partSorter(sorter)
 
-    /** 从三行方向头解析 start 参数并调用 FactoryBlockPattern.start。
-      *
-      * 输入格式:
-      * {{{
-      *   """
-      *     | -X<-o----> +Z
-      *     |     |
-      *     |    +Y
-      *     """
-      * }}}
-      *
-      * 解析规则:
-      *   - 第一行 trim 后用 "<-o---->" split:左 = charDir 反方向,右 = stringDir 正方向
-      *   - 第三行 trim:aisleDir 正方向
-      *   - 有符号轴标记:+X/-X/+Y/-Y/+Z/-Z (大小写不敏感)
-      */
   private def parseDirection(
       raw: String
   ): FactoryBlockPattern =

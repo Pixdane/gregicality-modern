@@ -59,10 +59,9 @@ object MachineBuilderDsl:
   ): Unit =
     builder.shape(shape)
 
-  def rotationState(rotationState: RotationState)(using
-      builder: MachineBuilder[_, _]
-  ): Unit =
-    builder.rotationState(rotationState)
+  object rotationState:
+    def :=(value: RotationState)(using builder: MachineBuilder[_, _]): Unit =
+      builder.rotationState(value)
 
   def allowExtendedFacing(allowExtendedFacing: Boolean)(using
       builder: MachineBuilder[_, _]
@@ -197,10 +196,9 @@ object MachineBuilderDsl:
   ): Unit =
     builder.editableUI(editableUI)
 
-  def langValue(langValue: String)(using
-      builder: MachineBuilder[_, _]
-  ): Unit =
-    builder.langValue(langValue)
+  object langValue:
+    def :=(value: String)(using builder: MachineBuilder[_, _]): Unit =
+      builder.langValue(value)
 
   def recipeType(recipeType: GTRecipeType)(using
       builder: MachineBuilder[_, _]
@@ -358,10 +356,11 @@ object MachineBuilderDsl:
   ): Unit =
     builder.sidedWorkableCasingModel(baseCasing, workableModel)
 
-  def appearanceBlock(block: () => ? <: Block)(using
-      builder: MachineBuilder[_, _]
-  ): Unit =
-    builder.appearanceBlock(block.asJava)
+  object appearanceBlock:
+    def :=(value: () => ? <: Block)(using
+        builder: MachineBuilder[_, _]
+    ): Unit =
+      builder.appearanceBlock(value.asJava)
 
   def tooltips(child: ArrayBuffer[Component] ?=> Unit)(using
       builder: MachineBuilder[_, _]

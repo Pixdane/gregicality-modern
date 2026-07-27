@@ -50,19 +50,15 @@ repositories {
         }
     }
 
-    exclusiveContent {
-        forRepositories(
+    exclusiveContent { // Fzzy Config
+        forRepository {
             maven {
-                name = "Toma Maven"
-                url = uri("https://repo.repsy.io/mvn/toma/public/")
-            },
-            maven {
-                name = "Toma Maven Api"
-                url = uri("https://api.repsy.io/mvn/toma/public")
-            },
-        )
+                name = "Fzzyhmstrs Maven"
+                url = uri("https://maven.fzzyhmstrs.me")
+            }
+        }
         filter {
-            includeGroup("dev.toma.configuration")
+            includeGroup("me.fzzyhmstrs")
         }
     }
 

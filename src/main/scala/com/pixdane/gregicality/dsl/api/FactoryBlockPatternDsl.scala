@@ -1,4 +1,4 @@
-package com.pixdane.gregicality.dsl.pattern
+package com.pixdane.gregicality.dsl.api
 
 import com.gregtechceu.gtceu.api.pattern.{
   FactoryBlockPattern,
@@ -40,13 +40,7 @@ object FactoryBlockPatternDsl:
     given WhereScope = WhereScope
     proc
 
-  trait StructureMarker
-  private object StructureMarker extends StructureMarker
-
-  def structure(using factory: FactoryBlockPattern): StructureMarker =
-    StructureMarker
-
-  extension (structure: StructureMarker)
+  object structure:
     def :=(aisels: String)(using factory: FactoryBlockPattern): Unit =
       val lines =
         aisels.stripMargin.linesIterator.filter(_.trim.nonEmpty).toList
