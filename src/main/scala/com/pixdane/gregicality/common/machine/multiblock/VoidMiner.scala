@@ -26,14 +26,14 @@ import com.pixdane.gregicality.dsl.machine.MultiblockMachineBuilderDsl.*
 import com.pixdane.gregicality.Gregicality.REGISTRATE
 import com.pixdane.gregicality.dsl.api.ComponentDsl.*
 import com.pixdane.gregicality.dsl.api.FactoryBlockPatternDsl.*
-import com.pixdane.gregicality.dsl.api.LangDsl.*
+import com.pixdane.gregicality.dsl.api.LangDsl.{machineTooltip, translations}
 import com.pixdane.gregicality.dsl.api.TraceabilityPredicateDsl.*
 import com.pixdane.gregicality.dsl.api.TraceabilityPredicateDsl.Predicates.*
 import net.minecraft.network.chat.Component
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.level.block.Block
 
-// TODO: VoidMinerMachine migration status (skeleton only; runtime logic missing).
+// TODO: VoidMiner migration status (skeleton only; runtime logic missing).
 //
 // [x] Structure pattern (9x10x10, matches TJFork)
 // [x] Abilities + maintenance hatch declared
@@ -55,11 +55,11 @@ import net.minecraft.world.level.block.Block
 // [ ] JEI shapeInfo — concrete-block preview layout (pattern uses predicates,
 //     shapeInfo uses specific blocks/tier hatches; chars can differ).
 // [ ] Large Miner prerequisites — Basic/Large/Advanced miners (recipe inputs).
-class VoidMinerMachine(holder: IMachineBlockEntity, tier: Int)
+class VoidMiner(holder: IMachineBlockEntity, tier: Int)
     extends WorkableElectricMultiblockMachine(holder)
     with ITieredMachine
 
-object VoidMinerMachine:
+object VoidMiner:
 
   private inline val ID = "void_miner"
 
@@ -67,7 +67,7 @@ object VoidMinerMachine:
     registerTieredMultis(
       REGISTRATE,
       ID,
-      VoidMinerMachine(_, _),
+      VoidMiner(_, _),
       build(_)(using _),
       UV,
       UHV,
@@ -138,7 +138,7 @@ object VoidMinerMachine:
           'F' := frames(getFrameMaterial(tier))
 
       workableCasingModel(
-        baseCasing = VoidMinerMachine.getBaseTexture(tier),
+        baseCasing = VoidMiner.getBaseTexture(tier),
         workableModel = GTCEu.id("block/multiblock/bedrock_ore_miner")
       )
 

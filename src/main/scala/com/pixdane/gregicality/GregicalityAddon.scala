@@ -2,7 +2,7 @@ package com.pixdane.gregicality
 
 import com.gregtechceu.gtceu.api.addon.{GTAddon, IGTAddon}
 import com.gregtechceu.gtceu.api.registry.registrate.GTRegistrate
-import com.pixdane.gregicality.common.data.machines.GregicalityMultiMachines
+import com.pixdane.gregicality.common.data.GregicalityMultiMachines
 
 @GTAddon
 final class GregicalityAddon extends IGTAddon:

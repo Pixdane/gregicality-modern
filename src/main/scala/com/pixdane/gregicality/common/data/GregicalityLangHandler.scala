@@ -1,6 +1,6 @@
 package com.pixdane.gregicality.common.data
 
-import com.pixdane.gregicality.common.machine.multiblock.VoidMinerMachine
+import com.pixdane.gregicality.common.machine.multiblock.VoidMiner
 import com.tterrag.registrate.providers.RegistrateLangProvider
 
 /** Adds custom lang keys (tooltips, descriptions) to the generated `en_us.json`
@@ -11,4 +11,6 @@ import com.tterrag.registrate.providers.RegistrateLangProvider
 object GregicalityLangHandler:
 
   def init(provider: RegistrateLangProvider): Unit =
-    VoidMinerMachine.langEntries(provider)
+    VoidMiner.langEntries(provider)
+
+end GregicalityLangHandler

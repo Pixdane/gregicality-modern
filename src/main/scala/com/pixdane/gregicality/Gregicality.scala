@@ -9,9 +9,9 @@ import com.gregtechceu.gtceu.api.sound.SoundEntry
 import com.pixdane.gregicality.client.GregicalityClient
 import com.pixdane.gregicality.common.data.{
   GregicalityLangHandler,
-  GregicalityMaterials
+  GregicalityMaterials,
+  GregicalityMultiMachines
 }
-import com.pixdane.gregicality.common.data.machines.GregicalityMultiMachines
 import com.pixdane.gregicality.config.GregicalityConfig
 import com.tterrag.registrate.providers.{ProviderType, RegistrateLangProvider}
 import net.minecraft.resources.ResourceLocation
